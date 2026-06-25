@@ -183,6 +183,24 @@ Tujuan: hentikan risiko data/uang & penuhi prasyarat Nicho-Brain sebelum nambah 
 
 **Exit criteria:** semua FR PRD ✅; profil FULL Nicho-Brain terpenuhi; build & test hijau di CI.
 
+### FASE 6 — SaaS-ification *(jika dijual sebagai SaaS — ±4–6 hari)*
+Prasyarat sebelum menagih customer. Model tenant: **Silo** (lihat `docs/ADR-001-multi-tenancy.md`).
+
+1. **Tenant control plane** — DB/registry pusat (daftar tenant, status, subdomain, plan); jadikan sumber kebenaran (bukan env per-stack).
+2. **Otomasi provisioning** — `setup-tenant.js` → alur ter-otomasi: create schema → migrate → seed admin → daftar ke registry → siapkan stack/subdomain.
+3. **Super-admin lintas-tenant** — dashboard operator: lihat/suspend/aktifkan tenant, lihat health & pemakaian. Terpisah dari RBAC dalam-tenant (FASE 0).
+4. **Onboarding & signup** — alur daftar mandiri tenant baru + verifikasi email + buat admin pertama.
+5. **Billing & langganan** — integrasi pembayaran (mis. Midtrans/Stripe), paket/plan, status aktif/grace/suspend, batas kuota per plan.
+6. **Routing per tenant** — reverse-proxy (Nginx/Traefik) `tenant.app.com` → stack tenant.
+7. **Deploy fan-out** — pipeline roll upgrade ke semua stack tenant + health-gate per tenant + rollback per tenant (D16).
+8. **Backup per tenant + restore drill terjadwal** (D11) — wajib karena data customer.
+9. **Data lifecycle & privacy (D19)** — retensi PII, enkripsi at-rest, hak penghapusan data tenant saat berhenti langganan.
+10. **Observability per tenant** (D13) — log & metrik ber-label tenant; alerting saat satu tenant down.
+
+**Exit criteria:** tenant baru bisa di-provision otomatis; super-admin & billing jalan; tiap tenant punya backup teruji; upgrade bisa di-roll ke semua tenant dengan aman.
+
+> Pemicu revisit ke model **Pooled** (Opsi B di ADR): tenant > ~20 atau biaya per-tenant tak ekonomis.
+
 ---
 
 ## 5. Urutan Eksekusi & Dependensi
@@ -190,7 +208,7 @@ Tujuan: hentikan risiko data/uang & penuhi prasyarat Nicho-Brain sebelum nambah 
 ```
 FASE 0 (fondasi)  ─┬─▶ FASE 1 (validasi+test+CI)
                    │
-                   └─▶ FASE 2 (promosi) ──▶ FASE 5 (bundling pakai engine)
+                   └─▶ FASE 2 (promosi) ──▶ FASE 5 (bundling pakai engine) ──▶ FASE 6 (SaaS-ification)
                        FASE 3 (setting)
                        FASE 4 (ledger+customer)
 ```
@@ -198,6 +216,7 @@ FASE 0 (fondasi)  ─┬─▶ FASE 1 (validasi+test+CI)
 - FASE 0 & 1 **wajib lebih dulu** (blocker keamanan + harness).
 - FASE 2 sebelum FASE 5 (bundling memakai pricing engine).
 - FASE 3 & 4 independen — bisa paralel setelah FASE 1.
+- FASE 6 hanya jika dijual sebagai SaaS; idealnya setelah FASE 0–1 stabil (fix race + RBAC = prasyarat). Lihat `docs/ADR-001-multi-tenancy.md`.
 
 ## 6. Estimasi Total
 
@@ -209,12 +228,12 @@ FASE 0 (fondasi)  ─┬─▶ FASE 1 (validasi+test+CI)
 | 3 | Setting & akun | 2 hari |
 | 4 | Inventory ledger & customer | 2 hari |
 | 5 | Bundling & pengetatan akhir | 2 hari |
-| | **Total** | **±10–13 hari kerja** |
+| | **Subtotal (produk siap produksi)** | **±10–13 hari kerja** |
+| 6 | SaaS-ification (silo + control plane + billing) | 4–6 hari |
+| | **Total dengan SaaS** | **±14–19 hari kerja** |
 
 ## 7. Quick Wins (bisa duluan, dampak besar / effort kecil)
 1. `git init` + CI gate dasar — 1–2 jam.
 2. Zod env fail-fast + helmet + CORS whitelist — setengah hari.
 3. Diskon master CRUD (tabel sudah ada) — setengah hari.
 4. Payment-types CRUD (lengkapi yang parsial) — 1–2 jam.
-</content>
-</invoke>

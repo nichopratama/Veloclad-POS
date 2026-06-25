@@ -92,11 +92,24 @@
 - [ ] **Pre-delivery gate**: `npm run build` FE+BE hijau, coverage ≥80%, security-review pass — *Reasoning + Code Review*
 - [ ] Tulis rationale deviasi stack (Knex/Vite) di PRD (D3) — *Fast*
 
+## ⬜ FASE 6 — SaaS-ification *(jika dijual sebagai SaaS — model Silo, lihat `docs/ADR-001-multi-tenancy.md`)*
+
+- [ ] Tenant control plane / registry pusat (daftar tenant, status, subdomain, plan) — *Reasoning (desain) → Impl*
+- [ ] Otomasi provisioning tenant (`setup-tenant.js` → alur otomatis: schema→migrate→seed→registry) — *Impl*
+- [ ] Super-admin lintas-tenant (suspend/aktifkan, health, usage) — *Impl + Design*
+- [ ] Onboarding & signup tenant mandiri + verifikasi email — *Impl + Design*
+- [ ] Billing & langganan (Midtrans/Stripe, plan, status aktif/grace/suspend, kuota) — *Reasoning (desain) → Impl*
+- [ ] Routing per tenant (Nginx/Traefik subdomain → stack) — *Impl*
+- [ ] Deploy fan-out + health-gate + rollback per tenant (D16) — *Impl*
+- [ ] Backup per tenant + restore drill terjadwal (D11) — *Impl*
+- [ ] Data lifecycle & privacy: retensi PII, enkripsi at-rest, hak hapus data (D19) — *Reasoning + Impl*
+- [ ] Observability per tenant (log/metrik ber-label + alerting) (D13) — *Impl*
+- [ ] **Security review** FASE 6 (isolasi tenant, billing, PII) — *Reasoning*
+
 ---
 
 ## Catatan koordinasi multi-model
 
 - **Hanya satu penulis filesystem** untuk hindari konflik: model implementasi menulis, model lain (Reasoning/Design) menghasilkan spesifikasi/diff yang diterapkan oleh penulis tunggal. (Lihat skill `multi-execute`.)
 - Tiap fase = satu unit commit + review sebelum lanjut (D6/D9).
-- FASE 0 & 1 wajib sebelum fitur. FASE 3 & 4 boleh paralel setelah FASE 1. FASE 5 setelah FASE 2.
-</content>
+- FASE 0 & 1 wajib sebelum fitur. FASE 3 & 4 boleh paralel setelah FASE 1. FASE 5 setelah FASE 2. FASE 6 hanya untuk SaaS, setelah FASE 0–1 stabil.
