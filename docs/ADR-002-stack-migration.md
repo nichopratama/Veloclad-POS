@@ -96,7 +96,17 @@ Sistem POS **tetap jalan** selama migrasi; route dipindah satu per satu, bukan r
 ## 8. Checklist Eksekusi
 
 > Status per 2026-06-26. ✅ selesai & tervalidasi · 🔄 berjalan · ⬜ belum.
-> Pelaksana: **C** = Claude (reasoning/review) · **G** = Gemini/Deputi Mipro (implementasi mekanis).
+
+#### Pelaksana, model & jenis task (Nicho-Brain D8)
+
+| Kode | Aktor | Model | Tier D8 | Jenis task yang dikerjakan |
+|------|-------|-------|---------|----------------------------|
+| **C** | Claude | **Opus 4.8** (`claude-opus-4-8`) | Reasoning + Code/Security Review | Plan & ADR, keputusan arsitektur (model tenant, desain auth), implementasi modul **kritikal/uang** (sales: Decimal, anti-oversell, idempotency), serta **seluruh review + quality-gate** tiap modul (D6/D7). Juga M0 scaffold & M1 auth. |
+| **G** | Deputi Mipro | **Gemini 3.1 Pro (High)** | Implementation | Port API **mekanis & ter-spesifikasi** mengikuti `docs/M2-handoff-template.md`: CRUD/route handler berulang. |
+
+**Catatan atribusi (jujur):** Pembagian ini mengikuti alur handoff yang disepakati (mekanis → G, reasoning/kritikal/review → C). Model **G** dikonfirmasi eksplisit oleh user sebagai **Gemini 3.1 Pro (High) "Deputi Mipro"** untuk modul **dashboard**; modul **library** & **inventory** diatribusikan ke **G** berdasarkan alur handoff yang sama (model spesifik tidak dinyatakan eksplisit saat itu). Modul **sales** dan semua **review-fix** dikerjakan oleh **C (Opus 4.8)**.
+
+> Selaras Model-Availability Clause D8: tier *Implementation* dilayani Gemini 3.1 Pro; tier *Reasoning* + *Code/Security Review* dipegang Opus 4.8 (yang juga mengambil Implementation untuk modul uang karena deteksi bug-logika tak boleh diturunkan ke tier termurah).
 
 ### Tahap M0 — Scaffolding ✅
 - [x] Scaffold Next.js (App Router + TS) di `web/` (C)
