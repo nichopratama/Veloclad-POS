@@ -29,16 +29,18 @@
 
 ---
 
-## ⬜ FASE 0 — Fondasi Keamanan *(blocker)*
+## 🔄 FASE 0 — Fondasi Keamanan *(blocker)* — sebagian besar SELESAI (commit `0b18ee2`)
 
-- [ ] **Fix tenant-isolation race** — helper `withTenant()` pakai `SET LOCAL` di koneksi ter-scope — *Reasoning (desain) → Impl*
-- [ ] Refactor semua route (`auth/sales/library/inventory/settings/dashboard`) ke helper baru — *Impl*
-- [ ] Rate-limit `/login` + lockout dasar (`express-rate-limit`) — *Impl*
-- [ ] Structured logging (`pino`) + global error handler (stop bocor `error.message`) — *Impl*
-- [ ] `/health/ready` DB-aware — *Impl*
-- [ ] **RBAC** middleware `requireRole(...)` di endpoint sensitif (void/delete/settings) — *Reasoning (desain) → Impl* · *(Pass #2)*
-- [ ] Pindah token ke httpOnly cookie + CSRF (ganti localStorage) — *Impl* · *(Pass #2)*
-- [ ] **Security review** FASE 0 (OWASP, header, no-leak, RBAC) — *Reasoning*
+- [x] **Fix tenant-isolation race** — `search_path` di-set di level pool (`knexfile afterCreate`), sekali per koneksi → race hilang untuk model silo. Lebih baik dari `SET LOCAL` per-request untuk arsitektur saat ini — *Impl*
+- [x] Strip middleware `setTenantSchema` racy dari semua route (`auth/sales/library/inventory/settings/dashboard`) — *Impl*
+- [x] Rate-limit `/api/auth` (10/15mnt/IP) (`express-rate-limit`) — *Impl* · *(lockout per-akun → FASE 1)*
+- [x] Structured logging (`pino` + `pino-http`) + global error handler (pesan generik, detail di log) + 404 handler — *Impl*
+- [x] `/health/ready` DB-aware — *Impl* · **terverifikasi 503 saat DB down**
+- [x] **RBAC** `requireRole('owner','admin')` di endpoint sensitif (void, deletes, settings, PO, adjustments, payment-types/discounts writes) — *Impl*
+- [x] *(bonus)* Graceful shutdown SIGTERM/SIGINT + `unhandledRejection`/`uncaughtException` handler (D18/D13) — *Impl*
+- [ ] Pindah token ke httpOnly cookie + CSRF (ganti localStorage) — *Impl* · **DITUNDA**: ubah alur login FE+BE, wajib verifikasi dengan app berjalan
+- [ ] **Security review** FASE 0 (OWASP, header, no-leak, RBAC) — *Reasoning* · setelah cookie auth
+- [ ] *(debt)* Konsolidasi 7 pool Knex → 1 instance bersama — *Impl* · FASE 1
 
 ## ⬜ FASE 1 — Validasi, Test, CI
 
