@@ -116,6 +116,76 @@ const itemSchema = z.object({
 
 ---
 
+## D.2 — Modul `inventory`
+
+- **Path dasar:** `web/src/app/api/inventory/`
+- **Model Prisma:** `items`, `categories`, `suppliers`, `purchase_orders`, `po_items`, `stock_adjustments`, `users`
+- **Endpoints:**
+
+| Method | Path | RBAC | Input | Logika | Response |
+|--------|------|------|-------|--------|----------|
+| GET | `/stock-summary` | login | query `{ page?, limit?, search? }` | items + join category/supplier; search `name/code ilike`; **paginasi wajib** | `{ data, pagination }` |
+| GET | `/purchase-orders` | login | — | PO + join supplier(name)+user(name as created_by), order by created_at desc | `{ data }` |
+| POST | `/purchase-orders` | owner/admin | body `{ supplier_id:int, notes?:string, items:[{item_id:int, qty:int>0, cost:number>=0}] }` | hitung total_amount=Σ(cost*qty); generate `po_number = PO-YYYYMMDD-XXXX`; insert PO + po_items. **`$transaction`** | `{ message, po_number }` |
+| PATCH | `/purchase-orders/[id]/receive` | owner/admin | — | guard PO ada & status `pending`; tambah stok tiap po_item; set status `received`. **`$transaction`** | `{ message }` |
+| GET | `/adjustments` | login | — | stock_adjustments + join item(name)+user(name), order by created_at desc | `{ data }` |
+| POST | `/adjustments` | owner/admin | body `{ item_id:int, qty_change:int(≠0), reason:string, notes?:string }` | insert adjustment; `qty_change>0` → increment stok, else decrement `abs`. **`$transaction`** | `{ message }` |
+
+- **Catatan khusus:** PO `receive` saat ini **full-receive** (paritas lama) — partial receive adalah FASE 4, JANGAN tambah sekarang. `user_id` PO/adjustment = `session.user.staffId` (bukan id Better Auth string).
+- **cURL:** `POST /purchase-orders` sbg kasir → 403; sbg owner → 201; `PATCH .../receive` dua kali → kedua = 400 (sudah received).
+
+---
+
+## D.3 — Modul `sales` (PALING KRITIKAL — uang & stok)
+
+- **Path dasar:** `web/src/app/api/sales/`
+- **Model Prisma:** `items`, `transactions`, `transaction_items`, `void_items`, `payment_types`, `tax_settings`, `users`, `customers`
+- **Endpoints:**
+
+| Method | Path | RBAC | Input | Logika | Response |
+|--------|------|------|-------|--------|----------|
+| GET | `/pos-items` | login | query `{ search?, limit?(def 30) }` | jika `search`: items aktif where `name/code ilike` limit. Jika tidak: top-selling 1 bln terakhir (join transaction_items+transactions status completed, group item, sum qty desc); fallback items aktif kalau kosong | `{ data }` |
+| GET | `/transactions` | login | query `{ startDate?, endDate?, search?, status?, cashier?, paymentMethod?, page?, limit? }` | list + join user(cashier_name)+payment_type; status map: success→completed, cancelled, void; `endDate` inklusif `+23:59:59`; lampirkan `items_summary`, `items_detail`, `voided_items`; hitung `summary{total_transactions,total_collected,net_sales}` (hanya completed). **Paginasi wajib** + **filter cashier & paymentMethod (Pass#2)** | `{ summary, data, pagination }` |
+| GET | `/void-items` | login | query `{ startDate?, endDate? }` | void_items + join item/user/transaction, order created_at desc | `{ data }` |
+| POST | `/transactions` | login | body `{ items:[{id:int, price:number, qty:int>0, discount?:number}], payment_type_id:int, payment_amount:number, customer_id?:int, idempotencyKey?:string }` | **(1)** validasi Zod. **(2)** ambil tax_settings; subtotal=Σ(price*qty); `discount_amount`=Σ item.discount (kolom baru); pajak hormati `is_inclusive`; total; change=payment_amount−total. **(3) guard `payment_amount>=total`** else 400. **(4) GUARD ANTI-OVERSELL: cek `item.stock>=qty`** else 400. **(5)** idempotency: header/`Idempotency-Key` unik → tolak duplikat. **(6)** generate `INV-YYYYMMDD-XXXX`; insert transaction + transaction_items (+discount); **decrement stok**. SEMUA dalam **`$transaction`** | `{ message, transaction_id, receipt:{...} }` |
+| POST | `/transactions/[id]/void` | **owner/admin** | body `{ items:[{item_id:int, qty:int>0, refund_amount:number}], reason?:string }` | insert void_items; jika `reason==='Returned Goods'` → increment stok; `refunds += Σ`, `net_sales -= Σ`; jika `refunds>=total` set status `void`. **`$transaction`** | `{ message, total_refund }` |
+
+- **Catatan khusus:** `user_id` transaksi = `session.user.staffId`. **Kolom `transaction_items.discount` & idempotency adalah penambahan M2** (lihat prasyarat migration FASE 2 — koordinasi dgn Claude bila kolom belum ada). Decimal: pakai `Prisma.Decimal`, hati-hati pembulatan uang.
+- **cURL:** checkout `payment_amount < total` → 400; checkout qty > stok → 400; void sbg kasir → 403; double-submit Idempotency-Key sama → transaksi tunggal.
+
+---
+
+## D.4 — Modul `dashboard`
+
+- **Path dasar:** `web/src/app/api/dashboard/`
+- **Model Prisma:** `transactions`, `transaction_items`, `items`
+- **Endpoints:**
+
+| Method | Path | RBAC | Input | Logika | Response |
+|--------|------|------|-------|--------|----------|
+| GET | `/summary` | login | — | `totalSales`=Σ total transaksi completed **hari ini**; `transactionCount`=jumlah; `totalItems`=item aktif | `{ totalSales, transactionCount, totalItems }` |
+| GET | `/sales-chart` | login | — | 7 hari terakhir, Σ total completed per tanggal; balikan array urut `{ date:<nama hari ID>, sales:number }` (isi 0 utk hari tanpa transaksi) | `{ data: [...] }` |
+| GET | `/top-items` | login | query `{ period?: 'today'\|'month' }` | top 5 item by Σ qty (join transaction_items+transactions completed); filter hari ini / bulan ini | `{ data: [...] }` |
+
+- **Catatan khusus:** paritas saja. FR-DASH-04 (low-stock) & FR-DASH-05 (transaksi terakhir) **JANGAN ditambah** di sini — itu FASE 4.
+
+---
+
+## D.5 — Modul `settings`
+
+- **Path dasar:** `web/src/app/api/settings/`
+- **Model Prisma:** `store_settings`, `tax_settings`, `receipt_settings`
+- **Endpoints:**
+
+| Method | Path | RBAC | Input | Logika | Response |
+|--------|------|------|-------|--------|----------|
+| GET | `/store` | login | — | gabung store+tax+receipt (ambil baris pertama tiap tabel; default aman jika kosong) | `{ store_name, address, phone, email, tax_rate, is_tax_active, receipt_footer }` |
+| PUT | `/store` | owner/admin | body `{ store_name?, address?, phone?, email?, tax_rate?:number, is_tax_active?:boolean, receipt_footer? }` | upsert store_settings, tax_settings, receipt_settings (insert bila belum ada, else update). Idealnya **`$transaction`** | `{ message }` |
+
+- **Catatan khusus:** mode pajak inklusif (`is_inclusive`) & toggle kolom receipt = FASE 3, jangan sekarang. Validasi `tax_rate` 0–100.
+
+---
+
 ## E. PROTOKOL REVIEW (saat diff balik ke Claude)
 Claude akan cek: paritas endpoint, kebenaran Zod, RBAC, no N+1, pagination, no leak 5xx, `$transaction` pada operasi kritikal, build hijau. Temuan CRITICAL/HIGH wajib diperbaiki sebelum modul dianggap selesai (Nicho-Brain D6/D7).
 
