@@ -29,6 +29,8 @@
 2. **Hindari `as any`** pada `data:` Prisma & `catch (error: any)`. Pakai `satisfies Prisma.<Model>CreateInput` / `unknown` + narrowing. (Rule global #12: no `any`.)
 3. **orderBy paritas:** untuk picklist (items, categories, payment-types) urut `name`/`id` **asc** (samakan Express lama), bukan `created_at desc`.
 4. Pakai `.issues` bukan `.errors` pada `ZodError` (yang terakhir deprecated).
+5. **DILARANG `$queryRawUnsafe` / string-concat SQL.** Untuk agregasi (top items, dll) pakai Prisma `groupBy` + relation filter (`where: { transactions: { is: { status, created_at } } }`) lalu fetch nama via `findMany({ where:{ id:{ in } } })`. Aman, parameterized, hormati tenant schema.
+6. **Tanggal/analitik:** sadari timezone — `toISOString()` = UTC, bisa salah bucket harian di TZ non-UTC. Pertimbangkan TZ toko untuk pengelompokan per-hari.
 
 ### Definition of Done per modul
 - [ ] Semua endpoint modul porting (paritas dengan Express lama — lihat tabel modul).
