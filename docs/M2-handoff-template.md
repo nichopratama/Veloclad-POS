@@ -24,6 +24,12 @@
 12. **TypeScript strict** — tanpa `any`. Tipe dari Prisma + `z.infer`.
 13. **JANGAN sentuh** folder `api/` & `frontend/` lama, dan tabel existing (hanya baca/tulis data, bukan ubah skema).
 
+### ⚡ Pelajaran dari review modul `library` (WAJIB diterapkan di modul berikutnya)
+1. **Query param: parse `Object.fromEntries(url.searchParams)`** — JANGAN `searchParams.get('x')` per field. `get()` balas `null` saat absen → `null` mematahkan Zod `.default()`/`.optional()` (yang hanya jalan untuk `undefined`). Bug ini bikin SEMUA GET list balas 400 tanpa query.
+2. **Hindari `as any`** pada `data:` Prisma & `catch (error: any)`. Pakai `satisfies Prisma.<Model>CreateInput` / `unknown` + narrowing. (Rule global #12: no `any`.)
+3. **orderBy paritas:** untuk picklist (items, categories, payment-types) urut `name`/`id` **asc** (samakan Express lama), bukan `created_at desc`.
+4. Pakai `.issues` bukan `.errors` pada `ZodError` (yang terakhir deprecated).
+
 ### Definition of Done per modul
 - [ ] Semua endpoint modul porting (paritas dengan Express lama — lihat tabel modul).
 - [ ] Zod schema untuk tiap input.
