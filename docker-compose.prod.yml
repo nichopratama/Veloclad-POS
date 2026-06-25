@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  traefik:
+    image: traefik:v2.10
+    container_name: pos-traefik
+    restart: unless-stopped
+    command:
+      - "--api.insecure=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=${ACME_EMAIL:-admin@yourdomain.com}"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./letsencrypt:/letsencrypt"
+    networks:
+      - pos-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: pos-postgres-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - pos-data-prod:/var/lib/postgresql/data
+    networks:
+      - pos-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pos-api:
+    build: 
+      context: ./api
+    container_name: pos-api-prod
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    networks:
+      - pos-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pos-api.rule=Host(`${DOMAIN}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.pos-api.entrypoints=websecure"
+      - "traefik.http.routers.pos-api.tls.certresolver=myresolver"
+      - "traefik.http.services.pos-api.loadbalancer.server.port=3004"
+
+  pos-frontend:
+    build:
+      context: ./frontend
+    container_name: pos-frontend-prod
+    restart: unless-stopped
+    networks:
+      - pos-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pos-frontend.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.pos-frontend.entrypoints=websecure"
+      - "traefik.http.routers.pos-frontend.tls.certresolver=myresolver"
+      # Nginx dalam container berjalan di port 80
+      - "traefik.http.services.pos-frontend.loadbalancer.server.port=80"
+      # Redirect HTTP to HTTPS
+      - "traefik.http.routers.pos-frontend-http.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.pos-frontend-http.entrypoints=web"
+      - "traefik.http.routers.pos-frontend-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+networks:
+  pos-network:
+    name: pos_network_prod
+
+volumes:
+  pos-data-prod:

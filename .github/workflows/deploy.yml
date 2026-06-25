@@ -1,0 +1,35 @@
+name: Deploy POS to VPS
+
+# Gate produksi (D9): deploy HANYA jalan setelah workflow CI selesai sukses di main.
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Jangan deploy kalau CI merah.
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /opt/antigravity-pos
+            # Tarik kode terbaru
+            git pull origin main
+            
+            # Rebuild image & restart docker dengan file production
+            docker compose -f docker-compose.prod.yml up -d --build
+            
+            # Bersihkan unused images
+            docker image prune -f
