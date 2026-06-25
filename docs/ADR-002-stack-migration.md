@@ -93,3 +93,58 @@ Sistem POS **tetap jalan** selama migrasi; route dipindah satu per satu, bukan r
 - ADR-001 (model tenant SILO) **tetap berlaku**; mekanismenya kini via Prisma connection string.
 - Auth = Better Auth → menutup gap "token di localStorage", "no revocation", "no refresh" sekaligus.
 
+## 8. Checklist Eksekusi
+
+> Status per 2026-06-26. ✅ selesai & tervalidasi · 🔄 berjalan · ⬜ belum.
+> Pelaksana: **C** = Claude (reasoning/review) · **G** = Gemini/Deputi Mipro (implementasi mekanis).
+
+### Tahap M0 — Scaffolding ✅
+- [x] Scaffold Next.js (App Router + TS) di `web/` (C)
+- [x] Setup Prisma + introspeksi DB existing → `schema.prisma` (19 model) (C)
+- [x] Validasi multi-tenant silo via `?schema=` (query data nyata) (C)
+- [x] Prisma singleton, Zod env fail-fast, security headers, `/health` + `/health/ready` (C)
+- [x] Build + runtime tervalidasi (C)
+
+### Tahap M1 — Auth (Better Auth) ✅
+- [x] Backup schema tenant sebelum migrasi (C)
+- [x] Install Better Auth 1.6.20 + `prismaAdapter` (C)
+- [x] Generate 4 tabel auth (user/session/account/verification) — SQL additif, non-destruktif (C)
+- [x] Keputusan: `users` lama = staff (FK target); Better Auth = auth; link via email+`staffId` (C)
+- [x] Password bcrypt verify-shim (user lama login tanpa reset) (C)
+- [x] `lib/auth.ts`, `lib/auth-client.ts`, route `api/auth/[...all]`, seed migrasi user (C)
+- [x] `lib/rbac.ts` (`requireAuth`/`requireRole`) (C)
+- [x] Tervalidasi: login bcrypt, pwd salah 401, cookie httpOnly, CSRF, session DB-backed (revocation), cascade (C)
+- [ ] Login UI minimal → **ditunda ke M3**
+
+### Tahap M2 — Port API per modul ✅
+- [x] `library` — 6 entitas CRUD (G) · fix review: query-param null→undefined (C)
+- [x] `inventory` — stock-summary/PO/receive/adjustments (G) · fix: po_number race→random hex (C)
+- [x] `sales` — pos-items/transactions/void: Decimal, anti-oversell race-safe, idempotency, void (C)
+- [x] Prasyarat sales: kolom `transaction_items.discount` + `transactions.idempotency_key` (additif) (C)
+- [x] `dashboard` — summary/sales-chart/top-items (G) · fix: raw SQL→Prisma `groupBy` (C)
+- [x] `settings` — store get/put (G) · lulus tanpa fix
+- [x] Helper bersama `lib/api.ts` (handleApiError + ApiError) (C)
+- [x] Tiap modul: typecheck + build + runtime test + review-gate (C)
+
+### Tahap M3 — Frontend ⬜
+- [ ] Spec handoff M3 per-halaman (C)
+- [ ] Setup UI shell Next.js (layout, navigasi, AuthProvider via Better Auth client) (C/G)
+- [ ] Halaman Login (Better Auth `signIn`, ganti localStorage JWT) (G)
+- [ ] Halaman Dashboard (summary/chart/top-items) (G)
+- [ ] Halaman Sales/POS (kasir, cart, checkout, struk) (G)
+- [ ] Halaman Sales History + void (G)
+- [ ] Halaman Inventory (stock summary, PO, adjustments) (G)
+- [ ] Halaman Library (items/categories/customers/suppliers/payment-types/discounts) (G)
+- [ ] Halaman Settings (store/tax/receipt) (G)
+- [ ] Guard route by session + role (C)
+- [ ] Review + gate tiap halaman (C)
+
+### Tahap M4 — Cutover & decommission ⬜
+- [ ] Set `BETTER_AUTH_URL` + CORS ke origin nyata (port 3020) (C)
+- [ ] Dockerfile + compose untuk app Next.js (C/G)
+- [ ] Alihkan port 3020 (reverse-proxy) dari frontend lama → Next.js (C)
+- [ ] Update CI (`.github/workflows`) ke stack baru (C)
+- [ ] Rotate secret placeholder (`DB_PASSWORD`, `BETTER_AUTH_SECRET`) (C)
+- [ ] Verifikasi paritas penuh di staging → matikan `api/` & `frontend/` lama (C)
+- [ ] Hapus stack lama (Express/Knex/Vite) setelah stabil (C)
+
