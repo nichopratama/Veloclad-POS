@@ -1,0 +1,10 @@
+node_modules/
+.next/
+.env
+.env.*
+!.env.example
+*.log
+
+# Prisma generated client
+/prisma/generated/
+
