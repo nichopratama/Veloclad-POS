@@ -136,18 +136,19 @@ Sistem POS **tetap jalan** selama migrasi; route dipindah satu per satu, bukan r
 - [x] Helper bersama `lib/api.ts` (handleApiError + ApiError) (C)
 - [x] Tiap modul: typecheck + build + runtime test + review-gate (C)
 
-### Tahap M3 — Frontend ⬜
-- [ ] Spec handoff M3 per-halaman (C)
-- [ ] Setup UI shell Next.js (layout, navigasi, AuthProvider via Better Auth client) (C/G)
-- [ ] Halaman Login (Better Auth `signIn`, ganti localStorage JWT) (G)
-- [ ] Halaman Dashboard (summary/chart/top-items) (G)
-- [ ] Halaman Sales/POS (kasir, cart, checkout, struk) (G)
-- [ ] Halaman Sales History + void (G)
-- [ ] Halaman Inventory (stock summary, PO, adjustments) (G)
-- [ ] Halaman Library (items/categories/customers/suppliers/payment-types/discounts) (G)
-- [ ] Halaman Settings (store/tax/receipt) (G)
-- [ ] Guard route by session + role (C)
-- [ ] Review + gate tiap halaman (C)
+### Tahap M3 — Frontend 🔄
+- [x] Spec handoff M3 per-halaman → `docs/M3-handoff-frontend.md` (Opus)
+- [x] App shell: middleware guard + design tokens + SWR provider/fetcher + layout (Sidebar+Header role-gated) (Opus) — runtime tervalidasi
+- [x] Halaman Login fungsional (Better Auth `signIn`, no localStorage) (Opus) — polesan visual opsional ke Sonet
+- [x] Halaman Dashboard (summary/chart recharts/top-items toggle) — **Deputi Sonet (Sonnet 4.6)**, review Opus lulus
+- [ ] Halaman Sales/POS (kasir, cart, checkout, struk) — Sonet
+- [ ] Halaman Sales History + void — Mipro (konfirmasi)
+- [ ] Halaman Inventory (stock summary, PO, adjustments) — Mipro (konfirmasi)
+- [ ] Halaman Library (6 entitas) — Mipro (konfirmasi)
+- [ ] Halaman Settings (store/tax/receipt) — Mipro (konfirmasi)
+- [ ] Review + gate tiap halaman (Opus)
+
+> Catatan model: Sonet/Haiku dijalankan via **subagent otomatis**; Mipro/Miflash (Gemini) **dikonfirmasi dulu** ke user lalu dijalankan di window Gemini.
 
 ### Tahap M4 — Cutover & decommission ⬜
 - [ ] Set `BETTER_AUTH_URL` + CORS ke origin nyata (port 3020) (C)
