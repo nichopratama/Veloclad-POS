@@ -195,6 +195,7 @@ model transaction_items {
   price          Decimal       @db.Decimal(14, 2)
   qty            Int
   subtotal       Decimal       @db.Decimal(14, 2)
+  discount       Decimal       @default(0) @db.Decimal(14, 2)
   created_at     DateTime      @default(now()) @db.Timestamptz(6)
   updated_at     DateTime      @default(now()) @db.Timestamptz(6)
   items          items?        @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "transaction_items_item_id_foreign")
@@ -213,6 +214,7 @@ model transactions {
   payment_amount      Decimal             @db.Decimal(14, 2)
   change_amount       Decimal?            @default(0) @db.Decimal(14, 2)
   status              String?             @default("completed") @db.VarChar(255)
+  idempotency_key     String?             @unique(map: "transactions_idempotency_key_unique") @db.VarChar(255)
   created_at          DateTime            @default(now()) @db.Timestamptz(6)
   updated_at          DateTime            @default(now()) @db.Timestamptz(6)
   outlet              String?             @db.VarChar(255)
