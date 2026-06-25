@@ -65,4 +65,3 @@ Alasan: pada 10 tenant, beban bukan masalah; nilai terbesar ada pada **isolasi d
 - **Positif:** time-to-market cepat, isolasi kuat, risiko keamanan rendah untuk skala awal.
 - **Negatif/utang:** otomasi provisioning & deploy fan-out harus dibangun (FASE 6); biaya per tenant lebih tinggi; perlu revisit ADR ini saat mendekati ~20 tenant.
 - **Trigger review ADR:** jumlah tenant > 20, atau biaya infra per tenant jadi tak ekonomis, atau butuh onboarding self-service instan.
-</content>
