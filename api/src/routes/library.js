@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/auth');
+const { requireRole } = require('../middleware/rbac');
 
 module.exports = (knexConfig) => {
   const environment = process.env.NODE_ENV || 'development';
@@ -8,15 +9,7 @@ module.exports = (knexConfig) => {
 
   // Semua endpoint library dilindungi dengan authMiddleware
   router.use(authMiddleware);
-
-  // Helper untuk set schema
-  const setTenantSchema = async (req, res, next) => {
-    const schemaName = process.env.DB_SCHEMA;
-    await knex.schema.withSchema(schemaName).raw(`SET search_path TO ${schemaName}, public;`);
-    next();
-  };
-
-  router.use(setTenantSchema);
+  // search_path di-set di level pool (knexfile afterCreate) — tidak ada race per-request.
 
   // ==========================================
   // ITEMS
@@ -87,7 +80,7 @@ module.exports = (knexConfig) => {
     }
   });
 
-  router.delete('/items/:id', async (req, res) => {
+  router.delete('/items/:id', requireRole('owner', 'admin'), async (req, res) => {
     try {
       await knex('items').where('id', req.params.id).del();
       res.json({ message: 'Item deleted' });
@@ -132,7 +125,7 @@ module.exports = (knexConfig) => {
     }
   });
 
-  router.delete('/categories/:id', async (req, res) => {
+  router.delete('/categories/:id', requireRole('owner', 'admin'), async (req, res) => {
     try {
       await knex('categories').where('id', req.params.id).del();
       res.json({ message: 'Category deleted' });
@@ -180,7 +173,7 @@ module.exports = (knexConfig) => {
     }
   });
 
-  router.delete('/customers/:id', async (req, res) => {
+  router.delete('/customers/:id', requireRole('owner', 'admin'), async (req, res) => {
     try {
       await knex('customers').where('id', req.params.id).del();
       res.json({ message: 'Customer deleted' });
@@ -228,7 +221,7 @@ module.exports = (knexConfig) => {
     }
   });
 
-  router.delete('/suppliers/:id', async (req, res) => {
+  router.delete('/suppliers/:id', requireRole('owner', 'admin'), async (req, res) => {
     try {
       await knex('suppliers').where('id', req.params.id).del();
       res.json({ message: 'Supplier deleted' });
@@ -249,7 +242,7 @@ module.exports = (knexConfig) => {
     }
   });
 
-  router.post('/payment-types', async (req, res) => {
+  router.post('/payment-types', requireRole('owner', 'admin'), async (req, res) => {
     try {
       const { name, type, is_active } = req.body;
       const [id] = await knex('payment_types')
@@ -261,7 +254,7 @@ module.exports = (knexConfig) => {
     }
   });
 
-  router.put('/payment-types/:id', async (req, res) => {
+  router.put('/payment-types/:id', requireRole('owner', 'admin'), async (req, res) => {
     try {
       const { name, type, is_active } = req.body;
       await knex('payment_types').where('id', req.params.id).update({ name, type, is_active });
@@ -271,7 +264,7 @@ module.exports = (knexConfig) => {
     }
   });
 
-  router.delete('/payment-types/:id', async (req, res) => {
+  router.delete('/payment-types/:id', requireRole('owner', 'admin'), async (req, res) => {
     try {
       await knex('payment_types').where('id', req.params.id).del();
       res.json({ message: 'Payment type deleted' });
@@ -297,7 +290,7 @@ module.exports = (knexConfig) => {
     }
   });
 
-  router.post('/discounts', async (req, res) => {
+  router.post('/discounts', requireRole('owner', 'admin'), async (req, res) => {
     try {
       const { name, type, value, max_value, is_active } = req.body;
       const [id] = await knex('discounts')
@@ -309,7 +302,7 @@ module.exports = (knexConfig) => {
     }
   });
 
-  router.put('/discounts/:id', async (req, res) => {
+  router.put('/discounts/:id', requireRole('owner', 'admin'), async (req, res) => {
     try {
       const { name, type, value, max_value, is_active } = req.body;
       await knex('discounts')
@@ -321,7 +314,7 @@ module.exports = (knexConfig) => {
     }
   });
 
-  router.delete('/discounts/:id', async (req, res) => {
+  router.delete('/discounts/:id', requireRole('owner', 'admin'), async (req, res) => {
     try {
       await knex('discounts').where('id', req.params.id).del();
       res.json({ message: 'Discount deleted' });

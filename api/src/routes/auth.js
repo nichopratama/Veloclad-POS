@@ -9,13 +9,9 @@ module.exports = (knexConfig) => {
 
   router.post('/login', async (req, res) => {
     const { email, password } = req.body;
-    const schemaName = process.env.DB_SCHEMA;
 
     try {
-      // Set tenant context for this query
-      await knex.schema.withSchema(schemaName).raw(`SET search_path TO ${schemaName}, public;`);
-
-      // Cari user
+      // search_path di-set di level pool (knexfile afterCreate); query langsung di schema tenant.
       const user = await knex('users').where({ email }).first();
 
       if (!user) {

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/auth');
+const { requireRole } = require('../middleware/rbac');
 const crypto = require('crypto');
 
 module.exports = (knexConfig) => {
@@ -8,14 +9,7 @@ module.exports = (knexConfig) => {
   const knex = require('knex')(knexConfig[environment]);
 
   router.use(authMiddleware);
-
-  const setTenantSchema = async (req, res, next) => {
-    const schemaName = process.env.DB_SCHEMA;
-    await knex.schema.withSchema(schemaName).raw(`SET search_path TO ${schemaName}, public;`);
-    next();
-  };
-
-  router.use(setTenantSchema);
+  // search_path di-set di level pool (knexfile afterCreate) — tidak ada race per-request.
 
   // GET POS Items (Top 10 / Search)
   router.get('/pos-items', async (req, res) => {
@@ -274,8 +268,8 @@ module.exports = (knexConfig) => {
     }
   });
 
-  // POST Void Items
-  router.post('/transactions/:id/void', async (req, res) => {
+  // POST Void Items — void/refund hanya owner/admin (D7)
+  router.post('/transactions/:id/void', requireRole('owner', 'admin'), async (req, res) => {
     const trx = await knex.transaction();
     try {
       const { id } = req.params;

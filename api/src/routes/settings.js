@@ -1,20 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/auth');
+const { requireRole } = require('../middleware/rbac');
 
 module.exports = (knexConfig) => {
   const environment = process.env.NODE_ENV || 'development';
   const knex = require('knex')(knexConfig[environment]);
 
   router.use(authMiddleware);
-
-  const setTenantSchema = async (req, res, next) => {
-    const schemaName = process.env.DB_SCHEMA;
-    await knex.schema.withSchema(schemaName).raw(`SET search_path TO ${schemaName}, public;`);
-    next();
-  };
-
-  router.use(setTenantSchema);
+  // search_path di-set di level pool (knexfile afterCreate) — tidak ada race per-request.
 
   // 1. Get Store Settings
   router.get('/store', async (req, res) => {
@@ -37,8 +31,8 @@ module.exports = (knexConfig) => {
     }
   });
 
-  // 2. Update Store Settings
-  router.put('/store', async (req, res) => {
+  // 2. Update Store Settings — hanya owner/admin (D7)
+  router.put('/store', requireRole('owner', 'admin'), async (req, res) => {
     try {
       const { store_name, address, phone, email, tax_rate, is_tax_active, receipt_footer } = req.body;
       

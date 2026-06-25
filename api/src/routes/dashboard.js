@@ -8,15 +8,7 @@ module.exports = (knexConfig) => {
 
   // Semua endpoint dashboard dilindungi dengan authMiddleware
   router.use(authMiddleware);
-
-  // Helper untuk set schema
-  const setTenantSchema = async (req, res, next) => {
-    const schemaName = process.env.DB_SCHEMA;
-    await knex.schema.withSchema(schemaName).raw(`SET search_path TO ${schemaName}, public;`);
-    next();
-  };
-
-  router.use(setTenantSchema);
+  // search_path di-set di level pool (knexfile afterCreate) — tidak ada race per-request.
 
   // 1. Get Summary Cards
   router.get('/summary', async (req, res) => {

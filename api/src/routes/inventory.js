@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/auth');
+const { requireRole } = require('../middleware/rbac');
 const crypto = require('crypto');
 
 module.exports = (knexConfig) => {
@@ -8,14 +9,7 @@ module.exports = (knexConfig) => {
   const knex = require('knex')(knexConfig[environment]);
 
   router.use(authMiddleware);
-
-  const setTenantSchema = async (req, res, next) => {
-    const schemaName = process.env.DB_SCHEMA;
-    await knex.schema.withSchema(schemaName).raw(`SET search_path TO ${schemaName}, public;`);
-    next();
-  };
-
-  router.use(setTenantSchema);
+  // search_path di-set di level pool (knexfile afterCreate) — tidak ada race per-request.
 
   // 1. Stock Summary (Join with Categories & Suppliers)
   router.get('/stock-summary', async (req, res) => {
@@ -85,7 +79,7 @@ module.exports = (knexConfig) => {
     }
   });
 
-  router.post('/purchase-orders', async (req, res) => {
+  router.post('/purchase-orders', requireRole('owner', 'admin'), async (req, res) => {
     const trx = await knex.transaction();
     try {
       const { supplier_id, notes, items } = req.body;
@@ -128,7 +122,7 @@ module.exports = (knexConfig) => {
   });
 
   // 3. Receive PO
-  router.patch('/purchase-orders/:id/receive', async (req, res) => {
+  router.patch('/purchase-orders/:id/receive', requireRole('owner', 'admin'), async (req, res) => {
     const trx = await knex.transaction();
     try {
       const po_id = req.params.id;
@@ -169,7 +163,7 @@ module.exports = (knexConfig) => {
     }
   });
 
-  router.post('/adjustments', async (req, res) => {
+  router.post('/adjustments', requireRole('owner', 'admin'), async (req, res) => {
     const trx = await knex.transaction();
     try {
       const { item_id, qty_change, reason, notes } = req.body;
