@@ -29,16 +29,16 @@ Legenda status: ✅ Lengkap · 🟡 Parsial · 🔴 Hilang
 | FR-DASH-01 | Summary cards | ✅ | ✅ | ✅ | ✅ | |
 | FR-DASH-02 | Grafik penjualan | ✅ | ✅ | ✅ | ✅ | |
 | FR-DASH-03 | Top produk | ✅ | ✅ | ✅ | ✅ | |
-| FR-DASH-04 | Notifikasi stok | 🟡 | ✅ | 🟡 | ? | Verifikasi apakah masuk `/summary` |
-| FR-DASH-05 | Ringkasan transaksi terakhir | 🟡 | ✅ | 🟡 | ? | Verifikasi |
-| FR-SALE-01 | Transaksi baru / kasir | ✅ | ✅ | ✅ | ✅ | |
+| FR-DASH-04 | Notifikasi stok | 🔴 | ✅ | 🔴 | 🔴 | **KOREKSI:** `/summary` hanya totalSales/count/items — TIDAK ada low-stock |
+| FR-DASH-05 | Ringkasan transaksi terakhir | 🔴 | ✅ | 🔴 | 🔴 | **KOREKSI:** tidak ada di `/summary` |
+| FR-SALE-01 | Transaksi baru / kasir | 🟡 | ✅ | 🟡 | ✅ | Diskon per item belum (kolom `transaction_items.discount` tak ada); barcode = search biasa |
 | **FR-SALE-02** | **Penerapan promo & diskon** | 🔴 | ✅ | 🔴 | 🔴 | `discount_amount: 0` hardcoded di checkout |
-| FR-SALE-03 | Riwayat transaksi + filter | ✅ | ✅ | ✅ | ✅ | Filter kasir belum ada di query |
+| FR-SALE-03 | Riwayat transaksi + filter | 🟡 | ✅ | 🟡 | ✅ | **KOREKSI:** filter kasir & metode bayar belum ada (hanya status/tanggal/no-invoice) |
 | FR-SALE-04 | Detail + cetak ulang struk | 🟡 | ✅ | ✅ | 🟡 | Reprint via jsPDF client — verifikasi |
 | FR-SALE-05 | Pembatalan & refund | ✅ | ✅ | ✅ | ✅ | |
 | FR-INV-01 | Stock summary | ✅ | ✅ | ✅ | ✅ | |
 | FR-INV-02 | Supplier mgmt (mirror) | ✅ | ✅ | ✅ | ✅ | Histori PO per supplier belum |
-| FR-INV-03 | Purchase Order + partial receive | ✅ | ✅ | ✅ | ✅ | |
+| FR-INV-03 | Purchase Order + partial receive | 🟡 | 🟡 | 🟡 | ✅ | **KOREKSI:** receive hanya penuh — `po_items` tak punya `qty_received`, tak ada `expected_date`, tak ada cancel PO. Partial receive BELUM ada |
 | FR-INV-04 | Stock adjustment | ✅ | ✅ | ✅ | ✅ | |
 | **FR-INV-05** | **Histori pergerakan stok** | 🔴 | 🔴 | 🔴 | 🔴 | Butuh tabel `stock_movements` + ledger |
 | FR-LIB-01 | Customer CRUD + loyalty + histori | 🟡 | ✅ | ✅ | ✅ | Poin & histori transaksi per customer belum |
@@ -79,6 +79,9 @@ Legenda status: ✅ Lengkap · 🟡 Parsial · 🔴 Hilang
 
 | Directive | Status | Gap |
 |-----------|:---:|-----|
+| **D7 RBAC / authorization** | 🔴 | **TERLEWAT di v1:** `role` ada di JWT (owner/admin/kasir) tapi **tak ada cek otorisasi** di endpoint manapun. Kasir bisa void, delete, ubah setting. PRD NFR mewajibkan RBAC |
+| **D7 Penyimpanan token** | 🔴 | **TERLEWAT di v1:** JWT + data user disimpan di `localStorage` (rawan XSS). Harus httpOnly cookie |
+| **D18 Overselling stok** | 🔴 | **TERLEWAT di v1:** `decrement('stock')` saat sale tanpa cek `stock >= qty` → stok bisa minus (jual barang habis) |
 | D5 Input validation (Zod) | 🔴 | `zod` ter-install tapi **0 dipakai**; semua `req.body` mentah |
 | D5 Audit logging | 🔴 | Tak ada `audit_logs` untuk aksi admin |
 | D7 Security headers | 🔴 | Tanpa helmet/CSP/HSTS; `cors()` terbuka penuh |
@@ -97,6 +100,27 @@ Legenda status: ✅ Lengkap · 🟡 Parsial · 🔴 Hilang
 
 ---
 
+## 3b. Addendum — Temuan Pass Verifikasi #2 (2026-06-25)
+
+Verifikasi mendalam ke kode menemukan item yang **terlewat / salah status** di versi awal. Ringkasannya:
+
+**Gap baru (masuk ke fase):**
+1. **RBAC (D7)** — tak ada otorisasi per-role. → masuk **FASE 0** (middleware `requireRole`) + diterapkan tiap fase di endpoint sensitif (void, delete, settings, profil user).
+2. **Token di localStorage (D7)** — pindah ke httpOnly cookie + CSRF. → **FASE 0/1**.
+3. **Overselling stok (D18)** — guard `stock >= qty` + (idealnya) lock baris saat checkout. → **FASE 1** (bareng idempotency).
+4. **Dashboard FR-DASH-04/05** — low-stock alert + recent transactions belum ada. → **FASE 4** (atau quick patch di dashboard).
+5. **Filter riwayat (FR-SALE-03)** — tambah filter kasir & metode bayar. → **FASE 1** (saat sentuh sales query/pagination).
+6. **PO partial receive (FR-INV-03)** — butuh kolom `po_items.qty_received`, `purchase_orders.expected_date`, status `partial`, endpoint cancel. → **FASE 4** (bareng ledger).
+
+**Prasyarat migration yang harus diingat:**
+- **FASE 2** butuh migration tambah kolom `transaction_items.discount` (per-item discount belum ada kolomnya) sebelum engine diskon bisa simpan nilai per item.
+- Foto produk: kolom `items.image_url` **sudah ada** (dari migration 002 CSV) — jadi FR-LIB-03 hanya butuh pipeline upload, bukan kolom baru.
+
+**Catatan tech-debt (bukan FR, tapi perlu dirapikan):**
+- `transactions` punya banyak kolom denormalisasi hasil import CSV (`cashier_name`, `customer_name`, `payment_method_name`, `outlet`, `event_type`, dst). Ini artefak data lama — saat refactor, andalkan join (sudah ada) dan pertimbangkan deprecate kolom denormal agar tak jadi sumber kebenaran ganda.
+- i18n (i18next) sudah terpasang di frontend — bukan gap, tapi konsistensi terjemahan perlu dicek saat menambah halaman baru.
+- Dark mode (NFR "dark mode ready") belum diimplementasi — prioritas rendah.
+
 ## 4. Implementation Plan
 
 Prinsip: **fix fondasi dulu (yang membahayakan uang/data), baru fitur, dengan rigor menyertai tiap fitur.** Tiap fase = unit yang bisa di-commit & di-review.
@@ -110,20 +134,24 @@ Tujuan: hentikan risiko data/uang & penuhi prasyarat Nicho-Brain sebelum nambah 
 4. **Security middleware** (D7) — `helmet`, CORS whitelist + `credentials`, hilangkan kebocoran `error.message` (map ke pesan generik + log internal).
 5. **Global error handler + structured logging** (`pino`) + `/health/ready` DB-aware (D13).
 6. **Rate-limit `/login`** + lockout dasar (D14).
+7. **RBAC middleware `requireRole(...)`** (D7) — terapkan ke endpoint sensitif (void, delete, settings). *(Pass #2)*
+8. **Pindahkan token ke httpOnly cookie** + CSRF (ganti localStorage) (D7). *(Pass #2)*
 
-**Exit criteria:** boot gagal tanpa env; header keamanan tampil; login ter-rate-limit; tak ada query lintas-tenant.
+**Exit criteria:** boot gagal tanpa env; header keamanan tampil; login ter-rate-limit; tak ada query lintas-tenant; kasir tak bisa akses aksi admin.
 
 ### FASE 1 — Harness Validasi & Test *(±1–2 hari)*
 1. Pasang **Zod schema** untuk semua route write (D5) — mulai dari `sales`, `library`, `inventory`.
 2. **Idempotency** `POST /transactions` (D18) — header `Idempotency-Key` + unique constraint.
-3. **Pagination** semua list endpoint (D17) — `take`/`skip` + meta `{ total, page, limit }`.
+2b. **Guard overselling** (D18) — cek `stock >= qty` + lock baris item saat checkout. *(Pass #2)*
+3. **Pagination** semua list endpoint (D17) — `take`/`skip` + meta `{ total, page, limit }`; sekaligus tambah **filter kasir & metode bayar** di riwayat transaksi (FR-SALE-03). *(Pass #2)*
 4. **Test runner** (Vitest/Jest + Supertest) — uji business logic transaksi (pajak, kembalian, void, refund) sebagai prioritas (D12).
 5. **CI gate** GitHub Actions (D9): lint + test + `npm audit` + gitleaks + docker build, sebelum job deploy.
 
 **Exit criteria:** CI hijau; test transaksi inti lulus; semua list ter-paginasi & tervalidasi.
 
 ### FASE 2 — Cluster Promosi (nilai bisnis tertinggi) *(±2–3 hari)*
-1. **Diskon master (FR-LIB-07)** — `GET/POST/PUT/DELETE /library/discounts` + halaman `Library/Discounts.jsx`.
+0. **Migration prasyarat** — tambah kolom `transaction_items.discount` (per-item discount belum ada kolomnya). *(Pass #2)*
+1. **Diskon master (FR-LIB-07)** — `GET/POST/PUT/DELETE /library/discounts` + halaman `Library/Discounts.jsx`. *(API CRUD sudah dibuat di Quick Wins)*
 2. **Promo (FR-LIB-06)** — migration tambah kolom scope (`applicable_to`, `item_ids`, `category_ids`, `is_active`) ke `promos`; API + halaman `Library/Promos.jsx`.
 3. **Discount/Promo engine** — modul `services/pricing.js` murni (unit-tested) yang hitung subtotal → diskon → promo → pajak (hormati `is_inclusive`) → total.
 4. **Integrasi checkout (FR-SALE-02)** — `POST /transactions` pakai engine; isi `discount_amount` & `transaction_items.discount` betulan; UI kasir: input diskon per item / per transaksi + pilih promo.
@@ -141,9 +169,11 @@ Tujuan: hentikan risiko data/uang & penuhi prasyarat Nicho-Brain sebelum nambah 
 ### FASE 4 — Inventory Ledger & Customer *(±2 hari)*
 1. **Stock movement ledger (FR-INV-05)** — migration `stock_movements`; tulis mutasi otomatis dari **sale, void, PO receive, adjustment** (satu sumber kebenaran stok); endpoint histori + filter; UI.
 2. **Loyalty + histori customer (FR-LIB-01)** — akumulasi `points` saat transaksi; `GET /library/customers/:id/transactions` + tampilan histori.
-3. **(Opsional) Foto produk & logo toko (FR-LIB-03/SET-02)** — asset handling (Multer/Nicho-Brain D5) + sanitasi upload (D7).
+3. **PO partial receive (FR-INV-03)** — migration `po_items.qty_received` + `purchase_orders.expected_date` + status `partial`; logika terima sebagian + endpoint cancel PO. *(Pass #2)*
+4. **Dashboard FR-DASH-04/05** — tambah low-stock alert + recent transactions ke `/summary` (atau endpoint baru) + widget UI. *(Pass #2)*
+5. **(Opsional) Foto produk & logo toko (FR-LIB-03/SET-02)** — pipeline upload ke kolom `items.image_url` yang sudah ada (Multer/Nicho-Brain D5) + sanitasi upload (D7).
 
-**Exit criteria:** setiap perubahan stok punya jejak; poin pelanggan bertambah; histori per pelanggan tampil.
+**Exit criteria:** setiap perubahan stok punya jejak; poin pelanggan bertambah; histori per pelanggan tampil; PO bisa diterima sebagian; dashboard tampilkan stok menipis & transaksi terbaru.
 
 ### FASE 5 — Bundling & Pengetatan Akhir *(±2 hari)*
 1. **Bundling (FR-LIB-05)** — migration `bundles` + `bundle_items`; API + UI; tampil sebagai item di kasir; engine expand bundle saat checkout & potong stok komponen.

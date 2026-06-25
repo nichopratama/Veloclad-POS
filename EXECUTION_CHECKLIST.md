@@ -36,19 +36,23 @@
 - [ ] Rate-limit `/login` + lockout dasar (`express-rate-limit`) — *Impl*
 - [ ] Structured logging (`pino`) + global error handler (stop bocor `error.message`) — *Impl*
 - [ ] `/health/ready` DB-aware — *Impl*
-- [ ] **Security review** FASE 0 (OWASP, header, no-leak) — *Reasoning*
+- [ ] **RBAC** middleware `requireRole(...)` di endpoint sensitif (void/delete/settings) — *Reasoning (desain) → Impl* · *(Pass #2)*
+- [ ] Pindah token ke httpOnly cookie + CSRF (ganti localStorage) — *Impl* · *(Pass #2)*
+- [ ] **Security review** FASE 0 (OWASP, header, no-leak, RBAC) — *Reasoning*
 
 ## ⬜ FASE 1 — Validasi, Test, CI
 
 - [ ] Zod schema semua route write (mulai `sales`, `library`, `inventory`) — *Impl*
 - [ ] Idempotency `POST /transactions` (Idempotency-Key + unique constraint) — *Reasoning (desain) → Impl*
-- [ ] Pagination semua list endpoint + meta — *Impl*
+- [ ] Guard overselling: cek `stock >= qty` + lock baris saat checkout — *Impl* · *(Pass #2)*
+- [ ] Pagination semua list endpoint + meta; tambah filter kasir & metode bayar di riwayat — *Impl* · *(Pass #2)*
 - [ ] Test runner (Vitest + Supertest) + uji logika transaksi (pajak/kembalian/void/refund) — *Impl*
 - [ ] Aktifkan `npm test` riil di CI; coverage gate bertahap — *Impl*
 - [ ] **Code review** FASE 1 (`tsc`/eslint/`npm audit`) — *Code Review*
 
 ## ⬜ FASE 2 — Cluster Promosi *(nilai bisnis tertinggi)*
 
+- [ ] Migration prasyarat: kolom `transaction_items.discount` (per-item) — *Impl* · *(Pass #2)*
 - [ ] Migration: kolom scope `promos` (`applicable_to`, `item_ids`, `category_ids`, `is_active`) — *Impl*
 - [ ] API Promo CRUD (`/library/promos`) — *Impl*
 - [ ] **Pricing engine** `services/pricing.js` (subtotal→diskon→promo→pajak inklusif/eksklusif→total), unit-tested ≥80% — *Reasoning (desain) → Impl*
@@ -73,7 +77,9 @@
 - [ ] Tulis mutasi otomatis dari sale/void/PO-receive/adjustment (satu sumber kebenaran stok) — *Reasoning (desain) → Impl*
 - [ ] Endpoint histori stok + filter + UI — *Impl + Design*
 - [ ] Loyalty point akumulasi saat transaksi + histori per-customer — *Impl*
-- [ ] (Opsional) Upload foto produk & logo toko (Multer + sanitasi) — *Impl*
+- [ ] PO partial receive: migration `po_items.qty_received` + `expected_date` + status `partial` + cancel PO — *Impl* · *(Pass #2)*
+- [ ] Dashboard FR-DASH-04/05: low-stock alert + recent transactions + widget UI — *Impl + Design* · *(Pass #2)*
+- [ ] (Opsional) Upload foto produk (kolom `items.image_url` sudah ada) & logo toko (Multer + sanitasi) — *Impl*
 - [ ] **Code review** FASE 4 — *Code Review*
 
 ## ⬜ FASE 5 — Bundling & Pengetatan Akhir
