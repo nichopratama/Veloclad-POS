@@ -18,6 +18,12 @@
 
 ## B. Pelajaran per halaman
 
+### IaC Cutover M4 (Dockerfile/compose/CI) — 0 temuan 📈 LULUS BERSIH
+- ✔️ **Setia penuh ke spec** `docs/M4-cutover-handoff.md`: Dockerfile multi-stage standalone+Prisma musl persis, `.env*` di-`.dockerignore` (no secret leak), `traefik.enable=false` di service lama (hindari konflik `Host` rule), `lint`→`typecheck` (web tak punya lint — tepat), `secret-scan` utuh.
+- ✔️ Gate Opus keras: `docker build` hijau + runtime smoke `/api/health/ready` 200 (Prisma musl konek DB di container) — **nol fix**.
+- 💡 (opsional, non-blocking) `.dockerignore` boleh tambah `e2e/` & `playwright*` agar konteks build lebih ramping; tak wajib karena runner standalone tak menyalin file itu. 💡 Bila `web/public/` kelak ada, **wajib** sisipkan `COPY --from=builder /app/public ./public` di Dockerfile.
+- 📌 Pola bagus: implementasi IaC mekanis ter-spesifikasi = kekuatan Mipro (sama seperti tren naik Inventory). Pertahankan: baca spec → ikuti gotcha yang sudah ditulis.
+
 ### Settings (form store/tax/receipt) — 2 temuan kecil
 1. ❌ `var(--radius-md)` — token tak ada (**ulangi pola** token-mengarang dari Inventory). ✅ `var(--radius)`. 💡 Token radius sah: `--radius-sm`/`--radius`/`--radius-lg`. **Ini kedua kalinya** — sebelum tulis `var(--x)`, cek `globals.css :root`.
 2. ❌ Integritas tipe: `onChange={(e)=>handleChange('tax_rate', e.target.value)}` mengirim **string** ke field `number` → state jadi string saat runtime (TS tak menangkap karena handler longgar `value: string|boolean|number`). ✅ Parse di sumber: `handleChange('tax_rate', e.target.value === '' ? 0 : Number(e.target.value))`. 💡 **Jaga tipe jujur di state** — kalau field `number`, jangan simpan string lalu `Number()` belakangan; konversi saat onChange. Handler longgar = TS tak melindungi, jadi disiplin manual.

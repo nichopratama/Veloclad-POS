@@ -162,9 +162,9 @@ Sistem POS **tetap jalan** selama migrasi; route dipindah satu per satu, bukan r
 
 **Cutover:**
 - [ ] Set `BETTER_AUTH_URL` + CORS ke origin nyata (port 3020) — **C** (security-sensitive: origin/CSRF)
-- [ ] Dockerfile + compose untuk app Next.js — **G** implement → **C** review (mekanis, ter-spesifikasi)
-- [ ] Alihkan port 3020 (reverse-proxy) dari frontend lama → Next.js — **C** putuskan sekuens cutover; **G** tulis konfig nginx → **C** review (risiko downtime)
-- [ ] Update CI (`.github/workflows`) ke stack baru — **G** implement → **C** review
+- [x] Dockerfile + compose untuk app Next.js — **SELESAI** (commit `65a3345`, **G/Mipro**, gate **C**): web/Dockerfile multi-stage standalone+Prisma musl, .dockerignore, compose dev+prod (Traefik `web`→3000, lama `enable=false`). Gate: docker build hijau (244MB) + runtime smoke `/api/health/ready` 200 (Prisma musl konek DB di container).
+- [ ] Alihkan reverse-proxy (Traefik flip) frontend lama → Next.js — **C** sekuens cutover §6 (label `web` sudah siap; aktivasi = matikan `pos-frontend`). Risiko downtime.
+- [x] Update CI (`.github/workflows`) ke stack baru — **SELESAI** (commit `65a3345`, **G/Mipro**): job `frontend`+`api` → satu job `web` (ci+prisma generate+typecheck+build+audit), `secret-scan` utuh.
 - [ ] Rotate secret placeholder (`DB_PASSWORD`, `BETTER_AUTH_SECRET`) — **C only** (tak ada deputi menyentuh secret nyata)
 - [ ] Verifikasi paritas penuh di staging → matikan `api/` & `frontend/` lama — **C** (judgment) + **S** (paritas Playwright)
 - [ ] Hapus stack lama (Express/Knex/Vite) setelah stabil — **C** putuskan; **G/S** eksekusi hapus → **C** review
