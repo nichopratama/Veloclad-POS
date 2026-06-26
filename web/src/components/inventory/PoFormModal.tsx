@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useId } from 'react';
 import useSWR from 'swr';
 import { fetcher, apiMutate, FetchError } from '@/lib/fetcher';
 import { Supplier, PickItem, PaginatedResponse, FlatResponse } from './types';
@@ -20,6 +20,10 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  const base = useId();
+  const supplierFieldId = `${base}-supplier`;
+  const notesFieldId = `${base}-notes`;
 
   const { data: supData } = useSWR<FlatResponse<Supplier>>('/api/library/suppliers', fetcher);
   const suppliers = supData?.data || [];
@@ -114,15 +118,15 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
             
             <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-                <label style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Supplier <span style={{ color: 'var(--color-danger)' }}>*</span></label>
-                <select className="input" value={supplierId} onChange={(e) => setSupplierId(e.target.value)} required>
+                <label htmlFor={supplierFieldId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Supplier <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+                <select id={supplierFieldId} className="input" value={supplierId} onChange={(e) => setSupplierId(e.target.value)} required>
                   <option value="" disabled>- Pilih Supplier -</option>
                   {suppliers.map(s => <option key={s.id} value={String(s.id)}>{s.name}</option>)}
                 </select>
               </div>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-                <label style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Catatan Tambahan</label>
-                <input type="text" className="input" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opsional" />
+                <label htmlFor={notesFieldId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Catatan Tambahan</label>
+                <input id={notesFieldId} type="text" className="input" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opsional" />
               </div>
             </div>
 
@@ -130,10 +134,11 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
               <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 700, marginBottom: 'var(--space-2)' }}>Item PO</h3>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
-                <input 
-                  type="text" 
-                  className="input" 
-                  placeholder="Cari item untuk ditambahkan..." 
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="Cari item untuk ditambahkan..."
+                  aria-label="Cari item PO"
                   value={itemSearch}
                   onChange={(e) => setItemSearch(e.target.value)}
                 />
@@ -164,10 +169,10 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
                     <tr key={it.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                       <td style={{ padding: 'var(--space-2) 0' }}>{it.item_name}</td>
                       <td style={{ padding: 'var(--space-2) var(--space-2) var(--space-2) 0' }}>
-                        <input type="number" className="input" value={it.qty} onChange={(e) => updateItem(it.id, 'qty', e.target.value)} required min="1" style={{ padding: 'var(--space-1) var(--space-2)' }} />
+                        <input type="number" className="input" value={it.qty} onChange={(e) => updateItem(it.id, 'qty', e.target.value)} required min="1" aria-label={`Qty ${it.item_name}`} style={{ padding: 'var(--space-1) var(--space-2)' }} />
                       </td>
                       <td style={{ padding: 'var(--space-2) var(--space-2) var(--space-2) 0' }}>
-                        <input type="number" className="input" value={it.cost} onChange={(e) => updateItem(it.id, 'cost', e.target.value)} required min="0" style={{ padding: 'var(--space-1) var(--space-2)' }} />
+                        <input type="number" className="input" value={it.cost} onChange={(e) => updateItem(it.id, 'cost', e.target.value)} required min="0" aria-label={`Harga satuan ${it.item_name}`} style={{ padding: 'var(--space-1) var(--space-2)' }} />
                       </td>
                       <td style={{ padding: 'var(--space-2) 0', textAlign: 'right' }}>
                         <button type="button" onClick={() => removeItem(it.id)} style={{ background: 'transparent', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', fontWeight: 700 }}>✕</button>

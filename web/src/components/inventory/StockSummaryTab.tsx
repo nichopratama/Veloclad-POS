@@ -36,6 +36,7 @@ export function StockSummaryTab() {
             type="text"
             className="input"
             placeholder="Cari Kode / Nama Item..."
+            aria-label="Cari kode atau nama item"
             value={localSearch}
             onChange={handleSearchChange}
           />

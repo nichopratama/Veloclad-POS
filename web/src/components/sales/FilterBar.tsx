@@ -34,6 +34,7 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
           type="text"
           className="input"
           placeholder="Cari ID Transaksi..."
+          aria-label="Cari ID transaksi"
           value={localSearch}
           onChange={(e) => setLocalSearch(e.target.value)}
         />
@@ -42,6 +43,7 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
         <input
           type="date"
           className="input"
+          aria-label="Tanggal mulai"
           value={filters.startDate}
           onChange={(e) => onChange('startDate', e.target.value)}
         />
@@ -50,6 +52,7 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
         <input
           type="date"
           className="input"
+          aria-label="Tanggal akhir"
           value={filters.endDate}
           onChange={(e) => onChange('endDate', e.target.value)}
         />
@@ -57,6 +60,7 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
       <div style={{ flex: '0 1 150px' }}>
         <select
           className="input"
+          aria-label="Filter status"
           value={filters.status}
           onChange={(e) => onChange('status', e.target.value)}
         >
@@ -69,6 +73,7 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
       <div style={{ flex: '0 1 150px' }}>
         <select
           className="input"
+          aria-label="Filter metode pembayaran"
           value={filters.paymentMethod}
           onChange={(e) => onChange('paymentMethod', e.target.value)}
         >

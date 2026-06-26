@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useId } from 'react';
 import useSWR from 'swr';
 import { fetcher, apiMutate, FetchError } from '@/lib/fetcher';
 import { PickItem, PaginatedResponse } from './types';
@@ -21,6 +21,12 @@ export function AdjustmentFormModal({ onClose, onSuccess }: AdjustmentFormModalP
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  const base = useId();
+  const qtyChangeId = `${base}-qtyChange`;
+  const reasonId = `${base}-reason`;
+  const customReasonId = `${base}-customReason`;
+  const notesId = `${base}-notes`;
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(itemSearch), 300);
@@ -107,10 +113,11 @@ export function AdjustmentFormModal({ onClose, onSuccess }: AdjustmentFormModalP
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                  <input 
-                    type="text" 
-                    className="input" 
-                    placeholder="Cari kode/nama item..." 
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="Cari kode/nama item..."
+                    aria-label="Cari item penyesuaian"
                     value={itemSearch}
                     onChange={(e) => setItemSearch(e.target.value)}
                   />
@@ -130,13 +137,13 @@ export function AdjustmentFormModal({ onClose, onSuccess }: AdjustmentFormModalP
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-              <label style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Perubahan Stok (+ / -) <span style={{ color: 'var(--color-danger)' }}>*</span></label>
-              <input type="number" className="input" value={qtyChange} onChange={(e) => setQtyChange(e.target.value)} placeholder="Contoh: 5 atau -3" required />
+              <label htmlFor={qtyChangeId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Perubahan Stok (+ / -) <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+              <input id={qtyChangeId} type="number" className="input" value={qtyChange} onChange={(e) => setQtyChange(e.target.value)} placeholder="Contoh: 5 atau -3" required />
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-              <label style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Alasan <span style={{ color: 'var(--color-danger)' }}>*</span></label>
-              <select className="input" value={reasonPreset} onChange={(e) => setReasonPreset(e.target.value)} required>
+              <label htmlFor={reasonId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Alasan <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+              <select id={reasonId} className="input" value={reasonPreset} onChange={(e) => setReasonPreset(e.target.value)} required>
                 <option value="Stok Opname">Stok Opname</option>
                 <option value="Rusak">Rusak</option>
                 <option value="Hilang">Hilang</option>
@@ -144,13 +151,13 @@ export function AdjustmentFormModal({ onClose, onSuccess }: AdjustmentFormModalP
                 <option value="Lainnya">Lainnya...</option>
               </select>
               {reasonPreset === 'Lainnya' && (
-                <input type="text" className="input" style={{ marginTop: 'var(--space-2)' }} value={customReason} onChange={(e) => setCustomReason(e.target.value)} placeholder="Tulis alasan..." required />
+                <input id={customReasonId} type="text" className="input" style={{ marginTop: 'var(--space-2)' }} value={customReason} onChange={(e) => setCustomReason(e.target.value)} placeholder="Tulis alasan..." aria-label="Alasan lainnya" required />
               )}
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-              <label style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Catatan</label>
-              <input type="text" className="input" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opsional" />
+              <label htmlFor={notesId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Catatan</label>
+              <input id={notesId} type="text" className="input" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opsional" />
             </div>
 
           </div>

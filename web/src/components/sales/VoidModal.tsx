@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useId } from 'react';
 import { Transaction } from './types';
 import { formatIDRFromString } from '@/components/pos/format';
 import { apiMutate, FetchError } from '@/lib/fetcher';
@@ -16,6 +16,8 @@ export function VoidModal({ transaction, onClose, onSuccess }: VoidModalProps) {
   const [reason, setReason] = useState('Returned Goods');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  const reasonSelectId = useId();
 
   const handleToggleItem = (itemId: number, maxQty: number, defaultRefund: number) => {
     setSelectedItems((prev) => {
@@ -141,6 +143,7 @@ export function VoidModal({ transaction, onClose, onSuccess }: VoidModalProps) {
                       <td style={{ padding: 'var(--space-2)' }}>
                         <input
                           type="checkbox"
+                          aria-label={`Pilih item ${item.items.name}`}
                           checked={isSelected}
                           onChange={() => handleToggleItem(item.item_id, item.qty, Math.round(unitPrice * item.qty))}
                         />
@@ -157,6 +160,7 @@ export function VoidModal({ transaction, onClose, onSuccess }: VoidModalProps) {
                           disabled={!isSelected}
                           value={selectedItems[item.item_id]?.qty || ''}
                           onChange={(e) => handleQtyChange(item.item_id, e.target.value, item.qty, unitPrice)}
+                          aria-label={`Qty void ${item.items.name}`}
                           style={{ minHeight: '32px', padding: '0 var(--space-2)', width: '60px' }}
                         />
                       </td>
@@ -168,6 +172,7 @@ export function VoidModal({ transaction, onClose, onSuccess }: VoidModalProps) {
                           disabled={!isSelected}
                           value={selectedItems[item.item_id]?.refund_amount ?? ''}
                           onChange={(e) => handleRefundChange(item.item_id, e.target.value)}
+                          aria-label={`Nilai refund ${item.items.name}`}
                           style={{ minHeight: '32px', padding: '0 var(--space-2)', width: '120px' }}
                         />
                       </td>
@@ -180,8 +185,9 @@ export function VoidModal({ transaction, onClose, onSuccess }: VoidModalProps) {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-          <label style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Alasan Void</label>
+          <label htmlFor={reasonSelectId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Alasan Void</label>
           <select
+            id={reasonSelectId}
             className="input"
             value={reason}
             onChange={(e) => setReason(e.target.value)}

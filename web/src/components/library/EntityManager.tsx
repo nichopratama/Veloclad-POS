@@ -88,6 +88,7 @@ export function EntityManager({ config, role }: EntityManagerProps) {
               type="text"
               className="input"
               placeholder={`Cari ${config.label}...`}
+              aria-label={`Cari ${config.label}`}
               value={localSearch}
               onChange={handleSearchChange}
             />

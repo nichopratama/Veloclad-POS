@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useId } from 'react';
 import useSWR from 'swr';
 import { fetcher, apiMutate, FetchError } from '@/lib/fetcher';
 import { StoreSettings } from './types';
@@ -27,6 +27,13 @@ export function SettingsForm({ role }: SettingsFormProps) {
   const [errorMsg, setErrorMsg] = useState('');
 
   const canWrite = role === 'owner' || role === 'admin';
+
+  const storeNameId = useId();
+  const phoneId = useId();
+  const emailId = useId();
+  const addressId = useId();
+  const taxRateId = useId();
+  const receiptFooterId = useId();
 
   useEffect(() => {
     if (data) {
@@ -126,46 +133,50 @@ export function SettingsForm({ role }: SettingsFormProps) {
         <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-2)' }}>Identitas Toko</h2>
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-          <label style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Nama Toko <span style={{ color: 'var(--color-danger)' }}>*</span></label>
-          <input 
-            type="text" 
-            className="input" 
-            value={formData.store_name} 
-            onChange={(e) => handleChange('store_name', e.target.value)} 
-            required 
+          <label htmlFor={storeNameId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Nama Toko <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+          <input
+            id={storeNameId}
+            type="text"
+            className="input"
+            value={formData.store_name}
+            onChange={(e) => handleChange('store_name', e.target.value)}
+            required
             disabled={!canWrite}
           />
         </div>
 
         <div style={{ display: 'flex', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', flex: '1 1 250px' }}>
-            <label style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Telepon</label>
-            <input 
-              type="text" 
-              className="input" 
-              value={formData.phone} 
-              onChange={(e) => handleChange('phone', e.target.value)} 
+            <label htmlFor={phoneId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Telepon</label>
+            <input
+              id={phoneId}
+              type="text"
+              className="input"
+              value={formData.phone}
+              onChange={(e) => handleChange('phone', e.target.value)}
               disabled={!canWrite}
             />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', flex: '1 1 250px' }}>
-            <label style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Email</label>
-            <input 
-              type="email" 
-              className="input" 
-              value={formData.email} 
-              onChange={(e) => handleChange('email', e.target.value)} 
+            <label htmlFor={emailId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Email</label>
+            <input
+              id={emailId}
+              type="email"
+              className="input"
+              value={formData.email}
+              onChange={(e) => handleChange('email', e.target.value)}
               disabled={!canWrite}
             />
           </div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-          <label style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Alamat</label>
-          <textarea 
-            className="input" 
-            value={formData.address} 
-            onChange={(e) => handleChange('address', e.target.value)} 
+          <label htmlFor={addressId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Alamat</label>
+          <textarea
+            id={addressId}
+            className="input"
+            value={formData.address}
+            onChange={(e) => handleChange('address', e.target.value)}
             style={{ minHeight: '80px', paddingTop: 'var(--space-2)' }}
             disabled={!canWrite}
           />
@@ -186,13 +197,14 @@ export function SettingsForm({ role }: SettingsFormProps) {
         </label>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-          <label style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Tarif Pajak (%) <span style={{ color: 'var(--color-danger)' }}>*</span></label>
-          <input 
-            type="number" 
-            className="input" 
+          <label htmlFor={taxRateId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Tarif Pajak (%) <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+          <input
+            id={taxRateId}
+            type="number"
+            className="input"
             value={formData.tax_rate}
             onChange={(e) => handleChange('tax_rate', e.target.value === '' ? 0 : Number(e.target.value))}
-            required 
+            required
             min="0"
             max="100"
             step="0.01"
@@ -206,11 +218,12 @@ export function SettingsForm({ role }: SettingsFormProps) {
         <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-2)' }}>Footer Struk</h2>
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-          <label style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Pesan Penutup di Struk</label>
-          <textarea 
-            className="input" 
-            value={formData.receipt_footer} 
-            onChange={(e) => handleChange('receipt_footer', e.target.value)} 
+          <label htmlFor={receiptFooterId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Pesan Penutup di Struk</label>
+          <textarea
+            id={receiptFooterId}
+            className="input"
+            value={formData.receipt_footer}
+            onChange={(e) => handleChange('receipt_footer', e.target.value)}
             placeholder="Misal: Terima kasih telah berbelanja!"
             style={{ minHeight: '80px', paddingTop: 'var(--space-2)' }}
             disabled={!canWrite}

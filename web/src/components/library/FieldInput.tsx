@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import useSWR from 'swr';
 import { fetcher } from '@/lib/fetcher';
 import { FieldDef, FormValue, EntityRow } from './types';
@@ -9,6 +10,7 @@ interface FieldInputProps {
 }
 
 export function FieldInput({ field, value, onChange }: FieldInputProps) {
+  const fieldId = useId();
   const { data: optionsData } = useSWR<{ data: EntityRow[] }>(
     field.type === 'select' && field.optionsEndpoint ? field.optionsEndpoint : null,
     fetcher
@@ -22,10 +24,11 @@ export function FieldInput({ field, value, onChange }: FieldInputProps) {
     case 'email':
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-          <label style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>
+          <label htmlFor={fieldId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>
             {field.label} {field.required && <span style={{ color: 'var(--color-danger)' }}>*</span>}
           </label>
           <input
+            id={fieldId}
             type={field.type}
             className="input"
             value={textValue}
@@ -37,10 +40,11 @@ export function FieldInput({ field, value, onChange }: FieldInputProps) {
     case 'textarea':
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-          <label style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>
+          <label htmlFor={fieldId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>
             {field.label} {field.required && <span style={{ color: 'var(--color-danger)' }}>*</span>}
           </label>
           <textarea
+            id={fieldId}
             className="input"
             value={textValue}
             onChange={(e) => onChange(e.target.value)}
@@ -53,10 +57,11 @@ export function FieldInput({ field, value, onChange }: FieldInputProps) {
     case 'money':
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-          <label style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>
+          <label htmlFor={fieldId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>
             {field.label} {field.required && <span style={{ color: 'var(--color-danger)' }}>*</span>}
           </label>
           <input
+            id={fieldId}
             type="number"
             className="input"
             value={textValue}
@@ -79,10 +84,11 @@ export function FieldInput({ field, value, onChange }: FieldInputProps) {
     case 'select':
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-          <label style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>
+          <label htmlFor={fieldId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>
             {field.label} {field.required && <span style={{ color: 'var(--color-danger)' }}>*</span>}
           </label>
           <select
+            id={fieldId}
             className="input"
             value={textValue}
             onChange={(e) => onChange(e.target.value)}
