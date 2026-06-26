@@ -87,7 +87,8 @@ const createSchema = z.object({
     .array(
       z.object({
         id: z.number().int(),
-        price: z.number().nonnegative(),
+        // CATATAN: `price` TIDAK diterima dari klien (anti price-tampering) —
+        // harga selalu di-lookup otoritatif dari DB by id di server.
         qty: z.number().int().positive(),
         discount: z.number().nonnegative().default(0),
       }),
@@ -118,13 +119,36 @@ export async function POST(req: NextRequest) {
     const taxRate = tax?.is_active ? new D(tax.rate).div(100) : new D(0);
     const isInclusive = tax?.is_inclusive ?? false;
 
-    // Hitung uang dengan Decimal (hindari error pembulatan float).
+    // Harga OTORITATIF dari DB — JANGAN percaya harga klien (anti price-tampering).
+    const itemIds = [...new Set(input.items.map((it) => it.id))];
+    const dbItems = await prisma.items.findMany({
+      where: { id: { in: itemIds } },
+      select: { id: true, price: true, is_active: true },
+    });
+    const itemById = new Map(dbItems.map((r) => [r.id, r]));
+
+    // Hitung uang dengan Decimal (hindari error pembulatan float) memakai harga DB.
+    // `lines` membawa harga+diskon otoritatif untuk dipakai ulang saat tulis transaction_items.
     let subtotal = new D(0);
     let discountTotal = new D(0);
-    for (const it of input.items) {
-      subtotal = subtotal.plus(new D(it.price).times(it.qty));
-      discountTotal = discountTotal.plus(new D(it.discount));
-    }
+    const lines = input.items.map((it) => {
+      const row = itemById.get(it.id);
+      if (!row) throw new ApiError(400, `Item ${it.id} tidak ditemukan`);
+      if (row.is_active === false) throw new ApiError(400, `Item ${it.id} tidak aktif`);
+
+      const unitPrice = new D(row.price);
+      const lineGross = unitPrice.times(it.qty);
+      const lineDiscount = new D(it.discount);
+      // Clamp diskon ≤ subtotal baris (cegah total negatif via diskon dibuat-buat).
+      if (lineDiscount.greaterThan(lineGross)) {
+        throw new ApiError(400, `Diskon item ${it.id} melebihi subtotal baris`);
+      }
+
+      subtotal = subtotal.plus(lineGross);
+      discountTotal = discountTotal.plus(lineDiscount);
+      return { id: it.id, qty: it.qty, price: unitPrice, discount: lineDiscount, lineGross };
+    });
+
     const taxable = subtotal.minus(discountTotal);
     let taxAmount: Prisma.Decimal;
     let total: Prisma.Decimal;
@@ -164,24 +188,24 @@ export async function POST(req: NextRequest) {
         } satisfies Prisma.transactionsUncheckedCreateInput,
       });
 
-      for (const it of input.items) {
+      for (const line of lines) {
         // Anti-oversell race-safe: decrement HANYA jika stock >= qty (atomic).
         const upd = await tx.items.updateMany({
-          where: { id: it.id, stock: { gte: it.qty } },
-          data: { stock: { decrement: it.qty } },
+          where: { id: line.id, stock: { gte: line.qty } },
+          data: { stock: { decrement: line.qty } },
         });
         if (upd.count === 0) {
-          throw new ApiError(400, `Stok tidak cukup atau item ${it.id} tidak ditemukan`);
+          throw new ApiError(400, `Stok tidak cukup atau item ${line.id} tidak ditemukan`);
         }
 
         await tx.transaction_items.create({
           data: {
             transaction_id: transactionId,
-            item_id: it.id,
-            price: new D(it.price),
-            qty: it.qty,
-            subtotal: new D(it.price).times(it.qty),
-            discount: new D(it.discount),
+            item_id: line.id,
+            price: line.price,
+            qty: line.qty,
+            subtotal: line.lineGross,
+            discount: line.discount,
           } satisfies Prisma.transaction_itemsUncheckedCreateInput,
         });
       }
