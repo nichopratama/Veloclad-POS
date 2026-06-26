@@ -15,25 +15,22 @@ export default async function LibraryPage(props: { searchParams: Promise<{ tab?:
   const activeTab = sp.tab && entityConfigs[sp.tab] ? sp.tab : 'items';
   const activeConfig = entityConfigs[activeTab];
 
+  // Judul selaras label submenu sidebar (fallback ke label config bila tak terpetakan).
+  const tabTitles: Record<string, string> = {
+    items: 'Products',
+    categories: 'Categories',
+    customers: 'Customers',
+    suppliers: 'Suppliers',
+    'payment-types': 'Payment Method',
+    discounts: 'Discount',
+  };
+  const title = tabTitles[activeTab] ?? activeConfig.label;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ display: 'flex', gap: 'var(--space-4)', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--space-6)', overflowX: 'auto' }}>
-        {Object.values(entityConfigs).map((cfg) => (
-          <a
-            key={cfg.key}
-            href={`/library?tab=${cfg.key}`}
-            style={{
-              padding: 'var(--space-3) var(--space-4)',
-              fontWeight: activeTab === cfg.key ? 700 : 500,
-              color: activeTab === cfg.key ? 'var(--color-accent)' : 'var(--color-text-muted)',
-              borderBottom: activeTab === cfg.key ? '2px solid var(--color-accent)' : '2px solid transparent',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {cfg.label}
-          </a>
-        ))}
-      </div>
+      <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-text)', marginBottom: 'var(--space-6)' }}>
+        {title}
+      </h1>
 
       <EntityManager config={activeConfig} role={role} />
     </div>
