@@ -36,7 +36,7 @@ const SCREENSHOTS_DIR = path.resolve(__dirname, 'screenshots');
 /** Pages that need an authenticated session. */
 const AUTH_PAGES: Array<{ name: string; path: string; stableSelector: string }> =
   [
-    { name: 'dashboard', path: '/dashboard', stableSelector: 'h1, main, [class*="dashboard"]' },
+    { name: 'dashboard', path: '/', stableSelector: 'h1, main, [class*="dashboard"]' },
     { name: 'pos', path: '/pos', stableSelector: 'h1, main, [class*="pos"], [class*="kasir"]' },
     { name: 'sales', path: '/sales', stableSelector: 'h1, main, table, [class*="sales"]' },
     { name: 'library', path: '/library', stableSelector: 'h1, main, [class*="library"]' },
