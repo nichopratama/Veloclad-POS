@@ -1,28 +1,11 @@
-version: '3.8'
+# Produksi VPS — nempel ke Traefik yang SUDAH ADA di server (jangan jalankan Traefik kedua).
+# VPS sudah punya: container `traefik` (v3) di network `traefik-public`, entrypoints
+# web/websecure, certresolver `letsencrypt`. Kita cukup tambah `web` + `postgres`.
+#
+# Deploy: docker compose -f docker-compose.prod.yml up -d --build
+# Butuh: root .env (DB_USER/DB_PASSWORD/DB_NAME/DOMAIN) + web/.env (lihat docs/DEPLOY-VPS.md).
 
 services:
-  traefik:
-    image: traefik:v2.10
-    container_name: pos-traefik
-    restart: unless-stopped
-    command:
-      - "--api.insecure=false"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
-      - "--certificatesresolvers.myresolver.acme.email=${ACME_EMAIL:-admin@yourdomain.com}"
-      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      - "./letsencrypt:/letsencrypt"
-    networks:
-      - pos-network
-
   postgres:
     image: postgres:16-alpine
     container_name: pos-postgres-prod
@@ -34,55 +17,17 @@ services:
     volumes:
       - pos-data-prod:/var/lib/postgresql/data
     networks:
-      - pos-network
+      - pos-internal
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
-
-  pos-api:
-    build: 
-      context: ./api
-    container_name: pos-api-prod
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-    env_file:
-      - .env
-    networks:
-      - pos-network
-    labels:
-      - "traefik.enable=false"
-      - "traefik.http.routers.pos-api.rule=Host(`${DOMAIN}`) && PathPrefix(`/api`)"
-      - "traefik.http.routers.pos-api.entrypoints=websecure"
-      - "traefik.http.routers.pos-api.tls.certresolver=myresolver"
-      - "traefik.http.services.pos-api.loadbalancer.server.port=3004"
-
-  pos-frontend:
-    build:
-      context: ./frontend
-    container_name: pos-frontend-prod
-    restart: unless-stopped
-    networks:
-      - pos-network
-    labels:
-      - "traefik.enable=false"
-      - "traefik.http.routers.pos-frontend.rule=Host(`${DOMAIN}`)"
-      - "traefik.http.routers.pos-frontend.entrypoints=websecure"
-      - "traefik.http.routers.pos-frontend.tls.certresolver=myresolver"
-      # Nginx dalam container berjalan di port 80
-      - "traefik.http.services.pos-frontend.loadbalancer.server.port=80"
-      # Redirect HTTP to HTTPS
-      - "traefik.http.routers.pos-frontend-http.rule=Host(`${DOMAIN}`)"
-      - "traefik.http.routers.pos-frontend-http.entrypoints=web"
-      - "traefik.http.routers.pos-frontend-http.middlewares=redirect-to-https"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 
   web:
     build:
       context: ./web
+      dockerfile: Dockerfile
     container_name: pos-web-prod
     restart: unless-stopped
     depends_on:
@@ -91,22 +36,28 @@ services:
     env_file:
       - ./web/.env
     networks:
-      - pos-network
+      - pos-internal
+      - traefik-public
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=traefik-public"
+      # HTTPS
       - "traefik.http.routers.pos-web.rule=Host(`${DOMAIN}`)"
       - "traefik.http.routers.pos-web.entrypoints=websecure"
-      - "traefik.http.routers.pos-web.tls.certresolver=myresolver"
+      - "traefik.http.routers.pos-web.tls=true"
+      - "traefik.http.routers.pos-web.tls.certresolver=letsencrypt"
       - "traefik.http.services.pos-web.loadbalancer.server.port=3000"
-      # Redirect HTTP→HTTPS
+      # HTTP → HTTPS redirect
       - "traefik.http.routers.pos-web-http.rule=Host(`${DOMAIN}`)"
       - "traefik.http.routers.pos-web-http.entrypoints=web"
-      - "traefik.http.routers.pos-web-http.middlewares=redirect-to-https"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.pos-web-http.middlewares=pos-redirect-https"
+      - "traefik.http.middlewares.pos-redirect-https.redirectscheme.scheme=https"
 
 networks:
-  pos-network:
-    name: pos_network_prod
+  pos-internal:
+    driver: bridge
+  traefik-public:
+    external: true
 
 volumes:
   pos-data-prod:
