@@ -8,3 +8,9 @@ node_modules/
 # Prisma generated client
 /prisma/generated/
 
+# Playwright
+test-results/
+playwright-report/
+e2e/.auth/
+# NOTE: e2e/screenshots/ is intentionally NOT ignored (baseline files are reviewable/committable)
+
