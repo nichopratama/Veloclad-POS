@@ -12,6 +12,13 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate
+# Placeholder env HANYA agar validasi fail-fast (src/lib/env.ts) lolos saat
+# `next build` mengevaluasi route — di build tak ada .env (di-.dockerignore).
+# Terkurung di stage builder (TIDAK diteruskan ke runner); nilai nyata diberikan
+# saat runtime via compose env_file. Tak ada secret nyata di sini.
+ENV DATABASE_URL="postgresql://build:build@localhost:5432/build?schema=public" \
+    BETTER_AUTH_SECRET="build_time_placeholder_secret_0123456789" \
+    BETTER_AUTH_URL="http://localhost:3000"
 RUN npm run build           # next build (output: standalone)
 
 # ── runner ────────────────────────────────────────────
