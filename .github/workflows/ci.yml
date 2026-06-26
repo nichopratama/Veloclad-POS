@@ -24,7 +24,13 @@ jobs:
       - run: npm ci
       - run: npx prisma generate
       - run: npm run typecheck
+      # Placeholder env: `next build` mengevaluasi env.ts (fail-fast) tanpa .env di CI.
+      # Nilai dummy hanya untuk lolos build; runtime pakai env asli di server.
       - run: npm run build
+        env:
+          DATABASE_URL: postgresql://build:build@localhost:5432/build?schema=public
+          BETTER_AUTH_SECRET: build_time_placeholder_secret_0123456789
+          BETTER_AUTH_URL: http://localhost:3000
       - run: npm audit --audit-level=high
 
   secret-scan:
@@ -37,4 +43,3 @@ jobs:
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-</content>
