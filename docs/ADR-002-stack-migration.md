@@ -155,6 +155,8 @@ Sistem POS **tetap jalan** selama migrasi; route dipindah satu per satu, bukan r
 
 ### Tahap M4 — Cutover & decommission ⬜
 
+> **Spec handoff cutover:** `docs/M4-cutover-handoff.md` (arsitektur 2-container→1, prasyarat C, tugas G Dockerfile/compose/CI, sekuens cutover C, gotcha Prisma-musl/standalone).
+
 > **Pembagian model M4 (risk-based, D8):** keputusan arsitektur/sekuens, semua yang menyentuh **uang/keamanan/secret nyata**, dan **seluruh review+gate** → **C (Opus)**. IaC/config mekanis ter-spesifikasi → **G (Mipro)** (konfirmasi user + window Gemini). Edit kode berulang lintas-file & verifikasi visual → **S (Sonet)** (subagent otomatis). Tiap item G/S → diff balik ke C untuk review+gate sebelum commit.
 
 **Cutover:**
