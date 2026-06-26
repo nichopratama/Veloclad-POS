@@ -136,7 +136,7 @@ Sistem POS **tetap jalan** selama migrasi; route dipindah satu per satu, bukan r
 - [x] Helper bersama `lib/api.ts` (handleApiError + ApiError) (C)
 - [x] Tiap modul: typecheck + build + runtime test + review-gate (C)
 
-### Tahap M3 — Frontend 🔄
+### Tahap M3 — Frontend ✅
 - [x] Spec handoff M3 per-halaman → `docs/M3-handoff-frontend.md` (Opus)
 - [x] App shell: middleware guard + design tokens + SWR provider/fetcher + layout (Sidebar+Header role-gated) (Opus) — runtime tervalidasi
 - [x] Halaman Login fungsional (Better Auth `signIn`, no localStorage) (Opus) — polesan visual opsional ke Sonet
@@ -145,12 +145,15 @@ Sistem POS **tetap jalan** selama migrasi; route dipindah satu per satu, bukan r
 - [x] Halaman Sales History + void (list+filter+paginasi+ringkasan, detail+cetak ulang, void owner/admin) — **Deputi Mipro (Gemini 3.1 Pro)**, review+gate Opus lulus (typecheck+build hijau; runtime: SSR 200, list shape+summary, filter, void stok-balik+status void tervalidasi; fix Opus: buang `as any` + `catch any`→`FetchError`)
 - [x] Halaman Inventory (3 tab: stock-summary paginated+low-stock, PO list+buat+terima, adjustments list+buat) — **Deputi Mipro (Gemini 3.1 Pro)**, review+gate Opus lulus (typecheck+build hijau /inventory 5.12kB; runtime: SSR 3 tab, PO create→receive stok+3, double-receive 400, adjustment −2 stok−2, qty0 ditolak, uang string; fix Opus: 1 token CSS salah `--color-background-muted`→`--color-surface-2`). **Implementasi terbersih: nol `any`.**
 - [x] Halaman Library (6 entitas, config-driven: EntityManager+EntityFormModal+FieldInput+entityConfigs) — **Deputi Mipro (Gemini 3.1 Pro)**, review+gate Opus lulus (typecheck+build hijau /library 3.54kB; runtime: SSR+tab, categories+items CRUD, FK+uang string+nested+paginasi+delete tervalidasi; fix Opus: 12 `any`→tipe nyata FormValue/EntityRow/LibraryListResponse + buang dead-code). Catatan: dup item code balik 500 bukan 400 = **bug M2 P2002** (meta.target=field bukan constraint), di luar scope M3, jadwalkan M4 hardening.
-- [ ] Halaman Settings (store/tax/receipt) — Mipro (konfirmasi)
-- [ ] Review + gate tiap halaman (Opus)
+- [x] Halaman Settings (store/tax/receipt) — **Deputi Mipro (Gemini 3.1 Pro)**, review+gate Opus lulus (commit `9dff069`; typecheck 0, build hijau /settings 2.19kB; SWR GET objek-flat+PUT, 3 seksi `.card`, email kosong→`null`, tax_rate 0–100, RBAC UI read-only non-admin, banner sukses/error no-`alert`; fix Opus 2: `var(--radius-md)` tak ada→`var(--radius)`, `tax_rate` onChange string→parse `Number` di sumber; runtime tipis: auth gate GET/PUT 401 tanpa cookie, `/settings` 307→login — full owner-session PUT tak diuji, kontrak GET/PUT lulus saat M2)
+- [x] Review + gate tiap halaman (Opus)
+
+> **M3 SELESAI 100%** — 6 halaman merged: login, dashboard, POS/kasir, sales history+void, library, inventory, settings. Verifikasi visual penuh (browser) belum; sejauh ini SSR + API + build + auth-gate checks.
 
 > Catatan model: Sonet/Haiku dijalankan via **subagent otomatis**; Mipro/Miflash (Gemini) **dikonfirmasi dulu** ke user lalu dijalankan di window Gemini.
 
 ### Tahap M4 — Cutover & decommission ⬜
+**Cutover:**
 - [ ] Set `BETTER_AUTH_URL` + CORS ke origin nyata (port 3020) (C)
 - [ ] Dockerfile + compose untuk app Next.js (C/G)
 - [ ] Alihkan port 3020 (reverse-proxy) dari frontend lama → Next.js (C)
@@ -158,4 +161,10 @@ Sistem POS **tetap jalan** selama migrasi; route dipindah satu per satu, bukan r
 - [ ] Rotate secret placeholder (`DB_PASSWORD`, `BETTER_AUTH_SECRET`) (C)
 - [ ] Verifikasi paritas penuh di staging → matikan `api/` & `frontend/` lama (C)
 - [ ] Hapus stack lama (Express/Knex/Vite) setelah stabil (C)
+
+**Security & quality hardening (terkumpul selama M3 — WAJIB sebelum produksi):**
+- [ ] **Price-tampering (CRITICAL):** `POST /api/sales/transactions` percaya `price` dari klien (`subtotal=Σ client_price×qty`) → kasir/klien bisa kirim `price=1`. Fix: lookup harga otoritatif dari DB by item id, abaikan harga klien. (C)
+- [ ] **P2002 → 400 (HIGH):** `POST/PUT /api/library/items` dup `code` balik **500 bukan 400** — cek `error.meta.target.includes('items_code_unique')` salah (Prisma P2002 Postgres balik nama FIELD `['code']`, bukan nama constraint). Fix: return 400 untuk semua P2002 / cek `'code'`. (C)
+- [ ] **A11y label association (MEDIUM):** label form text/email/number/textarea belum `htmlFor`/`id`-associated di **seluruh** form (settings/inventory/library — konvensi codebase, bukan regresi 1 halaman). Jadwalkan a11y pass lintas-form. (C/G)
+- [ ] Verifikasi visual penuh lintas-breakpoint (browser/Playwright) untuk semua halaman M3. (C)
 
