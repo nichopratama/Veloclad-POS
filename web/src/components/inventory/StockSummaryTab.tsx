@@ -6,6 +6,7 @@ import { fetcher } from '@/lib/fetcher';
 import { StockItem, PaginatedResponse } from './types';
 import { useDebounce } from '@/components/pos/useDebounce';
 import { formatIDRFromString } from '@/components/pos/format';
+import { SkeletonRows } from '@/components/ui/Skeleton';
 
 export function StockSummaryTab() {
   const [page, setPage] = useState(1);
@@ -49,9 +50,7 @@ export function StockSummaryTab() {
             Gagal memuat data: {error instanceof Error ? error.message : 'Error tidak diketahui'}
           </div>
         ) : isLoading ? (
-          <div style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-            Memuat data...
-          </div>
+          <SkeletonRows rows={8} cols={6} />
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>

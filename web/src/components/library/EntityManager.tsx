@@ -8,6 +8,7 @@ import { EntityConfig, EntityRow, LibraryListResponse } from './types';
 import { useDebounce } from '@/components/pos/useDebounce';
 import { formatIDRFromString } from '@/components/pos/format';
 import { EntityFormModal } from './EntityFormModal';
+import { SkeletonRows } from '@/components/ui/Skeleton';
 
 interface EntityManagerProps {
   config: EntityConfig;
@@ -109,9 +110,7 @@ export function EntityManager({ config, role }: EntityManagerProps) {
             Gagal memuat data: {error.message}
           </div>
         ) : isLoading ? (
-          <div style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-            Memuat data...
-          </div>
+          <SkeletonRows rows={8} cols={5} />
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>

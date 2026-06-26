@@ -4,6 +4,7 @@ import { useState, useEffect, useId } from 'react';
 import useSWR from 'swr';
 import { fetcher, apiMutate, FetchError } from '@/lib/fetcher';
 import { StoreSettings } from './types';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 interface SettingsFormProps {
   role: string;
@@ -106,8 +107,18 @@ export function SettingsForm({ role }: SettingsFormProps) {
 
   if (isLoading) {
     return (
-      <div style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-        Memuat pengaturan...
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', maxWidth: '800px', margin: '0 auto', width: '100%' }}>
+        {['sec1', 'sec2', 'sec3'].map((sk) => (
+          <div key={sk} className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+            <Skeleton width={160} height={16} style={{ marginBottom: 'var(--space-2)' }} />
+            {['f1', 'f2', 'f3'].map((fk) => (
+              <div key={fk} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                <Skeleton width={120} height={12} />
+                <Skeleton width="100%" height={36} />
+              </div>
+            ))}
+          </div>
+        ))}
       </div>
     );
   }

@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import { fetcher } from '@/lib/fetcher';
 import { Adjustment, FlatResponse } from './types';
 import { AdjustmentFormModal } from './AdjustmentFormModal';
+import { SkeletonRows } from '@/components/ui/Skeleton';
 
 interface AdjustmentsTabProps {
   role: string;
@@ -34,9 +35,7 @@ export function AdjustmentsTab({ role }: AdjustmentsTabProps) {
             Gagal memuat data: {error instanceof Error ? error.message : 'Error tidak diketahui'}
           </div>
         ) : isLoading ? (
-          <div style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-            Memuat data...
-          </div>
+          <SkeletonRows rows={8} cols={5} />
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>

@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import useSWR from 'swr';
 import { useDebounce } from './useDebounce';
 import { formatIDR } from './format';
 import type { ListResponse, PosItem } from './types';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 const SEARCH_DEBOUNCE_MS = 300;
-const ITEM_LIMIT = 30;
 
 type Props = {
   onPick: (item: PosItem) => void;
@@ -16,10 +16,39 @@ type Props = {
 export function ProductPanel({ onPick }: Props) {
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, SEARCH_DEBOUNCE_MS);
+  const [dynamicLimit, setDynamicLimit] = useState(15);
+  const gridContainerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const calculateCapacity = () => {
+      if (!gridContainerRef.current) return;
+      // padding is 24px each side (48px total)
+      const availableWidth = gridContainerRef.current.clientWidth - 48;
+      // css grid: minmax(150px, 1fr) with 12px gap
+      let cols = Math.floor((availableWidth + 12) / 162);
+      if (cols < 1) cols = 1;
+      
+      // Target 3 rows. Minimum 9 items so it doesn't look empty on mobile.
+      setDynamicLimit(Math.max(9, cols * 3));
+    };
+
+    calculateCapacity();
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const handleResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(calculateCapacity, 150);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(timeoutId);
+    };
+  }, []);
 
   const query = debouncedSearch.trim()
-    ? `?search=${encodeURIComponent(debouncedSearch.trim())}&limit=${ITEM_LIMIT}`
-    : `?limit=${ITEM_LIMIT}`;
+    ? `?search=${encodeURIComponent(debouncedSearch.trim())}&limit=${dynamicLimit}`
+    : `?limit=${dynamicLimit}`;
   const { data, error, isLoading } = useSWR<ListResponse<PosItem>>(
     `/api/sales/pos-items${query}`,
   );
@@ -28,9 +57,10 @@ export function ProductPanel({ onPick }: Props) {
 
   return (
     <section
+      ref={gridContainerRef}
       className="card"
       style={{
-        flex: '1 1 380px',
+        flex: '999 1 380px',
         minWidth: 0,
         display: 'flex',
         flexDirection: 'column',
@@ -53,9 +83,32 @@ export function ProductPanel({ onPick }: Props) {
       </div>
 
       {isLoading && (
-        <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>
-          Memuat produk…
-        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+            gap: 'var(--space-3)',
+          }}
+          aria-hidden="true"
+        >
+          {Array.from({ length: 8 }, (_, i) => `sk${i}`).map((k) => (
+            <div
+              key={k}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-2)',
+                padding: 'var(--space-4)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius)',
+              }}
+            >
+              <Skeleton width="80%" height={14} />
+              <Skeleton width="50%" height={12} />
+              <Skeleton width="60%" height={16} />
+            </div>
+          ))}
+        </div>
       )}
 
       {error && !isLoading && (

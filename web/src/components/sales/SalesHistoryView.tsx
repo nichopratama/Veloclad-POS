@@ -9,6 +9,7 @@ import { TransactionDetailModal } from './TransactionDetailModal';
 import { VoidModal } from './VoidModal';
 import { Transaction, TransactionsResponse } from './types';
 import { formatIDR } from '@/components/pos/format';
+import { SkeletonTable } from '@/components/ui/Skeleton';
 
 export function SalesHistoryView({ role }: { role: string }) {
   const [filters, setFilters] = useState({
@@ -80,9 +81,7 @@ export function SalesHistoryView({ role }: { role: string }) {
           Gagal memuat data: {error.message || 'Error tidak diketahui'}
         </div>
       ) : isLoading ? (
-        <div className="card" style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-          Memuat data...
-        </div>
+        <SkeletonTable rows={10} cols={6} />
       ) : (
         <TransactionTable
           transactions={data?.data ?? []}
