@@ -1,0 +1,19 @@
+.mainContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  margin-left: var(--sidebar-w);
+  /* Tanpa transition: margin-left adalah properti layout-bound; menganimasikannya
+     memaksa reflow seluruh konten halaman ~300ms tiap toggle. Collapse instan. */
+}
+
+.mainContentCollapsed {
+  margin-left: 80px;
+}
+
+@media (max-width: 768px) {
+  .mainContent {
+    margin-left: 0;
+  }
+}

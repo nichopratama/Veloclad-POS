@@ -58,6 +58,8 @@ const NAV: NavGroup[] = [
       { label: 'Categories', href: '/library?tab=categories' },
       { label: 'Customers', href: '/library?tab=customers' },
       { label: 'Suppliers', href: '/library?tab=suppliers' },
+      { label: 'Payment Method', href: '/library?tab=payment-types' },
+      { label: 'Discount', href: '/library?tab=discounts' },
     ],
   },
   { label: 'Pengaturan', icon: Settings, adminOnly: true, href: '/settings' },
@@ -70,7 +72,15 @@ function parseHref(href: string): { path: string; tab: string | null } {
   return { path, tab: new URLSearchParams(query).get('tab') };
 }
 
-export function Sidebar({ role }: { role: string }) {
+export function Sidebar({ 
+  role, 
+  isOpen, 
+  setIsOpen 
+}: { 
+  role: string;
+  isOpen: boolean;
+  setIsOpen: (open: boolean) => void;
+}) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
@@ -95,8 +105,16 @@ export function Sidebar({ role }: { role: string }) {
     setOverrides((prev) => ({ ...prev, [label]: !(prev[label] ?? active) }));
 
   return (
-    <aside className={styles.sidebar}>
-      <div className={styles.header}>
+    <>
+      {isOpen && (
+        <div 
+          className={styles.overlay} 
+          onClick={() => setIsOpen(false)} 
+          aria-hidden="true" 
+        />
+      )}
+      <aside className={`${styles.sidebar} ${!isOpen ? styles.sidebarHidden : ''} ${!isOpen ? styles.sidebarCollapsed : ''}`}>
+        <div className={styles.header}>
         <div className={styles.brand}>AntiGravity POS</div>
         <div className={styles.tenant}>
           <span>vapescrew</span>
@@ -173,5 +191,6 @@ export function Sidebar({ role }: { role: string }) {
         </button>
       </div>
     </aside>
+    </>
   );
 }

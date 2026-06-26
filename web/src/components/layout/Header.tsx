@@ -2,15 +2,26 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Menu, Globe, Bell, User } from 'lucide-react';
 import { signOut } from '@/lib/auth-client';
+import styles from './Header.module.css';
 
-/**
- * Header atas: identitas user + logout. Logout = signOut() Better Auth
- * (session ter-revoke di server, bukan sekadar hapus localStorage).
- */
-export function Header({ userName, role }: { userName: string; role: string }) {
+export function Header({
+  userName,
+  role,
+  toggleSidebar,
+}: {
+  userName: string;
+  role: string;
+  toggleSidebar: () => void;
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [lang, setLang] = useState('ID');
+
+  const handleToggleLang = () => {
+    setLang(lang === 'ID' ? 'EN' : 'ID');
+  };
 
   async function handleLogout() {
     setBusy(true);
@@ -20,26 +31,39 @@ export function Header({ userName, role }: { userName: string; role: string }) {
   }
 
   return (
-    <header
-      style={{
-        height: 'var(--header-h)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-        gap: 'var(--space-4)',
-        padding: '0 var(--space-6)',
-        background: 'var(--color-surface)',
-        borderBlockEnd: '1px solid var(--color-border)',
-      }}
-    >
-      <div style={{ textAlign: 'right', lineHeight: 1.2 }}>
-        <div style={{ fontWeight: 600 }}>{userName}</div>
-        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>{role}</div>
+    <header className={styles.header}>
+      <div className={styles.left}>
+        <button
+          type="button"
+          className={`${styles.iconBtn} ${styles.hamburger}`}
+          onClick={toggleSidebar}
+          aria-label="Toggle Sidebar"
+        >
+          <Menu size={20} />
+        </button>
       </div>
-      <button type="button" className="btn btn--ghost" onClick={handleLogout} disabled={busy}>
-        {busy ? 'Keluar…' : 'Logout'}
-      </button>
+
+      <div className={styles.right}>
+        <button className={styles.iconBtn} onClick={handleToggleLang}>
+          <Globe size={20} />
+          <span className={styles.langText}>{lang}</span>
+        </button>
+
+        <button className={styles.iconBtn}>
+          <Bell size={20} />
+          <span className={styles.badgeDot}></span>
+        </button>
+
+        <div className={styles.userBlock} onClick={handleLogout} title={busy ? 'Logging out...' : 'Click to logout'}>
+          <div className={styles.userAvatar}>
+            <User size={20} />
+          </div>
+          <div className={styles.userInfo}>
+            <div className={styles.userName}>{userName}</div>
+            <div className={styles.userRole}>{role}</div>
+          </div>
+        </div>
+      </div>
     </header>
   );
 }
-

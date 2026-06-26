@@ -1,10 +1,12 @@
 'use client';
 
-import type { Dispatch } from 'react';
+import { useState, type Dispatch } from 'react';
 import useSWR from 'swr';
+import { ShoppingCart, Trash2, Tag } from 'lucide-react';
 import { lineSubtotal, type CartAction } from './cartReducer';
 import { formatIDR } from './format';
 import type { CartLine, Customer, ListResponse, PaymentType } from './types';
+import styles from './CartPanel.module.css';
 
 type Props = {
   lines: CartLine[];
@@ -24,45 +26,6 @@ type Props = {
   errorMessage: string;
   onPay: () => void;
 };
-
-const labelStyle: React.CSSProperties = {
-  fontSize: 'var(--text-sm)',
-  fontWeight: 600,
-  color: 'var(--color-text-muted)',
-};
-
-function QtyButton({
-  label,
-  onClick,
-  ariaLabel,
-}: {
-  label: string;
-  onClick: () => void;
-  ariaLabel: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={ariaLabel}
-      style={{
-        width: '44px',
-        height: '44px',
-        flexShrink: 0,
-        border: '1px solid var(--color-border)',
-        borderRadius: 'var(--radius-sm)',
-        background: 'var(--color-surface)',
-        color: 'var(--color-text)',
-        fontSize: 'var(--text-lg)',
-        fontWeight: 700,
-        cursor: 'pointer',
-        lineHeight: 1,
-      }}
-    >
-      {label}
-    </button>
-  );
-}
 
 export function CartPanel(props: Props) {
   const {
@@ -84,6 +47,8 @@ export function CartPanel(props: Props) {
     onPay,
   } = props;
 
+  const [discountVisibleIds, setDiscountVisibleIds] = useState<Record<number, boolean>>({});
+
   const { data: customersData } = useSWR<ListResponse<Customer>>('/api/library/customers');
   const { data: paymentData, error: paymentError } =
     useSWR<ListResponse<PaymentType>>('/api/library/payment-types');
@@ -91,94 +56,83 @@ export function CartPanel(props: Props) {
   const customers = customersData?.data ?? [];
   const activePayments = (paymentData?.data ?? []).filter((p) => p.is_active);
 
+  const toggleDiscount = (id: number) => {
+    setDiscountVisibleIds((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
   return (
-    <section
-      className="card"
-      style={{
-        flex: '1 1 360px',
-        minWidth: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--space-4)',
-      }}
-      aria-label="Keranjang dan pembayaran"
-    >
-      <h2 style={{ fontSize: 'var(--text-base)', fontWeight: 700 }}>Keranjang</h2>
+    <section className={`card ${styles.cartPanel}`} aria-label="Keranjang dan pembayaran" style={{ padding: 0 }}>
+      {/* Header */}
+      <div className={styles.cartHeader}>
+        <ShoppingCart size={20} />
+        <h2>Keranjang ({lines.length})</h2>
+      </div>
 
       {/* Cart lines */}
-      {lines.length === 0 ? (
-        <p
-          style={{
-            margin: 0,
-            padding: 'var(--space-6) 0',
-            textAlign: 'center',
-            color: 'var(--color-text-muted)',
-            fontSize: 'var(--text-sm)',
-          }}
-        >
-          Keranjang masih kosong. Pilih produk dari panel kiri.
-        </p>
-      ) : (
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-          {lines.map((line) => (
-            <li
-              key={line.id}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 'var(--space-2)',
-                paddingBottom: 'var(--space-3)',
-                borderBottom: '1px solid var(--color-border)',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-2)', alignItems: 'flex-start' }}>
-                <div style={{ minWidth: 0 }}>
-                  <p style={{ margin: 0, fontWeight: 600, fontSize: 'var(--text-sm)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {line.name}
-                  </p>
-                  <p className="money" style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-                    {formatIDR(line.price)} / item
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => dispatch({ type: 'remove', id: line.id })}
-                  aria-label={`Hapus ${line.name}`}
-                  style={{
-                    minWidth: '44px',
-                    minHeight: '44px',
-                    border: 'none',
-                    background: 'transparent',
-                    color: 'var(--color-danger)',
-                    cursor: 'pointer',
-                    fontSize: 'var(--text-lg)',
-                    flexShrink: 0,
-                  }}
-                >
-                  ✕
-                </button>
+      <div className={styles.cartItems}>
+        {lines.length === 0 ? (
+          <div className={styles.emptyCart}>
+            Keranjang masih kosong. Pilih produk dari panel kiri.
+          </div>
+        ) : (
+          lines.map((line) => (
+            <div key={line.id} className={styles.cartItem}>
+              <div className={styles.cartItemInfo}>
+                <p className={styles.cartItemName}>{line.name}</p>
+                <span className={`money ${styles.cartItemPrice}`}>
+                  {formatIDR(lineSubtotal(line))}
+                </span>
               </div>
 
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-3)', alignItems: 'center' }}>
-                {/* Qty stepper */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                  <QtyButton label="−" ariaLabel={`Kurangi qty ${line.name}`} onClick={() => dispatch({ type: 'setQty', id: line.id, qty: line.qty - 1 })} />
-                  <input
-                    className="input"
-                    type="number"
-                    inputMode="numeric"
-                    min={1}
-                    value={line.qty}
-                    onChange={(e) => dispatch({ type: 'setQty', id: line.id, qty: Number(e.target.value) || 1 })}
-                    aria-label={`Qty ${line.name}`}
-                    style={{ width: '64px', textAlign: 'center' }}
-                  />
-                  <QtyButton label="+" ariaLabel={`Tambah qty ${line.name}`} onClick={() => dispatch({ type: 'setQty', id: line.id, qty: line.qty + 1 })} />
+              <div className={styles.cartItemActions}>
+                <div className={styles.qtyControl}>
+                  <button 
+                    type="button"
+                    className={styles.qtyBtn} 
+                    onClick={() => dispatch({ type: 'setQty', id: line.id, qty: line.qty - 1 })}
+                    aria-label={`Kurangi qty ${line.name}`}
+                  >
+                    −
+                  </button>
+                  <span className={styles.qtyValue}>{line.qty}</span>
+                  <button 
+                    type="button"
+                    className={styles.qtyBtn} 
+                    onClick={() => dispatch({ type: 'setQty', id: line.id, qty: line.qty + 1 })}
+                    aria-label={`Tambah qty ${line.name}`}
+                  >
+                    +
+                  </button>
                 </div>
 
-                {/* Discount per item */}
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', flex: '1 1 120px', minWidth: 0 }}>
-                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>Diskon (Rp)</span>
+                <div className={styles.actionBtns}>
+                  <button
+                    type="button"
+                    className={`${styles.iconBtn} ${discountVisibleIds[line.id] ? styles.active : ''}`}
+                    onClick={() => toggleDiscount(line.id)}
+                    aria-label={`Diskon ${line.name}`}
+                    title="Atur Diskon"
+                  >
+                    <Tag size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.iconBtn} ${styles.danger}`}
+                    onClick={() => dispatch({ type: 'remove', id: line.id })}
+                    aria-label={`Hapus ${line.name}`}
+                    title="Hapus Item"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+
+              {discountVisibleIds[line.id] && (
+                <div className={styles.discountRow}>
+                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>Diskon (Rp):</span>
                   <input
                     className="input"
                     type="number"
@@ -186,167 +140,126 @@ export function CartPanel(props: Props) {
                     min={0}
                     value={line.discount}
                     onChange={(e) => dispatch({ type: 'setDiscount', id: line.id, discount: Math.max(0, Number(e.target.value) || 0) })}
-                    aria-label={`Diskon ${line.name}`}
+                    style={{ minHeight: '30px', fontSize: 'var(--text-sm)', padding: '0 var(--space-2)' }}
                   />
-                </label>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)' }}>
-                <span style={{ color: 'var(--color-text-muted)' }}>Subtotal</span>
-                <span className="money" style={{ fontWeight: 700 }}>{formatIDR(lineSubtotal(line))}</span>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {/* Summary */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', paddingTop: 'var(--space-2)' }}>
-        <SummaryRow label="Subtotal" value={formatIDR(subtotal)} />
-        <SummaryRow label="Total Diskon" value={formatIDR(discountTotal)} />
-        <SummaryRow label="Pajak" valueText="dihitung server" muted />
-        <div style={{ height: '1px', background: 'var(--color-border)', margin: 'var(--space-1) 0' }} />
-        <SummaryRow label="Total" value={formatIDR(total)} strong />
+                </div>
+              )}
+            </div>
+          ))
+        )}
       </div>
 
-      {/* Customer + payment selects */}
-      <label style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-        <span style={labelStyle}>Pelanggan (opsional)</span>
-        <select
-          className="input"
-          value={customerId ?? ''}
-          onChange={(e) => onCustomerChange(e.target.value ? Number(e.target.value) : null)}
-        >
-          <option value="">Tanpa pelanggan</option>
-          {customers.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-              {c.phone ? ` — ${c.phone}` : ''}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <label style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-        <span style={labelStyle}>Metode Bayar</span>
-        <select
-          className="input"
-          value={paymentTypeId ?? ''}
-          onChange={(e) => onPaymentTypeChange(e.target.value ? Number(e.target.value) : null)}
-        >
-          <option value="">Pilih metode bayar…</option>
-          {activePayments.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-        {paymentError && (
-          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-danger)' }}>
-            Gagal memuat metode bayar
-          </span>
+      {/* Checkout Panel */}
+      <div className={styles.checkoutPanel}>
+        <div className={styles.summaryRow}>
+          <span>Subtotal</span>
+          <span className="money">{formatIDR(subtotal)}</span>
+        </div>
+        {discountTotal > 0 && (
+          <div className={styles.summaryRow}>
+            <span>Total Diskon</span>
+            <span className="money">-{formatIDR(discountTotal)}</span>
+          </div>
         )}
-      </label>
+        <div className={styles.summaryRow}>
+          <span>Pajak</span>
+          <span style={{ fontStyle: 'italic' }}>dihitung server</span>
+        </div>
+        
+        <div className={styles.totalRow}>
+          <span>Total Bayar</span>
+          <span className="money">{formatIDR(total)}</span>
+        </div>
 
-      {/* Payment amount + change */}
-      <label style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-        <span style={labelStyle}>Jumlah Bayar (Rp)</span>
-        <input
-          className="input"
-          type="number"
-          inputMode="numeric"
-          min={0}
-          value={paymentAmount}
-          onChange={(e) => onPaymentAmountChange(e.target.value)}
-          placeholder="0"
-          aria-label="Jumlah bayar"
-        />
-      </label>
+        <div className={styles.paymentForm}>
+          {/* Customer select (Optional) */}
+          <span className={styles.paymentLabel}>Pelanggan (opsional)</span>
+          <select
+            className="input"
+            value={customerId ?? ''}
+            onChange={(e) => onCustomerChange(e.target.value ? Number(e.target.value) : null)}
+            style={{ marginBottom: 'var(--space-2)' }}
+          >
+            <option value="">Tanpa pelanggan</option>
+            {customers.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} {c.phone ? `— ${c.phone}` : ''}
+              </option>
+            ))}
+          </select>
 
-      <SummaryRow
-        label="Kembalian"
-        value={formatIDR(change)}
-        strong
-        accent={change >= 0 && paymentAmount !== ''}
-      />
+          {/* Payment Method Grid */}
+          <span className={styles.paymentLabel}>Metode Pembayaran</span>
+          <div className={styles.paymentGrid}>
+            {activePayments.map((p) => (
+              <div 
+                key={p.id}
+                className={`${styles.paymentBox} ${paymentTypeId === p.id ? styles.active : ''}`}
+                onClick={() => onPaymentTypeChange(p.id)}
+              >
+                {p.name}
+              </div>
+            ))}
+          </div>
+          {paymentError && (
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-danger)' }}>
+              Gagal memuat metode bayar
+            </span>
+          )}
 
-      {errorMessage && (
-        <p
-          role="alert"
+          {/* Amount input */}
+          <span className={styles.paymentLabel}>Jumlah Bayar (Rp)</span>
+          <input
+            className="input"
+            type="number"
+            inputMode="numeric"
+            min={0}
+            value={paymentAmount}
+            onChange={(e) => onPaymentAmountChange(e.target.value)}
+            placeholder="0"
+          />
+        </div>
+
+        <div className={styles.summaryRow} style={{ marginTop: 'var(--space-2)' }}>
+          <span style={{ fontWeight: 600 }}>Kembalian</span>
+          <span className="money" style={{ fontWeight: 700, color: (change >= 0 && paymentAmount !== '') ? 'var(--color-success)' : 'inherit' }}>
+            {formatIDR(change)}
+          </span>
+        </div>
+
+        {errorMessage && (
+          <p
+            role="alert"
+            style={{
+              margin: 0,
+              padding: 'var(--space-2)',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--color-surface-2)',
+              border: '1px solid var(--color-danger)',
+              color: 'var(--color-danger)',
+              fontSize: 'var(--text-sm)',
+            }}
+          >
+            {errorMessage}
+          </p>
+        )}
+
+        <button
+          type="button"
+          className="btn"
+          onClick={onPay}
+          disabled={!canPay || isSubmitting}
           style={{
-            margin: 0,
-            padding: 'var(--space-3)',
-            borderRadius: 'var(--radius-sm)',
-            background: 'var(--color-surface-2)',
-            border: '1px solid var(--color-danger)',
-            color: 'var(--color-danger)',
-            fontSize: 'var(--text-sm)',
+            width: '100%',
+            fontSize: 'var(--text-base)',
+            marginTop: 'var(--space-2)',
+            opacity: !canPay || isSubmitting ? 0.55 : 1,
+            cursor: !canPay || isSubmitting ? 'not-allowed' : 'pointer',
           }}
         >
-          {errorMessage}
-        </p>
-      )}
-
-      <button
-        type="button"
-        className="btn"
-        onClick={onPay}
-        disabled={!canPay || isSubmitting}
-        style={{
-          width: '100%',
-          fontSize: 'var(--text-base)',
-          opacity: !canPay || isSubmitting ? 0.55 : 1,
-          cursor: !canPay || isSubmitting ? 'not-allowed' : 'pointer',
-        }}
-      >
-        {isSubmitting ? 'Memproses…' : `Bayar ${formatIDR(total)}`}
-      </button>
+          {isSubmitting ? 'Memproses…' : 'Proses Pembayaran'}
+        </button>
+      </div>
     </section>
-  );
-}
-
-function SummaryRow({
-  label,
-  value,
-  valueText,
-  strong,
-  muted,
-  accent,
-}: {
-  label: string;
-  value?: string;
-  valueText?: string;
-  strong?: boolean;
-  muted?: boolean;
-  accent?: boolean;
-}) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 'var(--space-4)' }}>
-      <span
-        style={{
-          fontSize: strong ? 'var(--text-base)' : 'var(--text-sm)',
-          fontWeight: strong ? 700 : 400,
-          color: 'var(--color-text-muted)',
-        }}
-      >
-        {label}
-      </span>
-      {valueText ? (
-        <span style={{ fontSize: 'var(--text-sm)', fontStyle: 'italic', color: 'var(--color-text-muted)' }}>
-          {valueText}
-        </span>
-      ) : (
-        <span
-          className="money"
-          style={{
-            fontSize: strong ? 'var(--text-lg)' : 'var(--text-sm)',
-            fontWeight: strong ? 800 : 500,
-            color: accent ? 'var(--color-success)' : muted ? 'var(--color-text-muted)' : 'var(--color-text)',
-          }}
-        >
-          {value}
-        </span>
-      )}
-    </div>
   );
 }

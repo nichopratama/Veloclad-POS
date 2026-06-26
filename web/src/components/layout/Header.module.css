@@ -1,0 +1,100 @@
+.header {
+  height: var(--header-h);
+  background-color: var(--color-surface);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-6);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.iconBtn {
+  color: var(--color-text-muted);
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.2s;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.iconBtn:hover {
+  color: var(--color-accent);
+}
+
+.langText {
+  font-weight: 400;
+  font-size: 13px;
+}
+
+.badgeDot {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  background-color: var(--color-danger);
+  border-radius: 50%;
+  border: 2px solid var(--color-surface);
+}
+
+.userBlock {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-left: var(--space-6);
+  border-left: 1px solid var(--color-border);
+  cursor: pointer;
+}
+
+.userAvatar {
+  width: 36px;
+  height: 36px;
+  background-color: var(--color-bg);
+  color: var(--color-text-muted);
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.userName {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+.userRole {
+  font-size: 11px;
+  font-weight: 300;
+  color: var(--color-text-muted);
+  line-height: 1.2;
+  text-transform: capitalize;
+}
+
+
