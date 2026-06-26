@@ -63,7 +63,11 @@ TENANT_NAME=vapescrew
 ## 3. Restore DB (samakan dengan local)
 Kirim dump dari local ke VPS, lalu restore:
 ```bash
-# (di mesin LOCAL) salin dump ke VPS — file ada di scratchpad sesi:
+# (di mesin LOCAL) buat dump dari DB local (container pos-postgres)
+docker exec pos-postgres pg_dump -U pos_user -d antigravity_pos \
+  --no-owner --no-privileges --clean --if-exists > antigravity_pos_dump.sql
+
+# salin dump ke VPS
 scp antigravity_pos_dump.sql USER@VPS_IP:/opt/antigravity-pos/
 
 # (di VPS) nyalakan HANYA postgres dulu, lalu restore
