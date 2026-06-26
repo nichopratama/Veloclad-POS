@@ -5,3 +5,10 @@ dist/
 !.env.example
 *.log
 .DS_Store
+
+# Playwright test output
+test-results/
+playwright-report/
+
+# Agent scratch
+.agents/
