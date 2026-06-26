@@ -10,6 +10,8 @@ const envSchema = z.object({
   // Better Auth (diisi di M1)
   BETTER_AUTH_SECRET: z.string().min(16).optional(),
   BETTER_AUTH_URL: z.string().url().optional(),
+  // Label tenant untuk UI (silo: per-deploy beda schema → beda nama). Jangan hardcode di JSX.
+  TENANT_NAME: z.string().min(1).default('vapescrew'),
 });
 
 const parsed = envSchema.safeParse(process.env);

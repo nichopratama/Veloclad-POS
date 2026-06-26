@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { auth } from '@/lib/auth';
+import { env } from '@/lib/env';
 import { AppShell } from '@/components/layout/AppShell';
 
 /**
@@ -15,7 +16,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const role = session.user.role ?? 'kasir';
 
   return (
-    <AppShell userName={session.user.name} role={role}>
+    <AppShell userName={session.user.name} role={role} tenantName={env.TENANT_NAME}>
       {children}
     </AppShell>
   );

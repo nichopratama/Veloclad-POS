@@ -205,7 +205,7 @@
 }
 
 .sidebarCollapsed .tenant::before {
-  content: "VP";
+  content: var(--tenant-initials, "");
   font-weight: 700;
   font-size: 18px;
   color: var(--color-success);

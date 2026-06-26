@@ -72,15 +72,19 @@ function parseHref(href: string): { path: string; tab: string | null } {
   return { path, tab: new URLSearchParams(query).get('tab') };
 }
 
-export function Sidebar({ 
-  role, 
-  isOpen, 
-  setIsOpen 
-}: { 
+export function Sidebar({
+  role,
+  tenantName,
+  isOpen,
+  setIsOpen,
+}: {
   role: string;
+  tenantName: string;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
 }) {
+  // Inisial untuk state sidebar collapsed (mis. "vapescrew" → "VA").
+  const tenantInitials = tenantName.slice(0, 2).toUpperCase();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
@@ -116,8 +120,11 @@ export function Sidebar({
       <aside className={`${styles.sidebar} ${!isOpen ? styles.sidebarHidden : ''} ${!isOpen ? styles.sidebarCollapsed : ''}`}>
         <div className={styles.header}>
         <div className={styles.brand}>AntiGravity POS</div>
-        <div className={styles.tenant}>
-          <span>vapescrew</span>
+        <div
+          className={styles.tenant}
+          style={{ ['--tenant-initials' as string]: `"${tenantInitials}"` }}
+        >
+          <span>{tenantName}</span>
           <ChevronDown size={18} />
         </div>
       </div>

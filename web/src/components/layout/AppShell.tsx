@@ -8,10 +8,12 @@ import styles from './AppShell.module.css';
 export function AppShell({
   userName,
   role,
+  tenantName,
   children,
 }: {
   userName: string;
   role: string;
+  tenantName: string;
   children: ReactNode;
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -33,10 +35,11 @@ export function AppShell({
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
-      <Sidebar 
-        role={role} 
-        isOpen={isSidebarOpen} 
-        setIsOpen={setIsSidebarOpen} 
+      <Sidebar
+        role={role}
+        tenantName={tenantName}
+        isOpen={isSidebarOpen}
+        setIsOpen={setIsSidebarOpen}
       />
       <div className={`${styles.mainContent} ${!isSidebarOpen ? styles.mainContentCollapsed : ''}`}>
         <Header 

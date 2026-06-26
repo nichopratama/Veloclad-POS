@@ -24,6 +24,8 @@ export function Header({
   };
 
   async function handleLogout() {
+    if (busy) return;
+    if (!window.confirm('Keluar dari akun?')) return;
     setBusy(true);
     await signOut();
     router.replace('/login');
@@ -54,7 +56,14 @@ export function Header({
           <span className={styles.badgeDot}></span>
         </button>
 
-        <div className={styles.userBlock} onClick={handleLogout} title={busy ? 'Logging out...' : 'Click to logout'}>
+        <button
+          type="button"
+          className={styles.userBlock}
+          onClick={handleLogout}
+          disabled={busy}
+          aria-label={`Keluar dari akun ${userName}`}
+          title={busy ? 'Keluar…' : 'Klik untuk keluar'}
+        >
           <div className={styles.userAvatar}>
             <User size={20} />
           </div>
@@ -62,7 +71,7 @@ export function Header({
             <div className={styles.userName}>{userName}</div>
             <div className={styles.userRole}>{role}</div>
           </div>
-        </div>
+        </button>
       </div>
     </header>
   );

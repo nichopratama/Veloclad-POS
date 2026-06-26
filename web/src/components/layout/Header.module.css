@@ -1,8 +1,7 @@
 .header {
   height: var(--header-h);
-  background-color: var(--color-surface);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  /* Tanpa backdrop-filter: header sticky → re-blur tiap scroll. Pakai surface opaque. */
+  background-color: var(--color-surface-2);
   border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
@@ -61,9 +60,18 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding-left: var(--space-6);
+  padding: 0 0 0 var(--space-6);
+  border: none;
   border-left: 1px solid var(--color-border);
+  background: none;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
+}
+
+.userBlock:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
 .userAvatar {

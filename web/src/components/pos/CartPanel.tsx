@@ -192,13 +192,15 @@ export function CartPanel(props: Props) {
           <span className={styles.paymentLabel}>Metode Pembayaran</span>
           <div className={styles.paymentGrid}>
             {activePayments.map((p) => (
-              <div 
+              <button
                 key={p.id}
+                type="button"
                 className={`${styles.paymentBox} ${paymentTypeId === p.id ? styles.active : ''}`}
+                aria-pressed={paymentTypeId === p.id}
                 onClick={() => onPaymentTypeChange(p.id)}
               >
                 {p.name}
-              </div>
+              </button>
             ))}
           </div>
           {paymentError && (
