@@ -1,126 +1,133 @@
-# Deploy ke VPS — Greenfield (deploy pertama) + GitHub Action
+# Deploy ke VPS — Greenfield + Auto-deploy (GitHub Actions)
 
-> Stack baru = 1 container `web` (Next.js: frontend + /api) di belakang Traefik.
-> Deploy pertama = **bootstrap manual** sekali di VPS. Deploy berikutnya = **otomatis
-> via GitHub Action** (`.github/workflows/deploy.yml`: push ke `main` → CI hijau →
-> SSH ke VPS → `git pull origin main` → `docker compose -f docker-compose.prod.yml up -d --build`).
-
----
-
-## 0. Prasyarat (siapkan dulu)
-- VPS Linux dengan **Docker + Docker Compose** terpasang.
-- **Domain** sudah diarahkan (A record) ke IP VPS (Traefik butuh ini untuk TLS Let's Encrypt).
-- Akses **SSH** ke VPS.
-- Repo: `https://github.com/nichopratama/Veloclad-POS`.
+> Stack = **1 container `web`** (Next.js: frontend + `/api`) + **1 `postgres`**, **nempel ke
+> Traefik yang SUDAH ADA** di VPS (shared reverse proxy). **JANGAN** jalankan Traefik kedua.
+>
+> - Deploy pertama (greenfield) = **bootstrap manual** sekali di VPS.
+> - Deploy berikutnya = **otomatis**: `git push` ke `main` → CI hijau → `deploy.yml` SSH ke
+>   VPS → `git pull origin main` → `docker compose -f docker-compose.prod.yml up -d --build`.
 
 ---
 
-## 1. Naikkan kode ke branch `main` (deploy hanya jalan dari `main`)
-Di mesin lokal:
+## 0. Arsitektur penting (paham dulu)
+VPS sudah menjalankan **Traefik v3** (port 80/443) di network **`traefik-public`** untuk app
+lain, dengan entrypoints `web`/`websecure` dan certresolver **`letsencrypt`**.
+`docker-compose.prod.yml` kita **TIDAK** membawa Traefik sendiri — service `web`:
+- join network **`traefik-public`** (external) agar Traefik bisa menemukannya,
+- pakai label routing sesuai konvensi VPS (`certresolver=letsencrypt`, `Host(${DOMAIN})`),
+- `postgres` di network privat `pos-internal` (tak terekspos).
+
+> Tak ada app AntiGravity lama di VPS ini (greenfield), jadi tak ada decommission.
+
+---
+
+## 1. Prasyarat
+- VPS Linux + **Docker & Docker Compose**, **Traefik bersama** sudah jalan di `traefik-public`
+  dengan certresolver `letsencrypt` (cek: `docker network ls | grep traefik-public`).
+- **Domain** (A record) sudah mengarah ke IP VPS.
+- Akses **SSH** ke VPS (user `root`).
+- Repo: `https://github.com/nichopratama/Veloclad-POS` (branch deploy = `main`).
+
+---
+
+## 2. Bootstrap pertama (manual, sekali — SSH ke VPS)
+
+### 2a. Clone
 ```bash
-git checkout master
-git branch -f main master      # jadikan main = master terkini
-git push -u origin main
-```
-> deploy.yml memicu deploy saat CI sukses di `main`. Untuk bootstrap pertama (manual)
-> ini belum perlu jalan; tapi kode harus ada di `main` agar VPS bisa `git pull origin main`.
-
----
-
-## 2. Bootstrap pertama di VPS (SSH — manual, sekali saja)
-```bash
-ssh USER@VPS_IP
-
-# 2a. Clone repo ke lokasi yang dipakai deploy.yml
-sudo mkdir -p /opt/antigravity-pos && sudo chown $USER /opt/antigravity-pos
+mkdir -p /opt/antigravity-pos
 git clone https://github.com/nichopratama/Veloclad-POS.git /opt/antigravity-pos
-cd /opt/antigravity-pos
-git checkout main
+cd /opt/antigravity-pos && git checkout main
 ```
 
-### 2b. Buat file `.env` (TIDAK ikut git — gitignored)
-**Root `.env`** (dipakai Postgres + Traefik + samakan nama dengan local):
-```env
-DB_USER=pos_user
-DB_PASSWORD=<PASSWORD-KUAT-BARU>     # rotate, jangan placeholder
-DB_NAME=antigravity_pos
-DOMAIN=pos.domain-anda.com
-ACME_EMAIL=email-anda@domain.com
-```
-
-**`web/.env`** (dipakai container `web`):
-```env
-DATABASE_URL="postgresql://pos_user:<PASSWORD-SAMA-DGN-DB_PASSWORD>@postgres:5432/antigravity_pos?schema=tenant_vapescrew"
-BETTER_AUTH_SECRET=<SECRET-KUAT-BARU-min-16-char>   # rotate
-BETTER_AUTH_URL=https://pos.domain-anda.com          # origin HTTPS nyata
-NODE_ENV=production
-TENANT_NAME=vapescrew
-```
-> ⚠️ Gotcha: `DATABASE_URL` host = **`postgres`** (nama service di network), BUKAN `localhost`/`127.0.0.1`.
-
----
-
-## 3. Restore DB (samakan dengan local)
-Kirim dump dari local ke VPS, lalu restore:
+### 2b. Buat `.env` (TIDAK ikut git). Secret digenerate di VPS:
 ```bash
-# (di mesin LOCAL) buat dump dari DB local (container pos-postgres)
+cd /opt/antigravity-pos
+DBPW=$(openssl rand -hex 24)            # hex = URL-safe (aman di DATABASE_URL)
+AUTHSEC=$(openssl rand -base64 32)
+printf 'DB_USER=pos_user\nDB_PASSWORD=%s\nDB_NAME=antigravity_pos\nDOMAIN=%s\n' \
+  "$DBPW" "pos.domain-anda.com" > .env
+printf 'DATABASE_URL=postgresql://pos_user:%s@postgres:5432/antigravity_pos?schema=tenant_vapescrew\nBETTER_AUTH_SECRET=%s\nBETTER_AUTH_URL=https://%s\nNODE_ENV=production\nTENANT_NAME=vapescrew\n' \
+  "$DBPW" "$AUTHSEC" "pos.domain-anda.com" > web/.env
+chmod 600 .env web/.env
+```
+> ⚠️ `DATABASE_URL` host = **`postgres`** (nama service di network), BUKAN `localhost`/`127.0.0.1`.
+> `BETTER_AUTH_URL` = origin HTTPS nyata. `${DOMAIN}` dipakai di label Traefik `web`.
+
+### 2c. Restore DB (samakan dengan local)
+Buat dump di **mesin local**, kirim ke VPS:
+```bash
+# (LOCAL) container DB local bernama pos-postgres
 docker exec pos-postgres pg_dump -U pos_user -d antigravity_pos \
   --no-owner --no-privileges --clean --if-exists > antigravity_pos_dump.sql
-
-# salin dump ke VPS
-scp antigravity_pos_dump.sql USER@VPS_IP:/opt/antigravity-pos/
-
-# (di VPS) nyalakan HANYA postgres dulu, lalu restore
+scp antigravity_pos_dump.sql root@VPS_IP:/opt/antigravity-pos/
+```
+Lalu di **VPS**:
+```bash
 cd /opt/antigravity-pos
-docker compose -f docker-compose.prod.yml up -d postgres
-# tunggu sehat (~10 dtk), lalu:
+docker compose -f docker-compose.prod.yml up -d postgres      # nyalakan DB dulu
+# tunggu healthy (~10 dtk), lalu restore:
 docker exec -i pos-postgres-prod psql -U pos_user -d antigravity_pos < antigravity_pos_dump.sql
+rm antigravity_pos_dump.sql                                    # hapus (berisi data)
 ```
-> Dump dibuat dengan `--clean --if-exists --no-owner` → idempoten & portabel.
-> Setelah restore, hapus file dump dari VPS (berisi data): `rm antigravity_pos_dump.sql`.
 
----
-
-## 4. Naikkan seluruh stack
+### 2d. Build & nyalakan web
 ```bash
-cd /opt/antigravity-pos
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml up -d --build web
 ```
-- Traefik otomatis ambil sertifikat TLS untuk `DOMAIN`.
-- `web` aktif (Host→web:3000); `pos-frontend`/`pos-api` jalan idle (`traefik.enable=false`) = jaring rollback.
 
----
-
-## 5. Verifikasi (smoke test produksi)
+### 2e. Verifikasi
 ```bash
-curl -sS https://DOMAIN/api/health           # {"status":"ok"}
-curl -sS https://DOMAIN/api/health/ready      # {"status":"ready"}  ← Prisma + DB OK
+curl -s https://DOMAIN/api/health          # {"status":"ok"}
+curl -s https://DOMAIN/api/health/ready     # {"status":"ready"}  ← Prisma + DB OK
 ```
-Lalu di browser: login, POS checkout, sales, settings, dashboard.
+Browser: login, POS checkout, sales, settings.
 
 ---
 
-## 6. Aktifkan deploy otomatis (GitHub Action) untuk SETERUSNYA
-Di repo Veloclad-POS → **Settings → Secrets and variables → Actions → New repository secret**, tambah:
-| Secret | Isi |
-|--------|-----|
-| `VPS_HOST` | IP / host VPS |
-| `VPS_USER` | user SSH |
-| `VPS_SSH_KEY` | private key SSH (yang public-nya ada di `~/.ssh/authorized_keys` VPS) |
+## 3. Aktifkan auto-deploy (GitHub Actions) — sekali
+`deploy.yml` butuh SSH ke VPS. **Pakai deploy key KHUSUS CI tanpa passphrase** (jangan key
+pribadi ber-passphrase — `appleboy/ssh-action` tak bisa mengetik passphrase).
 
-Setelah itu: setiap `git push origin main` → CI jalan → jika hijau → deploy.yml SSH ke VPS,
-`git pull origin main` + `docker compose -f docker-compose.prod.yml up -d --build` otomatis.
-
-> Catatan: deploy.yml hanya `git pull` (bukan clone) & tak menyentuh `.env`/DB — itu sebab
-> bootstrap pertama (§2–§4) harus manual.
+1. Generate di local (passphrase kosong):
+   ```bash
+   ssh-keygen -t ed25519 -f veloclad-pos-deploy -N "" -C "gha-deploy-veloclad-pos"
+   ```
+2. Daftarkan **public** key ke VPS:
+   ```bash
+   cat veloclad-pos-deploy.pub | ssh root@VPS_IP "cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+   ```
+3. Tambah **Secrets** di repo (Settings → Secrets and variables → Actions):
+   | Name | Value |
+   |------|-------|
+   | `VPS_HOST` | IP VPS |
+   | `VPS_USER` | `root` |
+   | `VPS_SSH_KEY` | seluruh isi **private** key `veloclad-pos-deploy` (BEGIN…END) |
+4. Hapus salinan private key lokal setelah masuk ke Secret.
 
 ---
 
-## 7. Decommission app lama (NANTI, setelah yakin stabil — IREVERSIBEL)
-Hanya setelah app baru terbukti stabil di produksi + DB sudah di-backup:
-1. Hapus service `pos-frontend` & `pos-api` dari `docker-compose.yml` & `docker-compose.prod.yml`.
-2. Hapus dir `frontend/` & `api/` (commit terpisah).
-3. `docker image prune -f`.
+## 4. Update berikutnya (rutin)
+Cukup:
+```bash
+git push origin main
+```
+CI jalan → jika hijau → VPS otomatis `git pull` + rebuild + restart. Selesai.
 
-**Rollback** (sebelum §7): di `docker-compose.prod.yml`, set `pos-web` `traefik.enable=false`
-dan `pos-frontend` `traefik.enable=true`, lalu `up -d`. App lama melayani lagi.
+---
+
+## 5. Gotcha (yang pernah bikin gagal — sudah difix di repo)
+- **Prisma musl**: `binaryTargets=["native","linux-musl-openssl-3.0.x"]` (Alpine). Sudah ada.
+- **`next build` butuh env**: `env.ts` fail-fast → build error tanpa env. Dockerfile (stage
+  builder) **dan** `ci.yml` (step build) memberi **placeholder env** (DATABASE_URL/
+  BETTER_AUTH_SECRET/BETTER_AUTH_URL); nilai nyata hanya saat runtime.
+- **502 Traefik**: Next standalone bind ke `process.env.HOSTNAME` (Docker set=container-id) →
+  hanya 1 interface. Dockerfile runner set **`ENV HOSTNAME=0.0.0.0`** (wajib, app di 2 network).
+- **DB host**: `DATABASE_URL` harus `@postgres:5432`, bukan `localhost`.
+- **Traefik ganda**: jangan jalankan Traefik dari compose ini — pakai yang sudah ada.
+
+---
+
+## 6. Rollback
+- Cepat: matikan app baru → `docker stop pos-web-prod` (route hilang dari Traefik). 
+- Atau revert commit di `main` lalu `git push` (auto-deploy versi sebelumnya).
+- DB additif & dipakai sendiri → tak ada migrasi balik.
