@@ -101,8 +101,9 @@ Sistem POS **tetap jalan** selama migrasi; route dipindah satu per satu, bukan r
 
 | Kode | Aktor | Model | Tier D8 | Jenis task yang dikerjakan |
 |------|-------|-------|---------|----------------------------|
-| **C** | Claude | **Opus 4.8** (`claude-opus-4-8`) | Reasoning + Code/Security Review | Plan & ADR, keputusan arsitektur (model tenant, desain auth), implementasi modul **kritikal/uang** (sales: Decimal, anti-oversell, idempotency), serta **seluruh review + quality-gate** tiap modul (D6/D7). Juga M0 scaffold & M1 auth. |
-| **G** | Deputi Mipro | **Gemini 3.1 Pro (High)** | Implementation | Port API **mekanis & ter-spesifikasi** mengikuti `docs/M2-handoff-template.md`: CRUD/route handler berulang. |
+| **C** | Claude | **Opus 4.8** (`claude-opus-4-8`) | Reasoning + Code/Security Review | Plan & ADR, keputusan arsitektur (model tenant, desain auth), implementasi modul **kritikal/uang/keamanan** (sales: Decimal, anti-oversell, idempotency; M4: price-tampering, rotate secret, sekuens cutover), serta **seluruh review + quality-gate** tiap modul (D6/D7). Juga M0 scaffold & M1 auth. |
+| **G** | Deputi Mipro | **Gemini 3.1 Pro (High)** | Implementation | Implementasi **mekanis & ter-spesifikasi**: port API (M2), halaman config-driven (M3), IaC/config (M4: Dockerfile/compose, CI YAML, nginx). Jalan di window Gemini, **konfirmasi user dulu**. |
+| **S** | Deputi Sonet | **Sonnet 4.6** (`claude-sonnet-4-6`) | Implementation | Implementasi mid-kompleksitas via **subagent otomatis**: halaman frontend (M3 dashboard/POS), edit berulang lintas-file (M4: a11y label), verifikasi visual Playwright. |
 
 **Catatan atribusi (jujur):** Pembagian ini mengikuti alur handoff yang disepakati (mekanis → G, reasoning/kritikal/review → C). Model **G** dikonfirmasi eksplisit oleh user sebagai **Gemini 3.1 Pro (High) "Deputi Mipro"** untuk modul **dashboard**; modul **library** & **inventory** diatribusikan ke **G** berdasarkan alur handoff yang sama (model spesifik tidak dinyatakan eksplisit saat itu). Modul **sales** dan semua **review-fix** dikerjakan oleh **C (Opus 4.8)**.
 
@@ -153,18 +154,21 @@ Sistem POS **tetap jalan** selama migrasi; route dipindah satu per satu, bukan r
 > Catatan model: Sonet/Haiku dijalankan via **subagent otomatis**; Mipro/Miflash (Gemini) **dikonfirmasi dulu** ke user lalu dijalankan di window Gemini.
 
 ### Tahap M4 — Cutover & decommission ⬜
+
+> **Pembagian model M4 (risk-based, D8):** keputusan arsitektur/sekuens, semua yang menyentuh **uang/keamanan/secret nyata**, dan **seluruh review+gate** → **C (Opus)**. IaC/config mekanis ter-spesifikasi → **G (Mipro)** (konfirmasi user + window Gemini). Edit kode berulang lintas-file & verifikasi visual → **S (Sonet)** (subagent otomatis). Tiap item G/S → diff balik ke C untuk review+gate sebelum commit.
+
 **Cutover:**
-- [ ] Set `BETTER_AUTH_URL` + CORS ke origin nyata (port 3020) (C)
-- [ ] Dockerfile + compose untuk app Next.js (C/G)
-- [ ] Alihkan port 3020 (reverse-proxy) dari frontend lama → Next.js (C)
-- [ ] Update CI (`.github/workflows`) ke stack baru (C)
-- [ ] Rotate secret placeholder (`DB_PASSWORD`, `BETTER_AUTH_SECRET`) (C)
-- [ ] Verifikasi paritas penuh di staging → matikan `api/` & `frontend/` lama (C)
-- [ ] Hapus stack lama (Express/Knex/Vite) setelah stabil (C)
+- [ ] Set `BETTER_AUTH_URL` + CORS ke origin nyata (port 3020) — **C** (security-sensitive: origin/CSRF)
+- [ ] Dockerfile + compose untuk app Next.js — **G** implement → **C** review (mekanis, ter-spesifikasi)
+- [ ] Alihkan port 3020 (reverse-proxy) dari frontend lama → Next.js — **C** putuskan sekuens cutover; **G** tulis konfig nginx → **C** review (risiko downtime)
+- [ ] Update CI (`.github/workflows`) ke stack baru — **G** implement → **C** review
+- [ ] Rotate secret placeholder (`DB_PASSWORD`, `BETTER_AUTH_SECRET`) — **C only** (tak ada deputi menyentuh secret nyata)
+- [ ] Verifikasi paritas penuh di staging → matikan `api/` & `frontend/` lama — **C** (judgment) + **S** (paritas Playwright)
+- [ ] Hapus stack lama (Express/Knex/Vite) setelah stabil — **C** putuskan; **G/S** eksekusi hapus → **C** review
 
 **Security & quality hardening (terkumpul selama M3 — WAJIB sebelum produksi):**
-- [ ] **Price-tampering (CRITICAL):** `POST /api/sales/transactions` percaya `price` dari klien (`subtotal=Σ client_price×qty`) → kasir/klien bisa kirim `price=1`. Fix: lookup harga otoritatif dari DB by item id, abaikan harga klien. (C)
-- [ ] **P2002 → 400 (HIGH):** `POST/PUT /api/library/items` dup `code` balik **500 bukan 400** — cek `error.meta.target.includes('items_code_unique')` salah (Prisma P2002 Postgres balik nama FIELD `['code']`, bukan nama constraint). Fix: return 400 untuk semua P2002 / cek `'code'`. (C)
-- [ ] **A11y label association (MEDIUM):** label form text/email/number/textarea belum `htmlFor`/`id`-associated di **seluruh** form (settings/inventory/library — konvensi codebase, bukan regresi 1 halaman). Jadwalkan a11y pass lintas-form. (C/G)
-- [ ] Verifikasi visual penuh lintas-breakpoint (browser/Playwright) untuk semua halaman M3. (C)
+- [ ] **Price-tampering (CRITICAL):** `POST /api/sales/transactions` percaya `price` dari klien (`subtotal=Σ client_price×qty`) → kasir/klien bisa kirim `price=1`. Fix: lookup harga otoritatif dari DB by item id, abaikan harga klien. — **C only** (uang/bug-logika, D8 tak boleh diturunkan)
+- [ ] **P2002 → 400 (HIGH):** `POST/PUT /api/library/items` dup `code` balik **500 bukan 400** — cek `error.meta.target.includes('items_code_unique')` salah (Prisma P2002 Postgres balik nama FIELD `['code']`, bukan nama constraint). Fix: return 400 untuk semua P2002 / cek `'code'`. — **G** implement (diagnosis selesai) → **C** review
+- [ ] **A11y label association (MEDIUM):** label form text/email/number/textarea belum `htmlFor`/`id`-associated di **seluruh** form (settings/inventory/library — konvensi codebase, bukan regresi 1 halaman). — **S** (subagent, edit berulang lintas-form) → **C** gate
+- [ ] Verifikasi visual penuh lintas-breakpoint (browser/Playwright) untuk semua halaman M3 — **S** (Playwright/e2e) → **C** review
 
