@@ -11,6 +11,8 @@ const securityHeaders = [
 
 const nextConfig = {
   reactStrictMode: true,
+  // Output ramping untuk image Docker runner (M4 cutover): server.js + node_modules tertrace.
+  output: 'standalone',
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },
