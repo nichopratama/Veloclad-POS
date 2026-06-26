@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
-import { requireAuth, requireRole, AuthError } from '@/lib/rbac';
+import { requireAuth, requireRole } from '@/lib/rbac';
+import { handleApiError } from '@/lib/api';
 import { z } from 'zod';
 
 const getQuerySchema = z.object({
@@ -70,15 +72,8 @@ export async function GET(req: NextRequest) {
         totalPages: Math.ceil(total / query.limit),
       },
     });
-  } catch (error: any) {
-    if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid query parameters', details: error.errors }, { status: 400 });
-    }
-    console.error('GET /api/library/items error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error, 'GET /api/library/items');
   }
 }
 
@@ -90,25 +85,14 @@ export async function POST(req: NextRequest) {
     const parsedBody = itemSchema.parse(body);
 
     const newItem = await prisma.items.create({
-      data: parsedBody as any, // TypeScript might complain about exact matches, but parsedBody matches schema
+      data: parsedBody satisfies Prisma.itemsUncheckedCreateInput,
     });
 
     return NextResponse.json({
       message: 'Item created successfully',
       id: newItem.id,
     }, { status: 201 });
-  } catch (error: any) {
-    if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid input data', details: error.errors }, { status: 400 });
-    }
-    // Handle Prisma unique constraint for code
-    if (error.code === 'P2002' && error.meta?.target?.includes('items_code_unique')) {
-      return NextResponse.json({ error: 'Item code already exists' }, { status: 400 });
-    }
-    console.error('POST /api/library/items error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error, 'POST /api/library/items');
   }
 }

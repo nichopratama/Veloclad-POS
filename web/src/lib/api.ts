@@ -26,7 +26,19 @@ export function handleApiError(error: unknown, context: string): NextResponse {
   }
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === 'P2025') return NextResponse.json({ error: 'Record not found' }, { status: 404 });
-    if (error.code === 'P2002') return NextResponse.json({ error: 'Conflict: duplicate entry' }, { status: 409 });
+    if (error.code === 'P2002') {
+      // CATATAN: di Postgres, `meta.target` = nama FIELD (mis. ['code']), BUKAN nama
+      // constraint ('items_code_unique'). Jangan cek nama constraint — pakai field.
+      const target = error.meta?.target;
+      const fields = Array.isArray(target) ? target.join(', ') : typeof target === 'string' ? target : null;
+      return NextResponse.json(
+        { error: fields ? `Nilai duplikat untuk: ${fields}` : 'Conflict: duplicate entry' },
+        { status: 409 },
+      );
+    }
+    if (error.code === 'P2003') {
+      return NextResponse.json({ error: 'Tidak bisa dihapus/diubah: masih dipakai record lain' }, { status: 409 });
+    }
   }
   console.error(`${context}:`, error);
   return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

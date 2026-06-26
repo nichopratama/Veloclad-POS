@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
-import { requireRole, AuthError } from '@/lib/rbac';
+import { requireRole } from '@/lib/rbac';
+import { handleApiError } from '@/lib/api';
 import { z } from 'zod';
 
 const itemUpdateSchema = z.object({
@@ -36,25 +38,12 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
 
     await prisma.items.update({
       where: { id },
-      data: parsedBody as any,
+      data: parsedBody satisfies Prisma.itemsUncheckedUpdateInput,
     });
 
     return NextResponse.json({ message: 'Item updated successfully' });
-  } catch (error: any) {
-    if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid input data', details: error.errors }, { status: 400 });
-    }
-    if (error.code === 'P2025') {
-      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
-    }
-    if (error.code === 'P2002' && error.meta?.target?.includes('items_code_unique')) {
-      return NextResponse.json({ error: 'Item code already exists' }, { status: 400 });
-    }
-    console.error(`PUT /api/library/items/[id] error:`, error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error, 'PUT /api/library/items/[id]');
   }
 }
 
@@ -73,18 +62,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     });
 
     return NextResponse.json({ message: 'Item deleted successfully' });
-  } catch (error: any) {
-    if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    if (error.code === 'P2025') {
-      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
-    }
-    // Handle foreign key constraint error (e.g. if item is used in transactions)
-    if (error.code === 'P2003') {
-      return NextResponse.json({ error: 'Cannot delete item because it is referenced in other records' }, { status: 400 });
-    }
-    console.error(`DELETE /api/library/items/[id] error:`, error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error, 'DELETE /api/library/items/[id]');
   }
 }
