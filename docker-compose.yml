@@ -54,5 +54,25 @@ services:
       timeout: 5s
       retries: 5
 
+  # ── App BARU (Next.js: frontend + /api) ──────────────
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: pos-web
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    env_file: ./web/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
 volumes:
   postgres-data:
