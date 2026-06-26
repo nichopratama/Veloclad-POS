@@ -18,6 +18,11 @@
 
 ## B. Pelajaran per halaman
 
+### Settings (form store/tax/receipt) — 2 temuan kecil
+1. ❌ `var(--radius-md)` — token tak ada (**ulangi pola** token-mengarang dari Inventory). ✅ `var(--radius)`. 💡 Token radius sah: `--radius-sm`/`--radius`/`--radius-lg`. **Ini kedua kalinya** — sebelum tulis `var(--x)`, cek `globals.css :root`.
+2. ❌ Integritas tipe: `onChange={(e)=>handleChange('tax_rate', e.target.value)}` mengirim **string** ke field `number` → state jadi string saat runtime (TS tak menangkap karena handler longgar `value: string|boolean|number`). ✅ Parse di sumber: `handleChange('tax_rate', e.target.value === '' ? 0 : Number(e.target.value))`. 💡 **Jaga tipe jujur di state** — kalau field `number`, jangan simpan string lalu `Number()` belakangan; konversi saat onChange. Handler longgar = TS tak melindungi, jadi disiplin manual.
+- ✔️ Bagus: GET objek flat ditangani benar (no `.data`), email kosong→`null`, 3 seksi `.card` rapi, RBAC `disabled`, banner sukses+error, `catch unknown`+`FetchError`.
+
 ### Inventory (3 tab: stock/PO/adjustments) — 1 temuan kecil 📈 TERBERSIH
 **Tren naik tajam:** nol `any` (tipe eksplisit StockItem/PurchaseOrder/Adjustment/PickItem/Supplier, `useSWR<PaginatedResponse<T>>`), `catch unknown`+`FetchError` konsisten, reuse penuh, low-stock highlight, receive pending-only, adjustment negatif + validasi qty≠0, picklist debounce. **Pelajaran A1 & Library sudah benar-benar diterapkan.** 👏
 - ❌ (satu-satunya) `background: var(--color-background-muted)` — token tak terdefinisi → style no-op.
