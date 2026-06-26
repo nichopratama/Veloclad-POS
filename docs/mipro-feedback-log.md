@@ -18,6 +18,13 @@
 
 ## B. Pelajaran per halaman
 
+### Inventory (3 tab: stock/PO/adjustments) — 1 temuan kecil 📈 TERBERSIH
+**Tren naik tajam:** nol `any` (tipe eksplisit StockItem/PurchaseOrder/Adjustment/PickItem/Supplier, `useSWR<PaginatedResponse<T>>`), `catch unknown`+`FetchError` konsisten, reuse penuh, low-stock highlight, receive pending-only, adjustment negatif + validasi qty≠0, picklist debounce. **Pelajaran A1 & Library sudah benar-benar diterapkan.** 👏
+- ❌ (satu-satunya) `background: var(--color-background-muted)` — token tak terdefinisi → style no-op.
+- ✅ Pakai token yang ADA: `--color-surface-2`. 
+- 💡 **Sebelum pakai `var(--color-...)`, pastikan token terdefinisi di `globals.css` `:root`.** Token sah: `--color-bg/-surface/-surface-2/-border/-text/-text-muted/-accent(-hover/-soft)/-success/-danger/-warning`. Jangan mengarang nama token.
+- 📌 Rujukan: fix `AdjustmentFormModal.tsx`.
+
 ### Library / 6 entitas config-driven — 12 temuan `any` (1 pola, berulang)
 **Inti masalah:** generic config-driven dibangun dengan `any` di mana-mana (`useSWR<any>`, `row: any`, `value: any`, `Record<string, any>`, `(opt: any)`, `(optionsData as any)`). Ini melanggar A1 dan menghapus seluruh manfaat tipe.
 - ❌ `const items: any[] = ...` · `useSWR<any>` · `(row: any) => ...`

@@ -1,0 +1,66 @@
+export interface StockItem { 
+  id: number; 
+  name: string; 
+  code: string; 
+  stock: number; 
+  min_stock: number; 
+  price: string; 
+  unit: string | null; 
+  is_active: boolean; 
+  categories: { name: string } | null; 
+  suppliers: { name: string } | null; 
+}
+
+export interface PurchaseOrder { 
+  id: number; 
+  po_number: string; 
+  status: string; 
+  total_amount: string; 
+  notes: string | null; 
+  created_at: string; 
+  suppliers: { name: string } | null; 
+  users: { name: string } | null; 
+}
+
+export interface Adjustment { 
+  id: number; 
+  item_id: number | null; 
+  qty_change: number; 
+  reason: string; 
+  notes: string | null; 
+  created_at: string; 
+  items: { name: string } | null; 
+  users: { name: string } | null; 
+}
+
+export interface PickItem { 
+  id: number; 
+  name: string; 
+  code: string; 
+}
+
+export interface PoLine { 
+  item_id: number; 
+  name: string; 
+  qty: number; 
+  cost: number; 
+}
+
+export interface Supplier {
+  id: number;
+  name: string;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+export interface FlatResponse<T> {
+  data: T[];
+}
