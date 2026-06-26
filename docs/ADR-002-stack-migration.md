@@ -142,7 +142,7 @@ Sistem POS **tetap jalan** selama migrasi; route dipindah satu per satu, bukan r
 - [x] Halaman Login fungsional (Better Auth `signIn`, no localStorage) (Opus) — polesan visual opsional ke Sonet
 - [x] Halaman Dashboard (summary/chart recharts/top-items toggle) — **Deputi Sonet (Sonnet 4.6)**, review Opus lulus
 - [x] Halaman Sales/POS (kasir, cart, checkout, struk) — **Deputi Sonet (Sonnet 4.6)**, review Opus lulus (typecheck+build+runtime: checkout/idempotency/oversell tervalidasi)
-- [ ] Halaman Sales History + void — Mipro (konfirmasi)
+- [x] Halaman Sales History + void (list+filter+paginasi+ringkasan, detail+cetak ulang, void owner/admin) — **Deputi Mipro (Gemini 3.1 Pro)**, review+gate Opus lulus (typecheck+build hijau; runtime: SSR 200, list shape+summary, filter, void stok-balik+status void tervalidasi; fix Opus: buang `as any` + `catch any`→`FetchError`)
 - [ ] Halaman Inventory (stock summary, PO, adjustments) — Mipro (konfirmasi)
 - [ ] Halaman Library (6 entitas) — Mipro (konfirmasi)
 - [ ] Halaman Settings (store/tax/receipt) — Mipro (konfirmasi)
