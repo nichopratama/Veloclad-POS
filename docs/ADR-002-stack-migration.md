@@ -141,7 +141,7 @@ Sistem POS **tetap jalan** selama migrasi; route dipindah satu per satu, bukan r
 - [x] App shell: middleware guard + design tokens + SWR provider/fetcher + layout (Sidebar+Header role-gated) (Opus) — runtime tervalidasi
 - [x] Halaman Login fungsional (Better Auth `signIn`, no localStorage) (Opus) — polesan visual opsional ke Sonet
 - [x] Halaman Dashboard (summary/chart recharts/top-items toggle) — **Deputi Sonet (Sonnet 4.6)**, review Opus lulus
-- [ ] Halaman Sales/POS (kasir, cart, checkout, struk) — Sonet
+- [x] Halaman Sales/POS (kasir, cart, checkout, struk) — **Deputi Sonet (Sonnet 4.6)**, review Opus lulus (typecheck+build+runtime: checkout/idempotency/oversell tervalidasi)
 - [ ] Halaman Sales History + void — Mipro (konfirmasi)
 - [ ] Halaman Inventory (stock summary, PO, adjustments) — Mipro (konfirmasi)
 - [ ] Halaman Library (6 entitas) — Mipro (konfirmasi)
