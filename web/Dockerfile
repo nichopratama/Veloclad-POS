@@ -27,6 +27,9 @@ RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
+# WAJIB: Docker set HOSTNAME=container-id; Next standalone bind ke HOSTNAME →
+# hanya 1 interface. Set 0.0.0.0 agar listen di semua network (Traefik bisa jangkau).
+ENV HOSTNAME=0.0.0.0
 RUN addgroup -g 1001 nodejs && adduser -u 1001 -G nodejs -S nextjs
 
 # Next standalone output (server.js + traced node_modules)
