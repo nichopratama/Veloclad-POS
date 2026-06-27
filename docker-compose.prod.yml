@@ -1,29 +1,14 @@
-# Produksi VPS — nempel ke Traefik yang SUDAH ADA di server (jangan jalankan Traefik kedua).
-# VPS sudah punya: container `traefik` (v3) di network `traefik-public`, entrypoints
-# web/websecure, certresolver `letsencrypt`. Kita cukup tambah `web` + `postgres`.
+# Produksi VPS — nempel ke Traefik bersama + Postgres bersama yang SUDAH ADA di server.
+# VPS sudah punya: `traefik` (v3) di network `traefik-public`, dan `shared-postgres`
+# di network `postgres-shared` (lihat /opt/shared-postgres). Kita cukup jalankan `web`.
 #
 # Deploy: docker compose -f docker-compose.prod.yml up -d --build
-# Butuh: root .env (DB_USER/DB_PASSWORD/DB_NAME/DOMAIN) + web/.env (lihat docs/DEPLOY-VPS.md).
+# Butuh: root .env (DOMAIN) + web/.env (DATABASE_URL → shared-postgres/pos_db, dll).
+#
+# DB: TIDAK lagi container sendiri. `web` connect ke `shared-postgres:5432/pos_db`
+#     via network `postgres-shared`. Tiap app punya db+user sendiri (isolasi).
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: pos-postgres-prod
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
-    volumes:
-      - pos-data-prod:/var/lib/postgresql/data
-    networks:
-      - pos-internal
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   web:
     build:
       context: ./web
@@ -32,13 +17,10 @@ services:
     image: antigravity-pos-web:${IMAGE_TAG:-latest}
     container_name: pos-web-prod
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
     env_file:
       - ./web/.env
     networks:
-      - pos-internal
+      - postgres-shared
       - traefik-public
     labels:
       - "traefik.enable=true"
@@ -54,12 +36,15 @@ services:
       - "traefik.http.routers.pos-web-http.entrypoints=web"
       - "traefik.http.routers.pos-web-http.middlewares=pos-redirect-https"
       - "traefik.http.middlewares.pos-redirect-https.redirectscheme.scheme=https"
+    # Batasi log Docker agar tak menumpuk & memenuhi disk (penyebab outage di VPS kecil).
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
-  pos-internal:
-    driver: bridge
+  postgres-shared:
+    external: true          # dikelola /opt/shared-postgres
   traefik-public:
     external: true
-
-volumes:
-  pos-data-prod:

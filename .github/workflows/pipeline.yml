@@ -89,15 +89,13 @@ jobs:
               exit 1
             fi
 
-            # Muat env (DB_USER, DB_NAME) untuk backup.
-            set -a; . ./.env; set +a
             COMPOSE="docker compose -f docker-compose.prod.yml"
 
-            echo "1. Backup DB sebelum deploy..."
+            echo "1. Backup DB pos_db (shared-postgres) sebelum deploy..."
             mkdir -p backups
-            docker exec pos-postgres-prod pg_dump -U "$DB_USER" -d "$DB_NAME" \
+            docker exec shared-postgres pg_dump -U pgadmin -d pos_db \
               > "backups/db_predeploy_$(date +%Y%m%d_%H%M%S).sql" \
-              || echo "WARN: backup gagal (DB belum jalan?) — lanjut."
+              || echo "WARN: backup gagal (shared-postgres belum jalan?) — lanjut."
             ls -1t backups/db_predeploy_*.sql 2>/dev/null | tail -n +11 | xargs -r rm -f
 
             echo "2. Tag image web saat ini sebagai :previous (untuk rollback)..."
