@@ -2,42 +2,9 @@ name: antigravity-pos
 
 services:
 
-  # ── [DECOMMISSIONED] App LAMA (React/Nginx + Express) ──────────────────────
-  # Digantikan service `web` (Next.js) yang kini melayani frontend + /api di 3020.
-  # Produksi sudah migrasi penuh (pos.velocladindonesia.com = Next.js). Disimpan
-  # ter-comment sbg referensi; restore dgn meng-uncomment + matikan `web` dulu
-  # (rebutan port 3020). Lihat git history untuk konteks strangler M0–M4.
-  #
-  # pos-frontend:
-  #   build:
-  #     context: ./frontend
-  #     dockerfile: Dockerfile
-  #   container_name: pos-frontend
-  #   ports:
-  #     - "${FRONTEND_PORT:-3003}:80"
-  #   depends_on:
-  #     pos-api:
-  #       condition: service_healthy
-  #   restart: unless-stopped
-  #
-  # pos-api:
-  #   build:
-  #     context: ./api
-  #     dockerfile: Dockerfile
-  #   container_name: pos-api
-  #   ports:
-  #     - "${API_HOST_PORT:-3021}:3004"
-  #   env_file: .env
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   restart: unless-stopped
-  #   healthcheck:
-  #     test: ["CMD", "wget", "-qO-", "http://localhost:3004/health"]
-  #     interval: 15s
-  #     timeout: 5s
-  #     retries: 5
-  #     start_period: 30s
+  # App lama (frontend React/Nginx + api Express) DIHAPUS — digantikan `web`
+  # (Next.js: frontend + /api di 3020). Produksi sudah migrasi penuh. Kode lama
+  # ada di git history bila perlu rujukan (strangler M0–M4).
 
   # ── Database (PostgreSQL) ─────────────────────────
   postgres:
