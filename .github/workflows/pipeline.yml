@@ -1,0 +1,127 @@
+name: CI/CD Pipeline
+
+# Satu file: ci → secret-scan → deploy (job needs). Mengikuti pola galangmerinservis.
+# Deploy HANYA pada push ke main (gate via if), setelah ci + secret-scan lulus.
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+# Satu deploy produksi dalam satu waktu.
+concurrency:
+  group: pipeline-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ---- Continuous Integration: build & verify ----
+  ci:
+    name: Build & Verify
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run typecheck
+      # Placeholder env: `next build` mengevaluasi src/lib/env.ts (fail-fast) tanpa .env di CI.
+      - name: Production build
+        run: npm run build
+        env:
+          DATABASE_URL: postgresql://build:build@localhost:5432/build?schema=public
+          BETTER_AUTH_SECRET: build_time_placeholder_secret_0123456789
+          BETTER_AUTH_URL: http://localhost:3000
+      - name: Security audit (non-blocking)
+        run: npm audit --audit-level=high || true
+
+  # ---- Secret scan: cegah kredensial ter-commit (gitleaks, full history) ----
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ---- TODO: job `test` (POS belum punya test; galangmerin pakai Vitest).
+  #            Saat tes ditambahkan, buat job `test` lalu masukkan ke `needs` deploy. ----
+
+  # ---- Deploy (hanya setelah ci + secret-scan lulus, hanya push ke main) ----
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [ci, secret-scan]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "."
+          target: "/opt/antigravity-pos"
+
+      - name: Build & deploy on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+            cd /opt/antigravity-pos
+
+            if [ ! -f .env ] || [ ! -f web/.env ]; then
+              echo "CRITICAL: .env / web/.env hilang. Buat sekali sebelum deploy (lihat docs/DEPLOY-VPS.md)."
+              exit 1
+            fi
+
+            # Muat env (DB_USER, DB_NAME) untuk backup.
+            set -a; . ./.env; set +a
+            COMPOSE="docker compose -f docker-compose.prod.yml"
+
+            echo "1. Backup DB sebelum deploy..."
+            mkdir -p backups
+            docker exec pos-postgres-prod pg_dump -U "$DB_USER" -d "$DB_NAME" \
+              > "backups/db_predeploy_$(date +%Y%m%d_%H%M%S).sql" \
+              || echo "WARN: backup gagal (DB belum jalan?) — lanjut."
+            ls -1t backups/db_predeploy_*.sql 2>/dev/null | tail -n +11 | xargs -r rm -f
+
+            echo "2. Tag image web saat ini sebagai :previous (untuk rollback)..."
+            docker tag antigravity-pos-web:latest antigravity-pos-web:previous || true
+
+            echo "3. Build & up..."
+            $COMPOSE up -d --build
+
+            echo "4. Health-check /api/health/ready (Prisma + DB)..."
+            HEALTHY=false
+            for i in $(seq 1 12); do
+              if docker exec pos-web-prod node -e "fetch('http://localhost:3000/api/health/ready').then(r=>r.text()).then(t=>process.exit(t.includes('ready')?0:1)).catch(()=>process.exit(1))"; then
+                echo "Health OK"; HEALTHY=true; break
+              fi
+              echo "menunggu web siap... ($i/12)"; sleep 5
+            done
+
+            if [ "$HEALTHY" = false ]; then
+              echo "CRITICAL: health gagal! Rollback ke image :previous..."
+              IMAGE_TAG=previous $COMPOSE up -d --no-build web || true
+              echo "Rollback selesai. (Perubahan DB additif tak di-revert.)"
+              exit 1
+            fi
+
+            echo "5. Prune dangling images..."
+            docker image prune -f || true
+            echo "Deploy sukses."
