@@ -5,6 +5,7 @@ import { randomBytes } from 'node:crypto';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/rbac';
 import { handleApiError, ApiError } from '@/lib/api';
+import { computeSale, computeChange } from '@/lib/sales-pricing';
 
 const D = Prisma.Decimal;
 
@@ -127,44 +128,18 @@ export async function POST(req: NextRequest) {
     });
     const itemById = new Map(dbItems.map((r) => [r.id, r]));
 
-    // Hitung uang dengan Decimal (hindari error pembulatan float) memakai harga DB.
-    // `lines` membawa harga+diskon otoritatif untuk dipakai ulang saat tulis transaction_items.
-    let subtotal = new D(0);
-    let discountTotal = new D(0);
-    const lines = input.items.map((it) => {
-      const row = itemById.get(it.id);
-      if (!row) throw new ApiError(400, `Item ${it.id} tidak ditemukan`);
-      if (row.is_active === false) throw new ApiError(400, `Item ${it.id} tidak aktif`);
-
-      const unitPrice = new D(row.price);
-      const lineGross = unitPrice.times(it.qty);
-      const lineDiscount = new D(it.discount);
-      // Clamp diskon ≤ subtotal baris (cegah total negatif via diskon dibuat-buat).
-      if (lineDiscount.greaterThan(lineGross)) {
-        throw new ApiError(400, `Diskon item ${it.id} melebihi subtotal baris`);
-      }
-
-      subtotal = subtotal.plus(lineGross);
-      discountTotal = discountTotal.plus(lineDiscount);
-      return { id: it.id, qty: it.qty, price: unitPrice, discount: lineDiscount, lineGross };
+    // Hitung uang (Decimal) dari harga OTORITATIF DB — logika murni terkunci
+    // unit-test di lib/sales-pricing.ts. `lines` membawa harga+diskon untuk
+    // dipakai ulang saat menulis transaction_items.
+    const { lines, subtotal, discountTotal, taxAmount, total } = computeSale({
+      items: input.items,
+      itemById,
+      taxRate,
+      isInclusive,
     });
 
-    const taxable = subtotal.minus(discountTotal);
-    let taxAmount: Prisma.Decimal;
-    let total: Prisma.Decimal;
-    if (isInclusive) {
-      total = taxable;
-      taxAmount = taxable.minus(taxable.div(new D(1).plus(taxRate)));
-    } else {
-      taxAmount = taxable.times(taxRate);
-      total = taxable.plus(taxAmount);
-    }
-
     const paymentAmount = new D(input.payment_amount);
-    if (paymentAmount.lessThan(total)) {
-      throw new ApiError(400, 'Jumlah pembayaran kurang dari total');
-    }
-    const change = paymentAmount.minus(total);
+    const change = computeChange(total, paymentAmount);
 
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const transactionId = `INV-${dateStr}-${randomBytes(2).toString('hex').toUpperCase()}`;

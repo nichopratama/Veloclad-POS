@@ -31,6 +31,10 @@ jobs:
       - run: npm ci
       - run: npx prisma generate
       - run: npm run typecheck
+      # Unit test logika uang (lib/sales-pricing) — murni, tanpa DB. Gagal di sini
+      # memblokir deploy (job `deploy` needs `ci`). Lihat src/lib/sales-pricing.test.ts.
+      - name: Unit tests
+        run: npm run test
       # Placeholder env: `next build` mengevaluasi src/lib/env.ts (fail-fast) tanpa .env di CI.
       - name: Production build
         run: npm run build
@@ -52,9 +56,6 @@ jobs:
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # ---- TODO: job `test` (POS belum punya test; galangmerin pakai Vitest).
-  #            Saat tes ditambahkan, buat job `test` lalu masukkan ke `needs` deploy. ----
 
   # ---- Deploy (hanya setelah ci + secret-scan lulus, hanya push ke main) ----
   deploy:

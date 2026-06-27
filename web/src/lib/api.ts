@@ -2,16 +2,12 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { AuthError } from '@/lib/rbac';
+import { ApiError } from '@/lib/errors';
 
-/**
- * Error bisnis dengan status HTTP (mis. stok kurang, pembayaran kurang).
- * Dipakai untuk 4xx yang disengaja — pesan boleh ditampilkan ke klien.
- */
-export class ApiError extends Error {
-  constructor(public status: number, message: string) {
-    super(message);
-  }
-}
+// Re-export agar `import { ApiError } from '@/lib/api'` yang sudah tersebar
+// di route tetap berfungsi tanpa perubahan. Definisi pindah ke lib/errors.ts
+// (bebas Next) supaya modul logika uang bisa di-unit-test.
+export { ApiError };
 
 /**
  * Handler error terpusat (Nicho-Brain D7/D13): pesan generik untuk 5xx (no leak),

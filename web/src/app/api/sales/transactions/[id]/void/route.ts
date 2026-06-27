@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/rbac';
 import { handleApiError, ApiError } from '@/lib/api';
+import { computeRefund } from '@/lib/sales-pricing';
 
 const D = Prisma.Decimal;
 
@@ -55,9 +56,12 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
       }
 
       if (totalRefund.greaterThan(0)) {
-        const newRefunds = new D(trx.refunds ?? 0).plus(totalRefund);
-        const newNetSales = new D(trx.net_sales ?? trx.total).minus(totalRefund);
-        const fullyRefunded = newRefunds.greaterThanOrEqualTo(new D(trx.total));
+        const { newRefunds, newNetSales, fullyRefunded } = computeRefund({
+          currentRefunds: new D(trx.refunds ?? 0),
+          netSales: new D(trx.net_sales ?? trx.total),
+          total: new D(trx.total),
+          totalRefund,
+        });
 
         await tx.transactions.update({
           where: { id },
