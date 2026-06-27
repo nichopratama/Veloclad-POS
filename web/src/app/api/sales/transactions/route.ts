@@ -4,8 +4,9 @@ import { Prisma } from '@prisma/client';
 import { randomBytes } from 'node:crypto';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/rbac';
-import { handleApiError, ApiError } from '@/lib/api';
+import { handleApiError } from '@/lib/api';
 import { computeSale, computeChange } from '@/lib/sales-pricing';
+import { persistSale } from '@/lib/sales-persist';
 
 const D = Prisma.Decimal;
 
@@ -144,48 +145,21 @@ export async function POST(req: NextRequest) {
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const transactionId = `INV-${dateStr}-${randomBytes(2).toString('hex').toUpperCase()}`;
 
-    const created = await prisma.$transaction(async (tx) => {
-      await tx.transactions.create({
-        data: {
-          id: transactionId,
-          user_id: session.user.staffId ?? null,
-          customer_id: input.customer_id ?? null,
-          payment_type_id: input.payment_type_id,
-          subtotal,
-          tax_amount: taxAmount,
-          discount_amount: discountTotal,
-          total,
-          net_sales: total,
-          payment_amount: paymentAmount,
-          change_amount: change,
-          status: 'completed',
-          idempotency_key: idemKey,
-        } satisfies Prisma.transactionsUncheckedCreateInput,
-      });
-
-      for (const line of lines) {
-        // Anti-oversell race-safe: decrement HANYA jika stock >= qty (atomic).
-        const upd = await tx.items.updateMany({
-          where: { id: line.id, stock: { gte: line.qty } },
-          data: { stock: { decrement: line.qty } },
-        });
-        if (upd.count === 0) {
-          throw new ApiError(400, `Stok tidak cukup atau item ${line.id} tidak ditemukan`);
-        }
-
-        await tx.transaction_items.create({
-          data: {
-            transaction_id: transactionId,
-            item_id: line.id,
-            price: line.price,
-            qty: line.qty,
-            subtotal: line.lineGross,
-            discount: line.discount,
-          } satisfies Prisma.transaction_itemsUncheckedCreateInput,
-        });
-      }
-
-      return transactionId;
+    // Tulis transaksi (uang + stok atomik) — inti DB terkunci tes integrasi di
+    // lib/sales-persist.ts (anti-oversell rollback + idempotency unique).
+    const created = await persistSale(prisma, {
+      transactionId,
+      idemKey,
+      userId: session.user.staffId ?? null,
+      customerId: input.customer_id ?? null,
+      paymentTypeId: input.payment_type_id,
+      subtotal,
+      taxAmount,
+      discountTotal,
+      total,
+      paymentAmount,
+      change,
+      lines,
     });
 
     return NextResponse.json(
