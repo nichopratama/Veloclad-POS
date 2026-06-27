@@ -28,6 +28,8 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile
+    # Tag eksplisit agar deploy.yml bisa tag :previous & rollback (IMAGE_TAG=previous).
+    image: antigravity-pos-web:${IMAGE_TAG:-latest}
     container_name: pos-web-prod
     restart: unless-stopped
     depends_on:
