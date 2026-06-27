@@ -2,38 +2,42 @@ name: antigravity-pos
 
 services:
 
-  # ── Frontend (React + Nginx) ───────────────────────
-  pos-frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: pos-frontend
-    ports:
-      - "${FRONTEND_PORT:-3003}:80"
-    depends_on:
-      pos-api:
-        condition: service_healthy
-    restart: unless-stopped
-
-  # ── Backend API (Node.js + Express) ───────────────
-  pos-api:
-    build:
-      context: ./api
-      dockerfile: Dockerfile
-    container_name: pos-api
-    ports:
-      - "${API_HOST_PORT:-3021}:3004"
-    env_file: .env
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3004/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+  # ── [DECOMMISSIONED] App LAMA (React/Nginx + Express) ──────────────────────
+  # Digantikan service `web` (Next.js) yang kini melayani frontend + /api di 3020.
+  # Produksi sudah migrasi penuh (pos.velocladindonesia.com = Next.js). Disimpan
+  # ter-comment sbg referensi; restore dgn meng-uncomment + matikan `web` dulu
+  # (rebutan port 3020). Lihat git history untuk konteks strangler M0–M4.
+  #
+  # pos-frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   container_name: pos-frontend
+  #   ports:
+  #     - "${FRONTEND_PORT:-3003}:80"
+  #   depends_on:
+  #     pos-api:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+  #
+  # pos-api:
+  #   build:
+  #     context: ./api
+  #     dockerfile: Dockerfile
+  #   container_name: pos-api
+  #   ports:
+  #     - "${API_HOST_PORT:-3021}:3004"
+  #   env_file: .env
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "wget", "-qO-", "http://localhost:3004/health"]
+  #     interval: 15s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 30s
 
   # ── Database (PostgreSQL) ─────────────────────────
   postgres:
@@ -54,21 +58,34 @@ services:
       timeout: 5s
       retries: 5
 
-  # ── App BARU (Next.js: frontend + /api) ──────────────
+  # ── App BARU (Next.js: frontend + /api) — melayani 3020 (gantikan app lama) ──
   web:
     build:
       context: ./web
       dockerfile: Dockerfile
     container_name: pos-web
     ports:
-      - "${WEB_PORT:-3000}:3000"
+      - "${WEB_PORT:-3020}:3000"
+    # env_file menyediakan BETTER_AUTH_SECRET (rahasia, tetap di web/.env).
     env_file: ./web/.env
+    # environment menimpa DATABASE_URL & BETTER_AUTH_URL dari env_file untuk
+    # konteks CONTAINER (beda dari host-dev `npm run dev`):
+    #  - DB host = service `postgres` (bukan 127.0.0.1:3022 yg utk host).
+    #  - DATABASE_URL dirakit dari DB_* root .env (gitignored) → password TIDAK
+    #    pernah masuk file compose yg ter-commit.
+    #  - BETTER_AUTH_URL = origin browser nyata (3020), kalau tidak login ditolak
+    #    cek Origin/CSRF better-auth.
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER:-pos_user}:${DB_PASSWORD}@${DB_HOST:-postgres}:${DB_PORT:-5432}/${DB_NAME:-antigravity_pos}?schema=${DB_SCHEMA:-tenant_vapescrew}
+      - BETTER_AUTH_URL=http://localhost:${WEB_PORT:-3020}
     depends_on:
       postgres:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      # 127.0.0.1 (IPv4) — `localhost` di container Alpine resolve ke ::1 (IPv6)
+      # dulu, sedangkan Next standalone listen di 0.0.0.0 (IPv4) → koneksi ditolak.
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
       interval: 15s
       timeout: 5s
       retries: 5
