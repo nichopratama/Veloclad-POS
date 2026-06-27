@@ -13,6 +13,9 @@ playwright-report/
 # Agent scratch
 .agents/
 
+# Dokumentasi internal — catatan lokal, jangan ditrack
+docs/
+
 # SSH / deploy keys — JANGAN commit (sudah ada di GitHub Secret)
 veloclad-pos-deploy
 veloclad-pos-deploy.pub
