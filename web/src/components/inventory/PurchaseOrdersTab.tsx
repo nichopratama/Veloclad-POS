@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import { fetcher, apiMutate, FetchError } from '@/lib/fetcher';
 import { PurchaseOrder, FlatResponse } from './types';
 import { formatIDRFromString } from '@/components/pos/format';
+import { isAdmin } from '@/lib/roles';
 import { PoFormModal } from './PoFormModal';
 import { SkeletonRows } from '@/components/ui/Skeleton';
 
@@ -19,7 +20,7 @@ export function PurchaseOrdersTab({ role }: PurchaseOrdersTabProps) {
   const { data, error, isLoading, mutate } = useSWR<FlatResponse<PurchaseOrder>>('/api/inventory/purchase-orders', fetcher);
   const items = data?.data || [];
 
-  const canWrite = role === 'owner' || role === 'admin';
+  const canWrite = isAdmin(role);
 
   const handleReceive = async (poId: number) => {
     if (!confirm('Apakah Anda yakin ingin menerima PO ini? Stok akan otomatis ditambahkan.')) return;

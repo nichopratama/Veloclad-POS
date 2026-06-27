@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    await requireRole('owner', 'admin');
+    await requireRole('admin');
 
     const body = await req.json();
     const parsedBody = itemSchema.parse(body);

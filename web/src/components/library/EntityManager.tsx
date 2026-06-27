@@ -4,6 +4,7 @@ import { useState } from 'react';
 import useSWR from 'swr';
 import type { ReactNode } from 'react';
 import { fetcher, apiMutate, FetchError } from '@/lib/fetcher';
+import { isAdmin } from '@/lib/roles';
 import { EntityConfig, EntityRow, LibraryListResponse } from './types';
 import { useDebounce } from '@/components/pos/useDebounce';
 import { formatIDRFromString } from '@/components/pos/format';
@@ -44,8 +45,8 @@ export function EntityManager({ config, role }: EntityManagerProps) {
   const items: EntityRow[] = data?.data ?? [];
   const pagination = config.paginated ? data?.pagination : null;
 
-  const canMutate = config.mutateRoles === 'all' || role === 'owner' || role === 'admin';
-  const canDelete = role === 'owner' || role === 'admin';
+  const canMutate = config.mutateRoles === 'all' || isAdmin(role);
+  const canDelete = isAdmin(role);
 
   const handleDelete = async (id: number | string) => {
     if (!confirm('Apakah Anda yakin ingin menghapus data ini?')) return;

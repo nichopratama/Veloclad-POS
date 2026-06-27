@@ -3,6 +3,7 @@
 import { useState, useEffect, useId } from 'react';
 import useSWR from 'swr';
 import { fetcher, apiMutate, FetchError } from '@/lib/fetcher';
+import { isAdmin } from '@/lib/roles';
 import { StoreSettings } from './types';
 import { Skeleton } from '@/components/ui/Skeleton';
 
@@ -27,7 +28,7 @@ export function SettingsForm({ role }: SettingsFormProps) {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  const canWrite = role === 'owner' || role === 'admin';
+  const canWrite = isAdmin(role);
 
   const storeNameId = useId();
   const phoneId = useId();

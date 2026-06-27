@@ -13,7 +13,7 @@ const discountUpdateSchema = z.object({
 
 export async function PUT(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   try {
-    await requireRole('owner', 'admin');
+    await requireRole('admin');
 
     const params = await props.params;
     const id = parseInt(params.id, 10);
@@ -47,7 +47,7 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
 
 export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   try {
-    await requireRole('owner', 'admin');
+    await requireRole('admin');
 
     const params = await props.params;
     const id = parseInt(params.id, 10);

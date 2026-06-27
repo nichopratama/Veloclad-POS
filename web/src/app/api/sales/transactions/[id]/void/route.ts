@@ -21,10 +21,10 @@ const voidSchema = z.object({
   reason: z.string().optional(),
 });
 
-// POST void/refund — hanya owner/admin (D7).
+// POST void/refund — hanya admin (D7).
 export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   try {
-    const session = await requireRole('owner', 'admin');
+    const session = await requireRole('admin');
     const { id } = await props.params;
     const input = voidSchema.parse(await req.json());
     const reason = input.reason || 'Returned Goods';

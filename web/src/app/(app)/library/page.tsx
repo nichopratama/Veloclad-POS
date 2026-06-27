@@ -1,13 +1,10 @@
-import { headers } from 'next/headers';
-import { auth } from '@/lib/auth';
-import { redirect } from 'next/navigation';
+import { requireAdminPage } from '@/lib/rbac';
 import { entityConfigs } from '@/components/library/entityConfigs';
 import { EntityManager } from '@/components/library/EntityManager';
 
 export default async function LibraryPage(props: { searchParams: Promise<{ tab?: string }> }) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) redirect('/login');
-
+  // Guard server: kasir yang membuka /library via URL langsung → ditendang ke beranda.
+  const session = await requireAdminPage();
   const role = session.user.role ?? 'kasir';
 
   // Menu /library sudah adminOnly di Sidebar; mutasi tetap di-role-gate per config (defensif).

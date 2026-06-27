@@ -1,5 +1,6 @@
 import { Transaction } from './types';
 import { formatIDRFromString } from '@/components/pos/format';
+import { isAdmin } from '@/lib/roles';
 
 interface TransactionTableProps {
   transactions: Transaction[];
@@ -63,7 +64,7 @@ export function TransactionTable({
               <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>
                 <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'center' }}>
                   <button className="btn btn--ghost" onClick={() => onDetailClick(t)} style={{ minHeight: '32px', padding: '0 var(--space-2)' }}>Detail</button>
-                  {(role === 'owner' || role === 'admin') && t.status === 'completed' && (
+                  {isAdmin(role) && t.status === 'completed' && (
                     <button className="btn btn--ghost" onClick={() => onVoidClick(t)} style={{ minHeight: '32px', padding: '0 var(--space-2)', color: 'var(--color-danger)', borderColor: 'var(--color-danger)' }}>Void</button>
                   )}
                 </div>

@@ -51,8 +51,8 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
 
 export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   try {
-    // delete is restricted to owner/admin
-    await requireRole('owner', 'admin');
+    // delete is restricted to admin
+    await requireRole('admin');
 
     const params = await props.params;
     const id = parseInt(params.id, 10);

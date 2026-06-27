@@ -4,7 +4,7 @@ import { requireRole, AuthError } from '@/lib/rbac';
 
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   try {
-    await requireRole('owner', 'admin');
+    await requireRole('admin');
 
     const params = await props.params;
     const id = parseInt(params.id, 10);

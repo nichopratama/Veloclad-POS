@@ -1,12 +1,9 @@
-import { headers } from 'next/headers';
-import { auth } from '@/lib/auth';
-import { redirect } from 'next/navigation';
+import { requireAdminPage } from '@/lib/rbac';
 import { SettingsForm } from '@/components/settings/SettingsForm';
 
 export default async function SettingsPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) redirect('/login');
-
+  // Guard server: non-admin (kasir) yang membuka /settings via URL → ditendang ke beranda.
+  const session = await requireAdminPage();
   const role = session.user.role ?? 'kasir';
 
   return (

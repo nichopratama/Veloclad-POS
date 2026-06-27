@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await requireRole('owner', 'admin');
+    const session = await requireRole('admin');
 
     const body = await req.json();
     const parsedBody = purchaseOrderSchema.parse(body);

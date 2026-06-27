@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import { fetcher } from '@/lib/fetcher';
 import { Adjustment, FlatResponse } from './types';
 import { AdjustmentFormModal } from './AdjustmentFormModal';
+import { isAdmin } from '@/lib/roles';
 import { SkeletonRows } from '@/components/ui/Skeleton';
 
 interface AdjustmentsTabProps {
@@ -17,7 +18,7 @@ export function AdjustmentsTab({ role }: AdjustmentsTabProps) {
   const { data, error, isLoading, mutate } = useSWR<FlatResponse<Adjustment>>('/api/inventory/adjustments', fetcher);
   const items = data?.data || [];
 
-  const canWrite = role === 'owner' || role === 'admin';
+  const canWrite = isAdmin(role);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', height: '100%' }}>

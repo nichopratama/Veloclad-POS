@@ -15,6 +15,7 @@ import {
   Info,
   type LucideIcon,
 } from 'lucide-react';
+import { isAdmin } from '@/lib/roles';
 import styles from './Sidebar.module.css';
 
 type SubItem = { label: string; href: string };
@@ -62,7 +63,15 @@ const NAV: NavGroup[] = [
       { label: 'Discount', href: '/library?tab=discounts' },
     ],
   },
-  { label: 'Pengaturan', icon: Settings, adminOnly: true, href: '/settings' },
+  {
+    label: 'Pengaturan',
+    icon: Settings,
+    adminOnly: true,
+    sub: [
+      { label: 'Toko', href: '/settings' },
+      { label: 'Pengguna', href: '/settings/users' },
+    ],
+  },
 ];
 
 const DEFAULT_TAB: Record<string, string> = { '/inventory': 'stock', '/library': 'items' };
@@ -89,8 +98,7 @@ export function Sidebar({
   const searchParams = useSearchParams();
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
 
-  const isAdmin = role === 'owner' || role === 'admin';
-  const items = NAV.filter((i) => !i.adminOnly || isAdmin);
+  const items = NAV.filter((i) => !i.adminOnly || isAdmin(role));
 
   const isSubActive = (href: string): boolean => {
     const { path, tab } = parseHref(href);

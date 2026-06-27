@@ -20,7 +20,7 @@ export interface EntityConfig {
   endpoint: string;            // '/api/library/items'
   paginated: boolean;          // items=true; lainnya=false
   searchable: boolean;         // payment-types=false; lainnya=true
-  mutateRoles: 'admin' | 'all';// create+update: 'all'=semua login (customers); 'admin'=owner/admin
+  mutateRoles: 'admin' | 'all';// create+update: 'all'=semua login (customers); 'admin'=hanya admin
   fields: FieldDef[];          // urutan render form + kolom tabel
 }
 
