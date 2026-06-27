@@ -12,3 +12,10 @@ playwright-report/
 
 # Agent scratch
 .agents/
+
+# SSH / deploy keys — JANGAN commit (sudah ada di GitHub Secret)
+veloclad-pos-deploy
+veloclad-pos-deploy.pub
+id_ed25519*
+*.pem
+*.key
