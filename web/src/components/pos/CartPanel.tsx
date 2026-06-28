@@ -264,7 +264,7 @@ export function CartPanel(props: Props) {
             inputMode="numeric"
             value={paymentAmount ? new Intl.NumberFormat('id-ID').format(Number(paymentAmount)) : ''}
             onChange={(e) => {
-              const rawValue = e.target.value.replace(/\\D/g, '');
+              const rawValue = e.target.value.replace(/\D/g, '');
               onPaymentAmountChange(rawValue);
             }}
             placeholder="0"
