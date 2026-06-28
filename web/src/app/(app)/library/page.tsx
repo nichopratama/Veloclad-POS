@@ -1,6 +1,7 @@
 import { requireAdminPage } from '@/lib/rbac';
 import { entityConfigs } from '@/components/library/entityConfigs';
 import { EntityManager } from '@/components/library/EntityManager';
+import { UnderConstruction } from '@/components/ui/UnderConstruction';
 
 export default async function LibraryPage(props: { searchParams: Promise<{ tab?: string }> }) {
   // Guard server: kasir yang membuka /library via URL langsung → ditendang ke beranda.
@@ -9,6 +10,18 @@ export default async function LibraryPage(props: { searchParams: Promise<{ tab?:
 
   // Menu /library sudah adminOnly di Sidebar; mutasi tetap di-role-gate per config (defensif).
   const sp = await props.searchParams;
+
+  if (sp.tab === 'taxes') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-text)', marginBottom: 'var(--space-6)' }}>
+          Taxes
+        </h1>
+        <UnderConstruction />
+      </div>
+    );
+  }
+
   const activeTab = sp.tab && entityConfigs[sp.tab] ? sp.tab : 'items';
   const activeConfig = entityConfigs[activeTab];
 
