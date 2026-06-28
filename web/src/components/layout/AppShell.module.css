@@ -20,10 +20,10 @@
 
 @media print {
   @page { margin: 0; }
-  body { padding: 1.5cm; }
   
   .mainContent {
     margin-left: 0 !important;
     display: block !important;
+    padding: 1.5cm !important;
   }
 }
