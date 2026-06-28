@@ -113,13 +113,13 @@ function SummaryCards({ startDate, endDate }: { startDate: string, endDate: stri
       value: isLoading ? <Skeleton width="140px" height="2.5rem" /> : <span className="money">{formatIDR(data?.totalSales ?? 0)}</span>,
       icon: <Activity size={24} color="#03396c" style={{ opacity: 0.6 }} />,
       accent: true,
-      textColor: "#03396c",
+      textColor: "#2d7cfa",
     },
     {
       label: t.dashboard.transactionsCard,
       value: isLoading ? <Skeleton width="60px" height="2.5rem" /> : <span className="money">{data?.transactionCount ?? 0}</span>,
       icon: <CreditCard size={24} color="#03396c" style={{ opacity: 0.6 }} />,
-      textColor: "#03396c",
+      textColor: "#2d7cfa",
     },
     {
       label: t.dashboard.grossProfitCard,
@@ -129,7 +129,7 @@ function SummaryCards({ startDate, endDate }: { startDate: string, endDate: stri
         </span>
       ),
       icon: <TrendingUp size={24} color="#03396c" style={{ opacity: 0.6 }} />,
-      textColor: "#03396c",
+      textColor: "#2d7cfa",
     },
     {
       label: t.dashboard.lowStockCard,
@@ -140,7 +140,7 @@ function SummaryCards({ startDate, endDate }: { startDate: string, endDate: stri
         </div>
       ),
       icon: <AlertTriangle size={24} color="#E00000" style={{ opacity: 0.8 }} />,
-      textColor: "#03396c",
+      textColor: "#2d7cfa",
     },
   ];
 
