@@ -33,6 +33,12 @@ const getTodayISO = () => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
 
+const getFirstDayOfMonth = () => {
+  const d = new Date();
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`;
+};
+
 export function ReportsView() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -40,7 +46,7 @@ export function ReportsView() {
   const currentTabRaw = searchParams.get('tab') as ReportTab | null;
   const activeTab = currentTabRaw && TABS.some((t) => t.id === currentTabRaw) ? currentTabRaw : 'summary';
 
-  const [startDate, setStartDate] = useState(getTodayISO());
+  const [startDate, setStartDate] = useState(getFirstDayOfMonth());
   const [endDate, setEndDate] = useState(getTodayISO());
 
   const { data: apiResponse, error, isLoading } = useSWR(
@@ -58,7 +64,7 @@ export function ReportsView() {
 
   return (
     <div className="flex flex-col h-full gap-4">
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 print:hidden">
         <h1 className="text-xl font-extrabold text-[var(--color-text)]">
           Sales Dynamic Data
         </h1>
@@ -163,11 +169,6 @@ function SummaryReport({ data }: { data: any }) {
     csvRows.push(['ARUS KAS & PAJAK']);
     csvRows.push(['Pajak Dipungut (Tax)', data.tax]);
     csvRows.push(['Total Kas Diterima', data.total_collected]);
-    csvRows.push([]);
-    csvRows.push(['Rincian Metode Pembayaran:']);
-    data.payment_methods?.forEach((p: any) => {
-      csvRows.push([p.method, p.amount]);
-    });
 
     const csvContent = csvRows.map(e => e.join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -263,9 +264,9 @@ function SummaryReport({ data }: { data: any }) {
           </tbody>
         </table>
 
-        <div className="mt-8 pt-4 border-t border-[var(--color-border)]">
+        <div className="mt-8 pt-4 border-t border-[var(--color-border)] print:hidden">
           <h3 className="font-bold mb-3 text-[var(--color-text-muted)] text-xs uppercase tracking-wider">Rincian Metode Pembayaran</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {data.payment_methods?.map((p: any, i: number) => (
               <div key={i} className="flex justify-between items-center p-3 border border-[var(--color-border)] rounded-md bg-[var(--color-accent-soft)]">
                 <span className="font-medium text-[var(--color-text)]">{p.method}</span>
