@@ -172,7 +172,18 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
                         <input type="number" className="input" value={it.qty} onChange={(e) => updateItem(it.id, 'qty', e.target.value)} required min="1" aria-label={`Qty ${it.item_name}`} style={{ padding: 'var(--space-1) var(--space-2)' }} />
                       </td>
                       <td style={{ padding: 'var(--space-2) var(--space-2) var(--space-2) 0' }}>
-                        <input type="number" className="input" value={it.cost} onChange={(e) => updateItem(it.id, 'cost', e.target.value)} required min="0" aria-label={`Harga satuan ${it.item_name}`} style={{ padding: 'var(--space-1) var(--space-2)' }} />
+                        <input 
+                          type="text" 
+                          className="input" 
+                          value={it.cost ? Number(it.cost).toLocaleString('id-ID') : ''} 
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(/\D/g, '');
+                            updateItem(it.id, 'cost', raw);
+                          }} 
+                          required 
+                          aria-label={`Harga satuan ${it.item_name}`} 
+                          style={{ padding: 'var(--space-1) var(--space-2)' }} 
+                        />
                       </td>
                       <td style={{ padding: 'var(--space-2) 0', textAlign: 'right' }}>
                         <button type="button" onClick={() => removeItem(it.id)} style={{ background: 'transparent', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', fontWeight: 700 }}>✕</button>

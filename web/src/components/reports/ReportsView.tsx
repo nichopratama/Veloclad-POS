@@ -4,7 +4,8 @@ import { useState, Fragment } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { DateRangePicker, DateRange } from '@/components/ui/DateRangePicker';
-import { Activity, TrendingUp, CreditCard, ShoppingBag, Grid, Users, Printer, Banknote, QrCode, ArrowRightLeft, X } from 'lucide-react';
+import { Activity, TrendingUp, CreditCard, ShoppingBag, Grid, Users, Printer, Banknote, QrCode, ArrowRightLeft, X, Utensils, Coffee, Pizza, Shirt, Wrench, Package, Scissors, Monitor, Box, FileSpreadsheet, FileText } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 type ReportTab = 'summary' | 'gross-profit' | 'payment-methods' | 'items-sales' | 'category-sales' | 'staff-sales';
 
@@ -48,15 +49,18 @@ export function ReportsView() {
 
   const [startDate, setStartDate] = useState(getFirstDayOfMonth());
   const [endDate, setEndDate] = useState(getTodayISO());
+  const [page, setPage] = useState(1);
 
   const { data: apiResponse, error, isLoading } = useSWR(
-    `/api/reports/dynamic?tab=${activeTab}&start=${startDate}&end=${endDate}`,
+    `/api/reports/dynamic?tab=${activeTab}&start=${startDate}&end=${endDate}&page=${page}&limit=10`,
     fetcher
   );
 
   const reportData = apiResponse?.data || [];
+  const pagination = apiResponse?.pagination;
 
   const handleTabChange = (tabId: ReportTab) => {
+    setPage(1); // Reset page on tab change
     const params = new URLSearchParams(searchParams.toString());
     params.set('tab', tabId);
     router.push(`/reports?${params.toString()}`);
@@ -121,9 +125,9 @@ export function ReportsView() {
             {activeTab === 'summary' && <SummaryReport data={reportData} />}
             {activeTab === 'gross-profit' && <GrossProfitTable data={reportData as any[]} />}
             {activeTab === 'payment-methods' && <PaymentMethodsGrid data={reportData as any[]} startDate={startDate} endDate={endDate} />}
-            {activeTab === 'items-sales' && <ItemsSalesTable data={reportData as any[]} />}
-            {activeTab === 'category-sales' && <CategorySalesTable data={reportData as any[]} />}
-            {activeTab === 'staff-sales' && <StaffSalesTable data={reportData as any[]} />}
+            {activeTab === 'items-sales' && <ItemsSalesTable data={reportData as any[]} pagination={pagination} setPage={setPage} />}
+            {activeTab === 'category-sales' && <CategorySalesGrid data={reportData as any[]} startDate={startDate} endDate={endDate} />}
+            {activeTab === 'staff-sales' && <StaffSalesGrid data={reportData as any[]} />}
           </>
         )}
       </div>
@@ -149,36 +153,36 @@ function SummaryReport({ data }: { data: any }) {
   const margin = data.net_sales > 0 ? (grossProfit / data.net_sales) * 100 : 0;
 
   const exportToExcel = () => {
-    // Generate CSV string
-    const csvRows = [];
-    csvRows.push(['LAPORAN LABA RUGI (INCOME STATEMENT)']);
-    csvRows.push(['Periode:', data.date]);
-    csvRows.push([]);
-    csvRows.push(['PENDAPATAN (REVENUE)']);
-    csvRows.push(['Penjualan Kotor (Gross Sales)', grossSales]);
-    csvRows.push(['Diskon Penjualan', -data.discounts]);
-    csvRows.push(['Retur / Refund', -data.refunds]);
-    csvRows.push(['Penjualan Bersih (Net Sales)', data.net_sales]);
-    csvRows.push([]);
-    csvRows.push(['BEBAN POKOK PENJUALAN (COGS)']);
-    csvRows.push(['Harga Pokok Penjualan (HPP)', -(data.cogs || 0)]);
-    csvRows.push([]);
-    csvRows.push(['LABA KOTOR (GROSS PROFIT)', grossProfit]);
-    csvRows.push(['Margin Laba Kotor', `${margin.toFixed(2)}%`]);
-    csvRows.push([]);
-    csvRows.push(['ARUS KAS & PAJAK']);
-    csvRows.push(['Pajak Dipungut (Tax)', data.tax]);
-    csvRows.push(['Total Kas Diterima', data.total_collected]);
+    const wsData = [
+      ['LAPORAN LABA RUGI (INCOME STATEMENT)'],
+      ['Periode:', data.date],
+      [],
+      ['PENDAPATAN (REVENUE)'],
+      ['Penjualan Kotor (Gross Sales)', grossSales],
+      ['Diskon Penjualan', -data.discounts],
+      ['Retur / Refund', -data.refunds],
+      ['Penjualan Bersih (Net Sales)', data.net_sales],
+      [],
+      ['BEBAN POKOK PENJUALAN (COGS)'],
+      ['Harga Pokok Penjualan (HPP)', -(data.cogs || 0)],
+      [],
+      ['LABA KOTOR (GROSS PROFIT)', grossProfit],
+      ['Margin Laba Kotor', `${margin.toFixed(2)}%`],
+      [],
+      ['ARUS KAS & PAJAK'],
+      ['Pajak Dipungut (Tax)', data.tax],
+      ['Total Kas Diterima', data.total_collected]
+    ];
 
-    const csvContent = csvRows.map(e => e.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `Laporan_Keuangan_${data.date}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // Auto-size columns for better layout
+    ws['!cols'] = [{ wch: 35 }, { wch: 20 }];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Summary');
+
+    XLSX.writeFile(wb, `Laporan_Keuangan_${data.date}.xlsx`);
   };
 
   return (
@@ -188,18 +192,20 @@ function SummaryReport({ data }: { data: any }) {
           <h2 className="text-xl font-bold">Laporan Keuangan</h2>
           <div className="text-sm text-[var(--color-text-muted)]">Periode: {data.date}</div>
         </div>
-        <div className="flex gap-2 print:hidden">
+        <div className="flex gap-4 print:hidden items-center">
           <button 
             onClick={exportToExcel}
-            className="btn btn--ghost text-sm"
+            className="hover:scale-110 transition-transform flex items-center justify-center p-1"
+            title="Export Excel"
           >
-            Export Excel
+            <img src="/icons/excel.svg" alt="Export Excel" className="w-8 h-8" />
           </button>
           <button 
             onClick={() => window.print()}
-            className="btn text-sm"
+            className="hover:scale-110 transition-transform flex items-center justify-center p-1"
+            title="Cetak PDF"
           >
-            <Printer size={16} className="mr-1" /> Cetak PDF
+            <img src="/icons/pdf.svg" alt="Cetak PDF" className="w-8 h-8" />
           </button>
         </div>
       </div>
@@ -281,26 +287,39 @@ function SummaryReport({ data }: { data: any }) {
 }
 
 function GrossProfitTable({ data }: { data: any[] }) {
+  const formatDateString = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      const dayName = new Intl.DateTimeFormat('id-ID', { weekday: 'long' }).format(d);
+      const day = d.getDate().toString().padStart(2, '0');
+      const month = (d.getMonth() + 1).toString().padStart(2, '0');
+      const year = d.getFullYear();
+      return `${dayName}, ${day}-${month}-${year}`;
+    } catch {
+      return dateStr;
+    }
+  };
+
   return (
     <TableWrapper>
       <table className={tableClass}>
         <thead>
           <tr>
             <th className={thClass}>Tanggal</th>
-            <th className={thClass}>Penjualan Bersih</th>
-            <th className={thClass}>Total HPP (COGS)</th>
-            <th className={thClass}>Laba Kotor (Gross Profit)</th>
-            <th className={thClass}>Margin (%)</th>
+            <th className={`${thClass} text-right`}>Penjualan Bersih</th>
+            <th className={`${thClass} text-right`}>Total HPP (COGS)</th>
+            <th className={`${thClass} text-right`}>Laba Kotor (Gross Profit)</th>
+            <th className={`${thClass} text-right`}>Margin (%)</th>
           </tr>
         </thead>
         <tbody>
           {data.map((row, i) => (
             <tr key={i} className="hover:bg-[var(--color-surface)]/50 transition-colors">
-              <td className={tdClass}>{row.date}</td>
-              <td className={tdClass}>{formatCurrency(row.net_sales)}</td>
-              <td className={tdClass}>{formatCurrency(row.cogs)}</td>
-              <td className={`${tdClass} text-[var(--color-success)] font-semibold`}>{formatCurrency(row.gross_profit)}</td>
-              <td className={tdClass}>{row.margin.toFixed(2)}%</td>
+              <td className={tdClass}>{formatDateString(row.date)}</td>
+              <td className={`${tdClass} text-right money`}>{formatCurrency(row.net_sales)}</td>
+              <td className={`${tdClass} text-right money`}>{formatCurrency(row.cogs)}</td>
+              <td className={`${tdClass} text-right money text-[var(--color-success)]`}>{formatCurrency(row.gross_profit)}</td>
+              <td className={`${tdClass} text-right`}>{row.margin.toFixed(2)}%</td>
             </tr>
           ))}
         </tbody>
@@ -481,15 +500,64 @@ function PaymentMethodDetailModal({
   );
 }
 
+function CategoryDetailModal({ 
+  isOpen, onClose, categoryName, startDate, endDate 
+}: { 
+  isOpen: boolean; onClose: () => void; categoryName: string; startDate: string; endDate: string;
+}) {
+  const [page, setPage] = useState(1);
+
+  const { data: apiResponse, error, isLoading } = useSWR(
+    isOpen ? `/api/reports/dynamic?tab=category-items-detail&categoryName=${encodeURIComponent(categoryName)}&start=${startDate}&end=${endDate}&page=${page}&limit=10` : null,
+    fetcher
+  );
+
+  if (!isOpen) return null;
+
+  const itemData = apiResponse?.data || [];
+  const pagination = apiResponse?.pagination || { total: 0, totalPages: 1, page: 1, limit: 10 };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className="bg-[var(--color-bg)] w-full max-w-4xl rounded-xl shadow-2xl border border-[var(--color-border)] flex flex-col overflow-hidden max-h-[90vh]">
+        <div className="flex justify-between items-center p-6 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+          <div>
+            <h2 className="text-lg font-bold text-[var(--color-text)]">Rincian Penjualan Barang: {categoryName}</h2>
+            <p className="text-sm text-[var(--color-text-muted)]">Periode: {startDate} hingga {endDate}</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-[var(--color-accent-soft)] rounded-full transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
+            <X size={20} />
+          </button>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-6">
+          {isLoading && <div className="text-center py-8 text-[var(--color-text-muted)]">Memuat rincian barang...</div>}
+          {error && <div className="text-center py-8 text-red-500">Gagal memuat rincian.</div>}
+          
+          {!isLoading && !error && itemData.length === 0 && (
+            <div className="text-center py-8 text-[var(--color-text-muted)]">Tidak ada barang yang terjual.</div>
+          )}
+          
+          {!isLoading && !error && itemData.length > 0 && (
+            <ItemsSalesTable data={itemData} pagination={pagination} setPage={setPage} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PaymentMethodsGrid({ data, startDate, endDate }: { data: any[]; startDate: string; endDate: string }) {
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
 
   const getIconAndColor = (method: string) => {
     const lower = method.toLowerCase();
-    if (lower.includes('card')) return { icon: CreditCard, bgColor: 'bg-indigo-500', color: 'text-indigo-500', bgSoft: 'bg-indigo-500/10' };
-    if (lower.includes('qris')) return { icon: QrCode, bgColor: 'bg-blue-500', color: 'text-blue-500', bgSoft: 'bg-blue-500/10' };
-    if (lower.includes('transfer')) return { icon: ArrowRightLeft, bgColor: 'bg-purple-500', color: 'text-purple-500', bgSoft: 'bg-purple-500/10' };
-    return { icon: Banknote, bgColor: 'bg-emerald-500', color: 'text-emerald-500', bgSoft: 'bg-emerald-500/10' }; // Default / Cash
+    let Icon = Banknote; // Default / Cash
+    if (lower.includes('card')) Icon = CreditCard;
+    else if (lower.includes('qris')) Icon = QrCode;
+    else if (lower.includes('transfer')) Icon = ArrowRightLeft;
+    
+    return { icon: Icon, bgColor: 'bg-[#03396c]', color: 'text-[#03396c]', bgSoft: 'bg-[#03396c]/10' };
   };
 
   return (
@@ -508,7 +576,7 @@ function PaymentMethodsGrid({ data, startDate, endDate }: { data: any[]; startDa
                   </div>
                   <div>
                     <div className="text-sm font-medium text-[var(--color-text-muted)] truncate max-w-[120px]" title={row.method}>{row.method}</div>
-                    <div className="text-xl lg:text-2xl font-bold tracking-tight text-[var(--color-text)] money">
+                    <div className="text-lg lg:text-xl tracking-tight text-[var(--color-text)] money truncate">
                       {formatCurrency(row.total)}
                     </div>
                   </div>
@@ -545,80 +613,223 @@ function PaymentMethodsGrid({ data, startDate, endDate }: { data: any[]; startDa
     </>
   );
 }
+function CategorySalesGrid({ data, startDate, endDate }: { data: any[]; startDate: string; endDate: string }) {
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-function ItemsSalesTable({ data }: { data: any[] }) {
+  const getCategoryTheme = (name: string, index: number) => {
+    if (name === 'Tanpa Kategori' || !name) {
+      return { bgColor: 'bg-slate-500', color: 'text-slate-500', bgSoft: 'bg-slate-500/10', icon: Box };
+    }
+    
+    let Icon = Grid;
+    const lower = name.toLowerCase();
+    if (lower.includes('makan') || lower.includes('food')) Icon = Utensils;
+    else if (lower.includes('minum') || lower.includes('drink') || lower.includes('beverage')) Icon = Coffee;
+    else if (lower.includes('baju') || lower.includes('pakaian') || lower.includes('kaos') || lower.includes('shirt') || lower.includes('celana')) Icon = Shirt;
+    else if (lower.includes('jasa') || lower.includes('service') || lower.includes('repair')) Icon = Wrench;
+    else if (lower.includes('snack') || lower.includes('camilan') || lower.includes('kue')) Icon = Pizza;
+    else if (lower.includes('paket') || lower.includes('bundle')) Icon = Package;
+    else if (lower.includes('potong') || lower.includes('salon')) Icon = Scissors;
+    else if (lower.includes('elektronik') || lower.includes('electronic') || lower.includes('hp') || lower.includes('komputer')) Icon = Monitor;
+    
+    return { bgColor: 'bg-[#03396c]', color: 'text-[#03396c]', bgSoft: 'bg-[#03396c]/10', icon: Icon };
+  };
+
   return (
-    <TableWrapper>
-      <table className={tableClass}>
-        <thead>
-          <tr>
-            <th className={thClass}>Nama Barang</th>
-            <th className={thClass}>Kategori</th>
-            <th className={thClass}>Qty Terjual</th>
-            <th className={thClass}>Total Penjualan</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((row, i) => (
-            <tr key={i} className="hover:bg-[var(--color-surface)]/50 transition-colors">
-              <td className={tdClass}>{row.item_name}</td>
-              <td className={tdClass}>{row.category_name}</td>
-              <td className={tdClass}>{row.total_qty}</td>
-              <td className={tdClass}>{formatCurrency(row.total_sales)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </TableWrapper>
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-6">
+        {data.map((row, i) => {
+          const { bgColor, color, bgSoft, icon: Icon } = getCategoryTheme(row.category_name, i);
+          const isBestSeller = i === 0 && row.total_sales > 0; // Data is already sorted by total_sales desc
+          
+          return (
+            <div key={i} className={`flex flex-col bg-[var(--color-surface)] border ${isBestSeller ? 'border-amber-400/50 shadow-amber-400/10 shadow-lg relative' : 'border-[var(--color-border)] shadow-sm hover:shadow-md'} rounded-xl overflow-hidden transition-all duration-200 group`}>
+              
+              {isBestSeller && (
+                <div className="absolute top-0 right-0 bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1 rounded-bl-lg shadow-sm border-b border-l border-amber-200 flex items-center gap-1 z-10">
+                  <span className="text-[10px]">👑</span> Paling Laris
+                </div>
+              )}
+              
+              <div className="p-5 flex-1 flex flex-col pt-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${bgColor} text-white shadow-sm flex-shrink-0`}>
+                    <Icon size={24} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-[var(--color-text-muted)] truncate" title={row.category_name}>{row.category_name}</div>
+                    <div className="text-lg lg:text-xl tracking-tight text-[var(--color-text)] money truncate">
+                      {formatCurrency(row.total_sales)}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between mt-auto pt-2">
+                  <div className="text-sm font-medium text-[var(--color-text-muted)] truncate">
+                    {row.total_qty} terjual
+                  </div>
+                  <div className={`flex items-center gap-1 text-sm font-semibold text-[var(--color-text-muted)]`}>
+                    {row.percentage.toFixed(1)}%
+                  </div>
+                </div>
+              </div>
+              
+              <button 
+                onClick={() => setSelectedCategory(row.category_name)}
+                className={`w-full py-3 px-5 text-left text-sm font-semibold border-t border-[var(--color-border)] bg-[var(--color-surface)] ${color} hover:${bgSoft} transition-colors group-hover:bg-[var(--color-accent-soft)]`}
+              >
+                View all items
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      <CategoryDetailModal 
+        isOpen={selectedCategory !== null} 
+        onClose={() => setSelectedCategory(null)} 
+        categoryName={selectedCategory || ''} 
+        startDate={startDate}
+        endDate={endDate}
+      />
+    </>
   );
 }
 
-function CategorySalesTable({ data }: { data: any[] }) {
+
+function ItemsSalesTable({ data, pagination, setPage }: { data: any[]; pagination?: any; setPage?: (val: number | ((prev: number) => number)) => void }) {
   return (
-    <TableWrapper>
-      <table className={tableClass}>
-        <thead>
-          <tr>
-            <th className={thClass}>Nama Kategori</th>
-            <th className={thClass}>Qty Barang Terjual</th>
-            <th className={thClass}>Total Penjualan</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((row, i) => (
-            <tr key={i} className="hover:bg-[var(--color-surface)]/50 transition-colors">
-              <td className={tdClass}>{row.category_name}</td>
-              <td className={tdClass}>{row.total_qty}</td>
-              <td className={tdClass}>{formatCurrency(row.total_sales)}</td>
+    <div className="flex flex-col w-full">
+      <TableWrapper>
+        <table className={tableClass}>
+          <thead>
+            <tr>
+              <th className={thClass}>Nama Barang</th>
+              <th className={thClass}>Kategori</th>
+              <th className={thClass}>Qty Terjual</th>
+              <th className={`${thClass} text-right`}>Total Penjualan</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </TableWrapper>
+          </thead>
+          <tbody>
+            {data.map((row, i) => (
+              <tr key={i} className="hover:bg-[var(--color-surface)]/50 transition-colors">
+                <td className={tdClass}>{row.item_name}</td>
+                <td className={tdClass}>{row.category_name}</td>
+                <td className={tdClass}>{row.total_qty}</td>
+                <td className={`${tdClass} text-right money`}>{formatCurrency(row.total_sales)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </TableWrapper>
+
+      {pagination && pagination.total > 0 && setPage && (
+        <div className="flex flex-col sm:flex-row justify-between items-center p-4 border-t border-[var(--color-border)] bg-[var(--color-bg)] gap-4">
+          <div className="text-sm text-[var(--color-text-muted)]">
+            Showing {(pagination.page - 1) * pagination.limit + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} results
+          </div>
+          <div className="flex items-center gap-1">
+            <button 
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={pagination.page <= 1}
+              className="w-8 h-8 flex items-center justify-center rounded-md border border-[var(--color-border)] text-sm font-medium hover:bg-[var(--color-accent-soft)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-[var(--color-text)]"
+            >
+              &lt;
+            </button>
+            
+            <div className="flex items-center gap-1 mx-1">
+              {Array.from({ length: pagination.totalPages }).map((_, i) => {
+                const pageNum = i + 1;
+                if (
+                  pageNum === 1 || 
+                  pageNum === pagination.totalPages || 
+                  (pageNum >= pagination.page - 1 && pageNum <= pagination.page + 1)
+                ) {
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setPage(pageNum)}
+                      className={`w-8 h-8 flex items-center justify-center rounded-md text-sm font-medium transition-colors ${
+                        pagination.page === pageNum 
+                          ? 'bg-blue-500 text-white border-transparent' 
+                          : 'border border-[var(--color-border)] hover:bg-[var(--color-accent-soft)] text-[var(--color-text)]'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                }
+                
+                if (
+                  pageNum === pagination.page - 2 || 
+                  pageNum === pagination.page + 2
+                ) {
+                  return <span key={pageNum} className="px-1 text-[var(--color-text-muted)]">...</span>;
+                }
+                
+                return null;
+              })}
+            </div>
+
+            <button 
+              onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+              disabled={pagination.page >= pagination.totalPages}
+              className="w-8 h-8 flex items-center justify-center rounded-md border border-[var(--color-border)] text-sm font-medium hover:bg-[var(--color-accent-soft)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-[var(--color-text)]"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
-function StaffSalesTable({ data }: { data: any[] }) {
+
+
+function StaffSalesGrid({ data }: { data: any[] }) {
   return (
-    <TableWrapper>
-      <table className={tableClass}>
-        <thead>
-          <tr>
-            <th className={thClass}>Nama Staf (Kasir)</th>
-            <th className={thClass}>Jumlah Transaksi</th>
-            <th className={thClass}>Total Penjualan</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((row, i) => (
-            <tr key={i} className="hover:bg-[var(--color-surface)]/50 transition-colors">
-              <td className={tdClass}>{row.staff_name}</td>
-              <td className={tdClass}>{row.count}</td>
-              <td className={tdClass}>{formatCurrency(row.total)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </TableWrapper>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-6">
+      {data.map((row, i) => {
+        const isTopKasir = i === 0 && row.total > 0;
+        const aov = row.count > 0 ? row.total / row.count : 0;
+        
+        return (
+          <div key={i} className={`flex flex-col bg-[var(--color-surface)] border ${isTopKasir ? 'border-amber-400/50 shadow-amber-400/10 shadow-lg relative' : 'border-[var(--color-border)] shadow-sm hover:shadow-md'} rounded-xl overflow-hidden transition-all duration-200`}>
+            
+            {isTopKasir && (
+              <div className="absolute top-0 right-0 bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1 rounded-bl-lg shadow-sm border-b border-l border-amber-200 flex items-center gap-1 z-10">
+                <span className="text-[10px]">🏆</span> Top Kasir
+              </div>
+            )}
+            
+            <div className="p-5 flex-1 flex flex-col pt-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-[#03396c] text-white shadow-sm flex-shrink-0`}>
+                  <Users size={24} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-[var(--color-text-muted)] truncate" title={row.staff_name}>{row.staff_name}</div>
+                  <div className="text-lg lg:text-xl tracking-tight text-[var(--color-text)] money truncate">
+                    {formatCurrency(row.total)}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex flex-col mt-auto pt-4 border-t border-[var(--color-border)] gap-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider">Transaksi</div>
+                  <div className="text-sm font-semibold text-[var(--color-text)]">{row.count} trx</div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider" title="Average Order Value">AOV (Rata-rata)</div>
+                  <div className="text-sm font-semibold text-[var(--color-text)] money">{formatCurrency(aov)}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }

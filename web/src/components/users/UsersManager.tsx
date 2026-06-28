@@ -2,6 +2,7 @@
 
 import { useId, useState } from 'react';
 import useSWR from 'swr';
+import { Pencil, Trash2 } from 'lucide-react';
 import { fetcher, apiMutate, FetchError } from '@/lib/fetcher';
 import { ROLE_VALUES, ROLE_LABELS, roleLabel, isAdmin, type Role } from '@/lib/roles';
 import { SkeletonTable } from '@/components/ui/Skeleton';
@@ -179,18 +180,18 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
                   </td>
                   <td style={{ ...cellStyle, textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'center' }}>
-                      <button type="button" className="btn btn--ghost" onClick={() => openEdit(u)} style={{ minHeight: '32px', padding: '0 var(--space-3)' }}>
-                        Edit
+                      <button type="button" className="hover:scale-110 transition-transform p-1 text-[var(--color-accent)]" onClick={() => openEdit(u)} title="Edit">
+                        <Pencil size={18} />
                       </button>
                       <button
                         type="button"
-                        className="btn btn--ghost"
+                        className="hover:scale-110 transition-transform p-1 text-[var(--color-danger)]"
                         onClick={() => handleDelete(u)}
                         disabled={isSelf}
-                        title={isSelf ? 'Tidak bisa menghapus akun sendiri' : undefined}
-                        style={{ minHeight: '32px', padding: '0 var(--space-3)', color: 'var(--color-danger)', borderColor: 'var(--color-danger)', opacity: isSelf ? 0.4 : 1 }}
+                        title={isSelf ? 'Tidak bisa menghapus akun sendiri' : 'Hapus'}
+                        style={{ opacity: isSelf ? 0.4 : 1 }}
                       >
-                        Hapus
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   </td>

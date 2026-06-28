@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import useSWR from 'swr';
+import { Check, Trash2 } from 'lucide-react';
 import { fetcher, apiMutate, FetchError } from '@/lib/fetcher';
 import { PurchaseOrder, FlatResponse } from './types';
 import { formatIDRFromString } from '@/components/pos/format';
@@ -27,6 +28,25 @@ export function PurchaseOrdersTab({ role }: PurchaseOrdersTabProps) {
     setErrorMsg('');
     try {
       await apiMutate(`/api/inventory/purchase-orders/${poId}/receive`, 'PATCH');
+      mutate();
+    } catch (err: unknown) {
+      if (err instanceof FetchError) {
+        if (err.status === 401 || err.status === 403) {
+          setErrorMsg('Akses ditolak.');
+        } else {
+          setErrorMsg(err.message);
+        }
+      } else {
+        setErrorMsg('Terjadi kesalahan yang tidak diketahui.');
+      }
+    }
+  };
+
+  const handleDelete = async (poId: number) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus PO ini? Data tidak dapat dikembalikan.')) return;
+    setErrorMsg('');
+    try {
+      await apiMutate(`/api/inventory/purchase-orders/${poId}`, 'DELETE');
       mutate();
     } catch (err: unknown) {
       if (err instanceof FetchError) {
@@ -97,9 +117,14 @@ export function PurchaseOrdersTab({ role }: PurchaseOrdersTabProps) {
                   <td style={{ padding: 'var(--space-3) var(--space-4)' }}>{new Date(row.created_at).toLocaleDateString('id-ID')}</td>
                   <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>
                     {canWrite && row.status === 'pending' && (
-                      <button className="btn btn--ghost" onClick={() => handleReceive(row.id)} style={{ minHeight: '32px', padding: '0 var(--space-2)', color: 'var(--color-success)', borderColor: 'var(--color-success)' }}>
-                        Terima
-                      </button>
+                      <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'center' }}>
+                        <button className="hover:scale-110 transition-transform p-1 text-[var(--color-success)]" onClick={() => handleReceive(row.id)} title="Terima PO">
+                          <Check size={18} />
+                        </button>
+                        <button className="hover:scale-110 transition-transform p-1 text-[var(--color-danger)]" onClick={() => handleDelete(row.id)} title="Hapus PO">
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>

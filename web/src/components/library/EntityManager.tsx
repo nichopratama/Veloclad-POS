@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 import type { ReactNode } from 'react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { fetcher, apiMutate, FetchError } from '@/lib/fetcher';
 import { isAdmin } from '@/lib/roles';
 import { EntityConfig, EntityRow, LibraryListResponse } from './types';
@@ -150,10 +151,14 @@ export function EntityManager({ config, role }: EntityManagerProps) {
                   <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'center' }}>
                       {canMutate && (
-                        <button className="btn btn--ghost" onClick={() => setFormState({ isOpen: true, initialData: row })} style={{ minHeight: '32px', padding: '0 var(--space-2)' }}>Edit</button>
+                        <button className="hover:scale-110 transition-transform p-1 text-[var(--color-accent)]" onClick={() => setFormState({ isOpen: true, initialData: row })} title="Edit">
+                          <Pencil size={18} />
+                        </button>
                       )}
                       {canDelete && (
-                        <button className="btn btn--ghost" onClick={() => handleDelete(row.id)} style={{ minHeight: '32px', padding: '0 var(--space-2)', color: 'var(--color-danger)', borderColor: 'var(--color-danger)' }}>Hapus</button>
+                        <button className="hover:scale-110 transition-transform p-1 text-[var(--color-danger)]" onClick={() => handleDelete(row.id)} title="Hapus">
+                          <Trash2 size={18} />
+                        </button>
                       )}
                     </div>
                   </td>

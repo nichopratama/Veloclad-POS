@@ -265,6 +265,19 @@ export async function GET(request: Request) {
       }
 
       case 'items-sales': {
+        const page = parseInt(searchParams.get('page') || '1', 10);
+        const limit = parseInt(searchParams.get('limit') || '10', 10);
+        const skip = (page - 1) * limit;
+
+        const countResult = await prisma.$queryRaw<any[]>`
+          SELECT COUNT(DISTINCT i.id) as total
+          FROM transaction_items ti
+          LEFT JOIN items i ON ti.item_id = i.id
+          LEFT JOIN transactions t ON ti.transaction_id = t.id
+          ${rawDateWhere}
+        `;
+        const total = Number(countResult[0]?.total || 0);
+
         const result = await prisma.$queryRaw<any[]>`
           SELECT 
             i.name as item_name,
@@ -278,19 +291,29 @@ export async function GET(request: Request) {
           ${rawDateWhere}
           GROUP BY i.id, i.name, c.name
           ORDER BY total_qty DESC
-          LIMIT 100
+          LIMIT ${limit} OFFSET ${skip}
         `;
 
-        data = result.map(r => ({
-          item_name: r.item_name || 'Deleted Item',
-          category_name: r.category_name || 'No Category',
-          total_qty: Number(r.total_qty || 0),
-          total_sales: Number(r.total_sales || 0)
-        }));
-        break;
+        return NextResponse.json({
+          success: true,
+          data: result.map(r => ({
+            item_name: r.item_name || 'Deleted Item',
+            category_name: r.category_name || 'No Category',
+            total_qty: Number(r.total_qty || 0),
+            total_sales: Number(r.total_sales || 0)
+          })),
+          pagination: {
+            total,
+            totalPages: Math.ceil(total / limit),
+            page,
+            limit
+          }
+        });
       }
 
       case 'category-sales': {
+        const allCategories = await prisma.categories.findMany();
+
         const result = await prisma.$queryRaw<any[]>`
           SELECT 
             c.name as category_name,
@@ -305,15 +328,105 @@ export async function GET(request: Request) {
           ORDER BY total_sales DESC
         `;
 
-        data = result.map(r => ({
-          category_name: r.category_name || 'Uncategorized',
-          total_qty: Number(r.total_qty || 0),
-          total_sales: Number(r.total_sales || 0)
-        }));
+        const totalSalesAll = result.reduce((acc, curr) => acc + Number(curr.total_sales || 0), 0);
+
+        const categoryMap = new Map<string, { total_qty: number, total_sales: number }>();
+        allCategories.forEach(c => categoryMap.set(c.name, { total_qty: 0, total_sales: 0 }));
+
+        result.forEach(r => {
+          const category_name = r.category_name || 'Tanpa Kategori';
+          const total_qty = Number(r.total_qty || 0);
+          const total_sales = Number(r.total_sales || 0);
+          
+          if (categoryMap.has(category_name)) {
+            const existing = categoryMap.get(category_name)!;
+            existing.total_qty += total_qty;
+            existing.total_sales += total_sales;
+          } else {
+            categoryMap.set(category_name, { total_qty, total_sales });
+          }
+        });
+
+        data = Array.from(categoryMap.entries()).map(([category_name, stats]) => {
+          return {
+            category_name,
+            total_qty: stats.total_qty,
+            total_sales: stats.total_sales,
+            percentage: totalSalesAll > 0 ? (stats.total_sales / totalSalesAll) * 100 : 0
+          };
+        }).sort((a, b) => b.total_sales - a.total_sales);
         break;
       }
 
+      case 'category-items-detail': {
+        const categoryName = searchParams.get('categoryName');
+        const page = parseInt(searchParams.get('page') || '1', 10);
+        const limit = parseInt(searchParams.get('limit') || '10', 10);
+        const skip = (page - 1) * limit;
+        
+        if (!categoryName) {
+          return NextResponse.json({ success: false, message: 'Missing categoryName' }, { status: 400 });
+        }
+
+        const isUncategorized = categoryName === 'Tanpa Kategori';
+
+        // Base where condition for raw query
+        const dateConditionRaw = (startDate && endDate) 
+          ? `t.created_at >= '${startDate} 00:00:00' AND t.created_at <= '${endDate} 23:59:59'`
+          : `1=1`;
+        const categoryConditionRaw = isUncategorized 
+          ? `c.id IS NULL` 
+          : `c.name = '${categoryName.replace(/'/g, "''")}'`;
+
+        const countResult = await prisma.$queryRawUnsafe<any[]>(`
+          SELECT COUNT(DISTINCT i.id) as total
+          FROM transaction_items ti
+          LEFT JOIN items i ON ti.item_id = i.id
+          LEFT JOIN categories c ON i.category_id = c.id
+          LEFT JOIN transactions t ON ti.transaction_id = t.id
+          WHERE t.status = 'completed' AND ${dateConditionRaw} AND ${categoryConditionRaw}
+        `);
+        
+        const total = Number(countResult[0]?.total || 0);
+
+        const result = await prisma.$queryRawUnsafe<any[]>(`
+          SELECT 
+            i.name as item_name,
+            c.name as category_name,
+            SUM(ti.qty) as total_qty,
+            SUM(ti.subtotal) as total_sales
+          FROM transaction_items ti
+          LEFT JOIN items i ON ti.item_id = i.id
+          LEFT JOIN categories c ON i.category_id = c.id
+          LEFT JOIN transactions t ON ti.transaction_id = t.id
+          WHERE t.status = 'completed' AND ${dateConditionRaw} AND ${categoryConditionRaw}
+          GROUP BY i.id, i.name, c.name
+          ORDER BY total_qty DESC
+          LIMIT ${limit} OFFSET ${skip}
+        `);
+
+        return NextResponse.json({
+          success: true,
+          data: result.map(r => ({
+            item_name: r.item_name || 'Deleted Item',
+            category_name: r.category_name || 'Tanpa Kategori',
+            total_qty: Number(r.total_qty || 0),
+            total_sales: Number(r.total_sales || 0)
+          })),
+          pagination: {
+            total,
+            totalPages: Math.ceil(total / limit),
+            page,
+            limit
+          }
+        });
+      }
+
       case 'staff-sales': {
+        const allStaff = await prisma.users.findMany({
+          select: { name: true }
+        });
+
         const result = await prisma.transactions.groupBy({
           by: ['cashier_name'],
           where: dateFilter,
@@ -321,11 +434,28 @@ export async function GET(request: Request) {
           _sum: { total: true }
         });
 
-        data = result.map(r => ({
-          staff_name: r.cashier_name || 'Unknown Staff',
-          count: r._count.id,
-          total: Number(r._sum.total || 0)
-        })).sort((a, b) => b.total - a.total);
+        const salesMap = new Map();
+        for (const r of result) {
+          if (r.cashier_name) salesMap.set(r.cashier_name, { count: r._count.id, total: Number(r._sum.total || 0) });
+        }
+
+        const staffData = allStaff.map(staff => ({
+          staff_name: staff.name,
+          count: salesMap.get(staff.name)?.count || 0,
+          total: salesMap.get(staff.name)?.total || 0
+        }));
+
+        for (const r of result) {
+          if (r.cashier_name && !allStaff.find(s => s.name === r.cashier_name)) {
+            staffData.push({
+              staff_name: r.cashier_name,
+              count: r._count.id,
+              total: Number(r._sum.total || 0)
+            });
+          }
+        }
+
+        data = staffData.sort((a, b) => b.total - a.total);
         break;
       }
 
