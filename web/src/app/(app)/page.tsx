@@ -196,7 +196,7 @@ function SummaryCards({ startDate, endDate }: { startDate: string, endDate: stri
               <p
                 style={{
                   margin: 0,
-                  fontSize: "30px",
+                  fontSize: "28px",
                   fontWeight: 400,
                   lineHeight: 1.1,
                   color: card.textColor,
