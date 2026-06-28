@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { DateRangePicker, DateRange } from '@/components/ui/DateRangePicker';
-import { Activity, TrendingUp, CreditCard, ShoppingBag, Grid, Users, Printer } from 'lucide-react';
+import { Activity, TrendingUp, CreditCard, ShoppingBag, Grid, Users, Printer, Banknote, QrCode, ArrowRightLeft, X } from 'lucide-react';
 
 type ReportTab = 'summary' | 'gross-profit' | 'payment-methods' | 'items-sales' | 'category-sales' | 'staff-sales';
 
@@ -120,7 +120,7 @@ export function ReportsView() {
           <>
             {activeTab === 'summary' && <SummaryReport data={reportData} />}
             {activeTab === 'gross-profit' && <GrossProfitTable data={reportData as any[]} />}
-            {activeTab === 'payment-methods' && <PaymentMethodsTable data={reportData as any[]} />}
+            {activeTab === 'payment-methods' && <PaymentMethodsGrid data={reportData as any[]} startDate={startDate} endDate={endDate} />}
             {activeTab === 'items-sales' && <ItemsSalesTable data={reportData as any[]} />}
             {activeTab === 'category-sales' && <CategorySalesTable data={reportData as any[]} />}
             {activeTab === 'staff-sales' && <StaffSalesTable data={reportData as any[]} />}
@@ -309,30 +309,133 @@ function GrossProfitTable({ data }: { data: any[] }) {
   );
 }
 
-function PaymentMethodsTable({ data }: { data: any[] }) {
+function PaymentMethodDetailModal({ 
+  isOpen, onClose, methodName, startDate, endDate 
+}: { 
+  isOpen: boolean; onClose: () => void; methodName: string; startDate: string; endDate: string;
+}) {
+  const { data: apiResponse, error, isLoading } = useSWR(
+    isOpen ? `/api/reports/dynamic?tab=payment-methods-detail&methodName=${encodeURIComponent(methodName)}&start=${startDate}&end=${endDate}` : null,
+    fetcher
+  );
+
+  if (!isOpen) return null;
+
+  const txData = apiResponse?.data || [];
+
   return (
-    <TableWrapper>
-      <table className={tableClass}>
-        <thead>
-          <tr>
-            <th className={thClass}>Metode Pembayaran</th>
-            <th className={thClass}>Jumlah Transaksi</th>
-            <th className={thClass}>Total Nominal</th>
-            <th className={thClass}>Persentase</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((row, i) => (
-            <tr key={i} className="hover:bg-[var(--color-surface)]/50 transition-colors">
-              <td className={tdClass}>{row.method}</td>
-              <td className={tdClass}>{row.count}</td>
-              <td className={tdClass}>{formatCurrency(row.total)}</td>
-              <td className={tdClass}>{row.percentage.toFixed(1)}%</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </TableWrapper>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className="bg-[var(--color-bg)] w-full max-w-3xl rounded-xl shadow-2xl border border-[var(--color-border)] flex flex-col overflow-hidden max-h-[90vh]">
+        <div className="flex justify-between items-center p-6 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+          <div>
+            <h2 className="text-lg font-bold text-[var(--color-text)]">Rincian Transaksi: {methodName}</h2>
+            <p className="text-sm text-[var(--color-text-muted)]">Periode: {startDate} hingga {endDate}</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-[var(--color-accent-soft)] rounded-full transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
+            <X size={20} />
+          </button>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-6">
+          {isLoading && <div className="text-center py-8 text-[var(--color-text-muted)]">Memuat rincian transaksi...</div>}
+          {error && <div className="text-center py-8 text-red-500">Gagal memuat rincian.</div>}
+          
+          {!isLoading && !error && txData.length === 0 && (
+            <div className="text-center py-8 text-[var(--color-text-muted)]">Tidak ada transaksi ditemukan.</div>
+          )}
+          
+          {!isLoading && !error && txData.length > 0 && (
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr>
+                  <th className="pb-3 border-b border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] uppercase">Waktu</th>
+                  <th className="pb-3 border-b border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] uppercase">ID Transaksi</th>
+                  <th className="pb-3 border-b border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] uppercase">Kasir</th>
+                  <th className="pb-3 border-b border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] uppercase text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {txData.map((tx: any) => (
+                  <tr key={tx.id} className="hover:bg-[var(--color-surface)]/50 transition-colors border-b border-[var(--color-border)]">
+                    <td className="py-3 text-sm text-[var(--color-text)] whitespace-nowrap">
+                      {new Date(tx.created_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}
+                    </td>
+                    <td className="py-3 text-sm text-[var(--color-text)] font-mono">{tx.id}</td>
+                    <td className="py-3 text-sm text-[var(--color-text)]">{tx.cashier_name}</td>
+                    <td className="py-3 text-sm font-semibold text-[var(--color-text)] text-right money whitespace-nowrap">{formatCurrency(tx.total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PaymentMethodsGrid({ data, startDate, endDate }: { data: any[]; startDate: string; endDate: string }) {
+  const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
+
+  const getIconAndColor = (method: string) => {
+    const lower = method.toLowerCase();
+    if (lower.includes('card')) return { icon: CreditCard, bgColor: 'bg-indigo-500', color: 'text-indigo-500', bgSoft: 'bg-indigo-500/10' };
+    if (lower.includes('qris')) return { icon: QrCode, bgColor: 'bg-blue-500', color: 'text-blue-500', bgSoft: 'bg-blue-500/10' };
+    if (lower.includes('transfer')) return { icon: ArrowRightLeft, bgColor: 'bg-purple-500', color: 'text-purple-500', bgSoft: 'bg-purple-500/10' };
+    return { icon: Banknote, bgColor: 'bg-emerald-500', color: 'text-emerald-500', bgSoft: 'bg-emerald-500/10' }; // Default / Cash
+  };
+
+  return (
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-6">
+        {data.map((row, i) => {
+          const { icon: Icon, bgColor, color, bgSoft } = getIconAndColor(row.method);
+          const isUp = row.percentage > 0;
+          
+          return (
+            <div key={i} className="flex flex-col bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 group">
+              <div className="p-5 flex-1 flex flex-col">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${bgColor} text-white shadow-sm`}>
+                    <Icon size={24} />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-[var(--color-text-muted)] truncate max-w-[120px]" title={row.method}>{row.method}</div>
+                    <div className="text-xl lg:text-2xl font-bold tracking-tight text-[var(--color-text)] money">
+                      {formatCurrency(row.total)}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between mt-auto pt-2">
+                  <div className="text-sm font-medium text-[var(--color-text-muted)]">
+                    {row.count} trx
+                  </div>
+                  <div className={`flex items-center gap-1 text-sm font-semibold ${isUp ? 'text-emerald-500' : 'text-[var(--color-text-muted)]'}`}>
+                    {row.percentage.toFixed(1)}%
+                  </div>
+                </div>
+              </div>
+              
+              <button 
+                onClick={() => setSelectedMethod(row.method)}
+                className={`w-full py-3 px-5 text-left text-sm font-semibold border-t border-[var(--color-border)] bg-[var(--color-surface)] ${color} hover:${bgSoft} transition-colors group-hover:bg-[var(--color-accent-soft)]`}
+              >
+                View all
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      <PaymentMethodDetailModal 
+        isOpen={selectedMethod !== null} 
+        onClose={() => setSelectedMethod(null)} 
+        methodName={selectedMethod || ''} 
+        startDate={startDate}
+        endDate={endDate}
+      />
+    </>
   );
 }
 

@@ -185,6 +185,34 @@ export async function GET(request: Request) {
         break;
       }
 
+      case 'payment-methods-detail': {
+        const methodName = searchParams.get('methodName');
+        if (!methodName) {
+          return NextResponse.json({ success: false, message: 'Missing methodName' }, { status: 400 });
+        }
+        
+        const filter = {
+          ...dateFilter,
+          payment_method_name: methodName === 'Unknown' ? null : methodName
+        };
+        
+        const result = await prisma.transactions.findMany({
+          where: filter,
+          select: {
+            id: true,
+            created_at: true,
+            cashier_name: true,
+            total: true,
+            status: true
+          },
+          orderBy: { created_at: 'desc' },
+          take: 500 // Limit to avoid massive payload
+        });
+        
+        data = result;
+        break;
+      }
+
       case 'items-sales': {
         const result = await prisma.$queryRaw<any[]>`
           SELECT 
