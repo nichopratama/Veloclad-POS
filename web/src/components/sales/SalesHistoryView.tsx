@@ -52,7 +52,10 @@ export function SalesHistoryView({ role }: { role: string }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', height: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 800 }}>{t.sales.title}</h1>
+        <div>
+          <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, marginBottom: 'var(--space-1)' }}>{t.sales.title}</h1>
+          <p style={{ color: 'var(--color-text-muted)', margin: 0 }}>Review past sales, void items, and print receipts.</p>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-4)' }}>

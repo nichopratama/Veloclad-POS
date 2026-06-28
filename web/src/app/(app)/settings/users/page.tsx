@@ -10,16 +10,20 @@ export default async function UsersSettingsPage() {
 
   return (
     <div style={{ padding: 'var(--space-6)' }}>
-      <h1
-        style={{
-          fontSize: 'var(--text-xl)',
-          fontWeight: 800,
-          marginBottom: 'var(--space-6)',
-          textAlign: 'center',
-        }}
-      >
-        Manajemen Pengguna
-      </h1>
+      <div style={{ marginBottom: 'var(--space-6)', textAlign: 'center' }}>
+        <h1
+          style={{
+            fontSize: 'var(--text-xl)',
+            fontWeight: 800,
+            marginBottom: 'var(--space-1)',
+          }}
+        >
+          Manajemen Pengguna
+        </h1>
+        <p style={{ color: 'var(--color-text-muted)', margin: 0, fontSize: 'var(--text-sm)' }}>
+          Manage user access, roles, and credentials.
+        </p>
+      </div>
       <UsersManager currentUserId={session.user.id} />
     </div>
   );

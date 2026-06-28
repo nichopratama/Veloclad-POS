@@ -36,11 +36,26 @@ export default async function LibraryPage(props: { searchParams: Promise<{ tab?:
   };
   const title = tabTitles[activeTab] ?? activeConfig.label;
 
+  const tabDescriptions: Record<string, string> = {
+    items: 'Manage all your product inventory and pricing.',
+    categories: 'Organize your products into categories.',
+    customers: 'Manage your customer database and details.',
+    suppliers: 'Manage your supplier database and contact info.',
+    'payment-types': 'Configure accepted payment methods for transactions.',
+    discounts: 'Manage discount rules and promotional offers.',
+  };
+  const description = tabDescriptions[activeTab] ?? `Manage your ${title.toLowerCase()}.`;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-text)', marginBottom: 'var(--space-6)' }}>
-        {title}
-      </h1>
+      <div style={{ marginBottom: 'var(--space-6)' }}>
+        <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-text)', marginBottom: 'var(--space-1)' }}>
+          {title}
+        </h1>
+        <p style={{ color: 'var(--color-text-muted)', margin: 0 }}>
+          {description}
+        </p>
+      </div>
 
       <EntityManager config={activeConfig} role={role} />
     </div>

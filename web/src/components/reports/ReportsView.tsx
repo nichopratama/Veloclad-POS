@@ -80,9 +80,14 @@ export function ReportsView() {
   return (
     <div className="flex flex-col h-full gap-4">
       <div className="flex flex-col gap-4 print:hidden">
-        <h1 className="text-xl font-extrabold text-[var(--color-text)]">
-          {t.reports.title}
-        </h1>
+        <div>
+          <h1 className="text-xl font-extrabold text-[var(--color-text)] mb-1">
+            {t.reports.title}
+          </h1>
+          <p className="text-[var(--color-text-muted)] text-sm m-0">
+            Analyze your business performance with detailed sales and item reports.
+          </p>
+        </div>
 
         <div className="w-full overflow-x-auto pb-2 scrollbar-thin">
           <div className="flex gap-2 min-w-max">
