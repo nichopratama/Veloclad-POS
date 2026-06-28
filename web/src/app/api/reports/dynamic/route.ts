@@ -135,26 +135,31 @@ export async function GET(request: Request) {
       case 'gross-profit': {
         const rawResult = await prisma.$queryRaw<any[]>`
           SELECT 
+            TO_CHAR(t.created_at AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD') as trx_date,
             SUM(ti.qty * COALESCE(i.hpp, 0)) as total_cogs,
             SUM(ti.subtotal) as total_sales
           FROM transaction_items ti
           LEFT JOIN items i ON ti.item_id = i.id
           LEFT JOIN transactions t ON ti.transaction_id = t.id
           ${rawDateWhere}
+          GROUP BY TO_CHAR(t.created_at AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD')
+          ORDER BY trx_date DESC
         `;
         
-        const total_sales = Number(rawResult[0]?.total_sales || 0);
-        const total_cogs = Number(rawResult[0]?.total_cogs || 0);
-        const gross_profit = total_sales - total_cogs;
-        const margin = total_sales > 0 ? (gross_profit / total_sales) * 100 : 0;
-
-        data = [{
-          date: labelDate,
-          net_sales: total_sales,
-          cogs: total_cogs,
-          gross_profit: gross_profit,
-          margin: margin
-        }];
+        data = rawResult.map(row => {
+          const total_sales = Number(row.total_sales || 0);
+          const total_cogs = Number(row.total_cogs || 0);
+          const gross_profit = total_sales - total_cogs;
+          const margin = total_sales > 0 ? (gross_profit / total_sales) * 100 : 0;
+          
+          return {
+            date: row.trx_date || 'Unknown Date',
+            net_sales: total_sales,
+            cogs: total_cogs,
+            gross_profit: gross_profit,
+            margin: margin
+          };
+        });
         break;
       }
 
