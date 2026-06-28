@@ -96,25 +96,26 @@ function Skeleton({ width = "100%", height = "1.2em" }: { width?: string; height
 function SummaryCards({ startDate, endDate }: { startDate: string, endDate: string }) {
   const { data, error, isLoading } = useSWR<SummaryResponse>(`/api/dashboard/summary?start=${startDate}&end=${endDate}`, fetcher, { refreshInterval: 60000 });
   const { data: lowStockData, isLoading: isLowStockLoading } = useSWR<LowStockResponse>('/api/dashboard/low-stock', fetcher, { refreshInterval: 60000 });
+  const { t } = useLocale();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const cards = [
     {
-      label: "PENJUALAN",
+      label: t.dashboard.salesCard,
       value: isLoading ? <Skeleton width="140px" height="2.5rem" /> : <span className="money">{formatIDR(data?.totalSales ?? 0)}</span>,
       icon: <Activity size={24} color="#03396c" style={{ opacity: 0.6 }} />,
       accent: true,
       textColor: "#03396c",
     },
     {
-      label: "TRANSAKSI",
+      label: t.dashboard.transactionsCard,
       value: isLoading ? <Skeleton width="60px" height="2.5rem" /> : <span className="money">{data?.transactionCount ?? 0}</span>,
       icon: <CreditCard size={24} color="#03396c" style={{ opacity: 0.6 }} />,
       textColor: "#03396c",
     },
     {
-      label: "GROSS PROFIT",
+      label: t.dashboard.grossProfitCard,
       value: isLoading ? <Skeleton width="140px" height="2.5rem" /> : (
         <span className="money">
           {formatIDR(data?.netProfit ?? 0)}
@@ -124,11 +125,11 @@ function SummaryCards({ startDate, endDate }: { startDate: string, endDate: stri
       textColor: "#03396c",
     },
     {
-      label: "STOK TIPIS",
+      label: t.dashboard.lowStockCard,
       value: isLowStockLoading ? <Skeleton width="60px" height="2.5rem" /> : (
         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
           <span className="money">{lowStockData?.total ?? 0} Item</span>
-          <button onClick={() => setIsModalOpen(true)} style={{ fontSize: "12px", textDecoration: "underline", color: "#03396c", cursor: "pointer", background: "none", border: "none", padding: 0, textAlign: "left" }}>Lihat Semua</button>
+          <button onClick={() => setIsModalOpen(true)} style={{ fontSize: "12px", textDecoration: "underline", color: "#03396c", cursor: "pointer", background: "none", border: "none", padding: 0, textAlign: "left" }}>{t.dashboard.viewAll}</button>
         </div>
       ),
       icon: <AlertTriangle size={24} color="#E00000" style={{ opacity: 0.8 }} />,
@@ -214,10 +215,10 @@ function SummaryCards({ startDate, endDate }: { startDate: string, endDate: stri
               <X size={20} />
             </button>
             <h2 style={{ fontSize: "18px", fontWeight: "bold", marginBottom: "16px", color: "var(--color-danger)" }}>
-              Peringatan Stok Tipis
+              {t.dashboard.lowStockWarning}
             </h2>
             {lowStockData?.data.length === 0 ? (
-              <p style={{ color: "var(--color-text-muted)" }}>Tidak ada barang dengan stok tipis.</p>
+              <p style={{ color: "var(--color-text-muted)" }}>{t.dashboard.noLowStock}</p>
             ) : (
               <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "8px" }}>
                 {lowStockData?.data.map((item) => (
@@ -227,8 +228,8 @@ function SummaryCards({ startDate, endDate }: { startDate: string, endDate: stri
                       <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>{item.code}</div>
                     </div>
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontWeight: "bold", color: "var(--color-danger)", fontSize: "14px" }}>Sisa: {item.stock}</div>
-                      <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>Min: {item.min_stock}</div>
+                      <div style={{ fontWeight: "bold", color: "var(--color-danger)", fontSize: "14px" }}>{t.dashboard.remaining} {item.stock}</div>
+                      <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>{t.dashboard.minStock} {item.min_stock}</div>
                     </div>
                   </li>
                 ))}
@@ -266,6 +267,7 @@ function ChartTooltip({ active, payload, label }: any) {
 
 function SalesChartCard({ startDate, endDate }: { startDate: string, endDate: string }) {
   const { data, error, isLoading } = useSWR<SalesChartResponse>(`/api/dashboard/sales-chart?start=${startDate}&end=${endDate}`, fetcher, { refreshInterval: 60000 });
+  const { t } = useLocale();
 
   return (
     <div className="card" style={{ flex: "1 1 0", minWidth: 0 }}>
@@ -277,7 +279,7 @@ function SalesChartCard({ startDate, endDate }: { startDate: string, endDate: st
           marginBottom: "var(--space-4)",
         }}
       >
-        Grafik Penjualan
+        {t.dashboard.salesChart}
       </h2>
       {isLoading && <Skeleton width="100%" height="180px" />}
       {!isLoading && !error && (
@@ -287,7 +289,7 @@ function SalesChartCard({ startDate, endDate }: { startDate: string, endDate: st
             <XAxis dataKey="date" tick={{ fontSize: 11, fill: "oklch(52% 0.02 262)" }} axisLine={false} tickLine={false} tickFormatter={(v) => v?.length === 10 ? `${v.substring(8, 10)}-${v.substring(5, 7)}` : v} />
             <YAxis tick={{ fontSize: 11, fill: "oklch(52% 0.02 262)" }} axisLine={false} tickLine={false} width={48} tickFormatter={(v) => v >= 1000000 ? `${(v/1000000).toFixed(0)}jt` : v >= 1000 ? `${(v/1000).toFixed(0)}rb` : String(v)} />
             <Tooltip content={<ChartTooltip />} cursor={{ fill: "oklch(95% 0.03 264)" }} />
-            <Bar dataKey="sales" fill="#03396c" radius={[4, 4, 0, 0]} name="Penjualan" />
+            <Bar dataKey="sales" fill="#03396c" radius={[4, 4, 0, 0]} name={t.dashboard.chartSales} />
           </BarChart>
         </ResponsiveContainer>
       )}
@@ -297,6 +299,7 @@ function SalesChartCard({ startDate, endDate }: { startDate: string, endDate: st
 
 function HourlyHeatmapCard({ startDate, endDate }: { startDate: string, endDate: string }) {
   const { data, error, isLoading } = useSWR<HeatmapResponse>(`/api/dashboard/hourly-heatmap?start=${startDate}&end=${endDate}`, fetcher, { refreshInterval: 60000 });
+  const { t } = useLocale();
 
   return (
     <div className="card" style={{ flex: "1 1 0", minWidth: 0 }}>
@@ -308,7 +311,7 @@ function HourlyHeatmapCard({ startDate, endDate }: { startDate: string, endDate:
           marginBottom: "var(--space-4)",
         }}
       >
-        Heatmap Waktu Sibuk
+        {t.dashboard.hourlyHeatmap}
       </h2>
       {isLoading && <Skeleton width="100%" height="180px" />}
       {!isLoading && !error && (
@@ -318,7 +321,7 @@ function HourlyHeatmapCard({ startDate, endDate }: { startDate: string, endDate:
             <XAxis dataKey="hour" tick={{ fontSize: 11, fill: "oklch(52% 0.02 262)" }} axisLine={false} tickLine={false} interval={2} />
             <YAxis tick={{ fontSize: 11, fill: "oklch(52% 0.02 262)" }} axisLine={false} tickLine={false} width={24} />
             <Tooltip content={<ChartTooltip />} />
-            <Line type="monotone" dataKey="count" stroke="#F5A623" strokeWidth={3} dot={false} name="Transaksi" />
+            <Line type="monotone" dataKey="count" stroke="#F5A623" strokeWidth={3} dot={false} name={t.dashboard.chartTransactions} />
           </LineChart>
         </ResponsiveContainer>
       )}
@@ -368,7 +371,7 @@ function TopItemsCard({ startDate, endDate }: { startDate: string, endDate: stri
                   {item.name ?? item.code ?? `#${item.id}`}
                 </p>
                 <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-text-muted)" }}>
-                  Terjual: {item.qty}
+                  {t.dashboard.soldQty(item.qty)}
                 </p>
               </div>
               <p style={{ margin: 0, fontSize: "13px", fontWeight: 700, color: "var(--color-success)", textAlign: "right", flexShrink: 0 }}>

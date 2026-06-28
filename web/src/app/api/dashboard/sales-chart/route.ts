@@ -56,12 +56,12 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Format output
+    // Format output (dd-mm)
     const data = orderedKeys.map(key => {
-      const d = new Date(key);
-      const dayName = daysId[d.getDay()];
+      const parts = key.split('-');
+      const formattedDate = `${parts[2]}-${parts[1]}`;
       return {
-        date: dayName,
+        date: formattedDate,
         sales: salesMap.get(key) || 0,
       };
     });
