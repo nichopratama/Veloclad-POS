@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { DateRangePicker, DateRange } from '@/components/ui/DateRangePicker';
@@ -314,18 +314,22 @@ function PaymentMethodDetailModal({
 }: { 
   isOpen: boolean; onClose: () => void; methodName: string; startDate: string; endDate: string;
 }) {
+  const [page, setPage] = useState(1);
+  const [expandedTxId, setExpandedTxId] = useState<string | null>(null);
+
   const { data: apiResponse, error, isLoading } = useSWR(
-    isOpen ? `/api/reports/dynamic?tab=payment-methods-detail&methodName=${encodeURIComponent(methodName)}&start=${startDate}&end=${endDate}` : null,
+    isOpen ? `/api/reports/dynamic?tab=payment-methods-detail&methodName=${encodeURIComponent(methodName)}&start=${startDate}&end=${endDate}&page=${page}&limit=10` : null,
     fetcher
   );
 
   if (!isOpen) return null;
 
   const txData = apiResponse?.data || [];
+  const pagination = apiResponse?.pagination || { total: 0, totalPages: 1, page: 1, limit: 10 };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-[var(--color-bg)] w-full max-w-3xl rounded-xl shadow-2xl border border-[var(--color-border)] flex flex-col overflow-hidden max-h-[90vh]">
+      <div className="bg-[var(--color-bg)] w-full max-w-4xl rounded-xl shadow-2xl border border-[var(--color-border)] flex flex-col overflow-hidden max-h-[90vh]">
         <div className="flex justify-between items-center p-6 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
           <div>
             <h2 className="text-lg font-bold text-[var(--color-text)]">Rincian Transaksi: {methodName}</h2>
@@ -356,19 +360,122 @@ function PaymentMethodDetailModal({
               </thead>
               <tbody>
                 {txData.map((tx: any) => (
-                  <tr key={tx.id} className="hover:bg-[var(--color-surface)]/50 transition-colors border-b border-[var(--color-border)]">
-                    <td className="py-3 text-sm text-[var(--color-text)] whitespace-nowrap">
-                      {new Date(tx.created_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}
-                    </td>
-                    <td className="py-3 text-sm text-[var(--color-text)] font-mono">{tx.id}</td>
-                    <td className="py-3 text-sm text-[var(--color-text)]">{tx.cashier_name}</td>
-                    <td className="py-3 text-sm font-semibold text-[var(--color-text)] text-right money whitespace-nowrap">{formatCurrency(tx.total)}</td>
-                  </tr>
+                  <Fragment key={tx.id}>
+                    <tr className="hover:bg-[var(--color-surface)]/50 transition-colors border-b border-[var(--color-border)]">
+                      <td className="py-3 text-sm text-[var(--color-text)] whitespace-nowrap">
+                        {new Date(tx.created_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}
+                      </td>
+                      <td className="py-3 text-sm font-mono">
+                        <button
+                          onClick={() => setExpandedTxId(expandedTxId === tx.id ? null : tx.id)}
+                          className="text-blue-500 hover:text-blue-600 hover:underline text-left font-medium flex items-center gap-1"
+                        >
+                          {tx.id}
+                        </button>
+                      </td>
+                      <td className="py-3 text-sm text-[var(--color-text)]">{tx.cashier_name}</td>
+                      <td className="py-3 text-sm font-semibold text-[var(--color-text)] text-right money whitespace-nowrap">{formatCurrency(tx.total)}</td>
+                    </tr>
+                    
+                    {expandedTxId === tx.id && tx.transaction_items && (
+                      <tr className="bg-[var(--color-accent-soft)]">
+                        <td colSpan={4} className="p-4 border-b border-[var(--color-border)]">
+                          <div className="rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] overflow-hidden shadow-sm">
+                            <table className="w-full text-sm text-left">
+                              <thead className="bg-[var(--color-bg)]">
+                                <tr>
+                                  <th className="px-4 py-2 font-medium text-[var(--color-text-muted)]">Nama Item</th>
+                                  <th className="px-4 py-2 font-medium text-[var(--color-text-muted)] text-right">Harga</th>
+                                  <th className="px-4 py-2 font-medium text-[var(--color-text-muted)] text-right">Qty</th>
+                                  <th className="px-4 py-2 font-medium text-[var(--color-text-muted)] text-right">Diskon</th>
+                                  <th className="px-4 py-2 font-medium text-[var(--color-text-muted)] text-right">Total</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {tx.transaction_items.map((item: any, idx: number) => (
+                                  <tr key={idx} className="border-t border-[var(--color-border)]">
+                                    <td className="px-4 py-2 text-[var(--color-text)]">{item.items?.name || 'Unknown Item'}</td>
+                                    <td className="px-4 py-2 text-right text-[var(--color-text-muted)] money">{formatCurrency(item.price)}</td>
+                                    <td className="px-4 py-2 text-right font-medium">{item.qty}</td>
+                                    <td className="px-4 py-2 text-right text-red-500 money">{item.discount > 0 ? formatCurrency(item.discount) : '-'}</td>
+                                    <td className="px-4 py-2 text-right font-semibold text-[var(--color-text)] money">{formatCurrency(item.subtotal)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>
           )}
         </div>
+
+        {/* Pagination UI */}
+        {!isLoading && !error && pagination.total > 0 && (
+          <div className="flex flex-col sm:flex-row justify-between items-center p-4 border-t border-[var(--color-border)] bg-[var(--color-bg)] gap-4">
+            <div className="text-sm text-[var(--color-text-muted)]">
+              Showing {(pagination.page - 1) * pagination.limit + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} results
+            </div>
+            <div className="flex items-center gap-1">
+              <button 
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={pagination.page <= 1}
+                className="w-8 h-8 flex items-center justify-center rounded-md border border-[var(--color-border)] text-sm font-medium hover:bg-[var(--color-accent-soft)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-[var(--color-text)]"
+              >
+                &lt;
+              </button>
+              
+              {/* Pagination Numbers (Simplified) */}
+              <div className="flex items-center gap-1 mx-1">
+                {Array.from({ length: pagination.totalPages }).map((_, i) => {
+                  const pageNum = i + 1;
+                  // Show first, last, current, and adjacent pages
+                  if (
+                    pageNum === 1 || 
+                    pageNum === pagination.totalPages || 
+                    (pageNum >= pagination.page - 1 && pageNum <= pagination.page + 1)
+                  ) {
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setPage(pageNum)}
+                        className={`w-8 h-8 flex items-center justify-center rounded-md text-sm font-medium transition-colors ${
+                          pagination.page === pageNum 
+                            ? 'bg-blue-500 text-white border-transparent' 
+                            : 'border border-[var(--color-border)] hover:bg-[var(--color-accent-soft)] text-[var(--color-text)]'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  }
+                  
+                  // Show ellipsis
+                  if (
+                    pageNum === pagination.page - 2 || 
+                    pageNum === pagination.page + 2
+                  ) {
+                    return <span key={pageNum} className="px-1 text-[var(--color-text-muted)]">...</span>;
+                  }
+                  
+                  return null;
+                })}
+              </div>
+
+              <button 
+                onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                disabled={pagination.page >= pagination.totalPages}
+                className="w-8 h-8 flex items-center justify-center rounded-md border border-[var(--color-border)] text-sm font-medium hover:bg-[var(--color-accent-soft)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-[var(--color-text)]"
+              >
+                &gt;
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

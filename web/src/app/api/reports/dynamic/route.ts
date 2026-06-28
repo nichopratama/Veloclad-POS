@@ -24,7 +24,7 @@ export async function GET(request: Request) {
       // Local date parsing. Assuming the input is YYYY-MM-DD
       const startObj = new Date(`${startDate}T00:00:00.000Z`);
       const endObj = new Date(`${endDate}T23:59:59.999Z`);
-      
+
       dateFilter = {
         created_at: {
           gte: startObj,
@@ -41,16 +41,16 @@ export async function GET(request: Request) {
     switch (tab) {
       case 'summary': {
         const totalTransactions = await prisma.transactions.count({ where: dateFilter });
-        const sumResult = await prisma.transactions.aggregate({ 
+        const sumResult = await prisma.transactions.aggregate({
           where: dateFilter,
-          _sum: { 
+          _sum: {
             subtotal: true,
             discount_amount: true,
             refunds: true,
             net_sales: true,
             tax_amount: true,
             total: true
-          } 
+          }
         });
 
         // Get gross sales by category
@@ -66,7 +66,7 @@ export async function GET(request: Request) {
           GROUP BY c.id, c.name
           ORDER BY gross_sales DESC
         `;
-        
+
         const categories = categoryResult.map(c => ({
           category_name: c.category_name || 'Uncategorized',
           amount: Number(c.gross_sales || 0)
@@ -92,7 +92,7 @@ export async function GET(request: Request) {
           where: dateFilter,
           _sum: { total: true }
         });
-        
+
         const paymentsMap = new Map<string, number>();
         // Initialize all known active payment types with 0
         allPaymentTypes.forEach(pt => paymentsMap.set(pt.name, 0));
@@ -115,7 +115,7 @@ export async function GET(request: Request) {
 
         const total = Number(sumResult._sum.total || 0);
         const avg = totalTransactions > 0 ? total / totalTransactions : 0;
-        
+
         data = {
           date: labelDate,
           invoices: totalTransactions,
@@ -145,13 +145,13 @@ export async function GET(request: Request) {
           GROUP BY TO_CHAR(t.created_at AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD')
           ORDER BY trx_date DESC
         `;
-        
+
         data = rawResult.map(row => {
           const total_sales = Number(row.total_sales || 0);
           const total_cogs = Number(row.total_cogs || 0);
           const gross_profit = total_sales - total_cogs;
           const margin = total_sales > 0 ? (gross_profit / total_sales) * 100 : 0;
-          
+
           return {
             date: row.trx_date || 'Unknown Date',
             net_sales: total_sales,
@@ -164,22 +164,45 @@ export async function GET(request: Request) {
       }
 
       case 'payment-methods': {
+        const allPaymentTypes = await prisma.payment_types.findMany({
+          where: { is_active: true }
+        });
+
         const result = await prisma.transactions.groupBy({
           by: ['payment_method_name'],
           where: dateFilter,
           _count: { id: true },
           _sum: { total: true }
         });
-        
+
         const totalSalesAll = result.reduce((acc, curr) => acc + Number(curr._sum.total || 0), 0);
 
-        data = result.map(r => {
+        const paymentsMap = new Map<string, { count: number, total: number }>();
+
+        // Initialize with all active payment types
+        allPaymentTypes.forEach(pt => paymentsMap.set(pt.name, { count: 0, total: 0 }));
+
+        // Add actual transaction data
+        result.forEach(r => {
+          const method = r.payment_method_name || 'Unknown';
           const total = Number(r._sum.total || 0);
+          const count = r._count.id;
+
+          if (paymentsMap.has(method)) {
+            const existing = paymentsMap.get(method)!;
+            existing.total += total;
+            existing.count += count;
+          } else {
+            paymentsMap.set(method, { count, total });
+          }
+        });
+
+        data = Array.from(paymentsMap.entries()).map(([method, stats]) => {
           return {
-            method: r.payment_method_name || 'Unknown',
-            count: r._count.id,
-            total: total,
-            percentage: totalSalesAll > 0 ? (total / totalSalesAll) * 100 : 0
+            method,
+            count: stats.count,
+            total: stats.total,
+            percentage: totalSalesAll > 0 ? (stats.total / totalSalesAll) * 100 : 0
           };
         }).sort((a, b) => b.total - a.total);
         break;
@@ -187,30 +210,58 @@ export async function GET(request: Request) {
 
       case 'payment-methods-detail': {
         const methodName = searchParams.get('methodName');
+        const page = parseInt(searchParams.get('page') || '1', 10);
+        const limit = parseInt(searchParams.get('limit') || '10', 10);
+        
         if (!methodName) {
           return NextResponse.json({ success: false, message: 'Missing methodName' }, { status: 400 });
         }
-        
+
         const filter = {
           ...dateFilter,
           payment_method_name: methodName === 'Unknown' ? null : methodName
         };
-        
-        const result = await prisma.transactions.findMany({
-          where: filter,
-          select: {
-            id: true,
-            created_at: true,
-            cashier_name: true,
-            total: true,
-            status: true
-          },
-          orderBy: { created_at: 'desc' },
-          take: 500 // Limit to avoid massive payload
+
+        const skip = (page - 1) * limit;
+
+        const [total, result] = await Promise.all([
+          prisma.transactions.count({ where: filter }),
+          prisma.transactions.findMany({
+            where: filter,
+            select: {
+              id: true,
+              created_at: true,
+              cashier_name: true,
+              total: true,
+              status: true,
+              transaction_items: {
+                select: {
+                  price: true,
+                  qty: true,
+                  discount: true,
+                  subtotal: true,
+                  items: {
+                    select: { name: true }
+                  }
+                }
+              }
+            },
+            orderBy: { created_at: 'desc' },
+            skip,
+            take: limit
+          })
+        ]);
+
+        return NextResponse.json({
+          success: true,
+          data: result,
+          pagination: {
+            total,
+            totalPages: Math.ceil(total / limit),
+            page,
+            limit
+          }
         });
-        
-        data = result;
-        break;
       }
 
       case 'items-sales': {
@@ -229,7 +280,7 @@ export async function GET(request: Request) {
           ORDER BY total_qty DESC
           LIMIT 100
         `;
-        
+
         data = result.map(r => ({
           item_name: r.item_name || 'Deleted Item',
           category_name: r.category_name || 'No Category',
