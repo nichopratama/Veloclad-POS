@@ -1,9 +1,43 @@
+@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400&display=swap');
 
 /* ============================================================
    AntiGravity POS — Design Tokens (Vercel Glassmorphism)
    Mapped to M3 foundation variables
    ============================================================ */
+
+@theme {
+  --color-bg: #F5F5F7;
+  --color-surface: rgba(255, 255, 255, 0.7);
+  --color-surface-2: rgba(255, 255, 255, 0.9);
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-text: #052f6a;
+  --color-muted: #666666;
+  --color-accent: #000000;
+  --color-accent-hover: #333333;
+  --color-accent-soft: rgba(0, 0, 0, 0.05);
+  --color-success: #0070F3;
+  --color-danger: #E00000;
+  --color-warning: #F5A623;
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+
+  --radius-sm: 6px;
+  --radius-DEFAULT: 12px;
+  --radius-lg: 20px;
+
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.02);
+  --shadow-DEFAULT: 0 4px 12px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.06);
+}
 :root {
   /* Palet - Diambil dari Vercel Style Glassmorphism */
   --color-bg: #F5F5F7;

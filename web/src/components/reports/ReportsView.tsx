@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
-import styles from './ReportsView.module.css';
+import { DateRangePicker, DateRange } from '@/components/ui/DateRangePicker';
 
 type ReportTab = 'summary' | 'gross-profit' | 'payment-methods' | 'items-sales' | 'category-sales' | 'staff-sales';
 
@@ -16,26 +16,31 @@ const TABS: { id: ReportTab; label: string }[] = [
   { id: 'staff-sales', label: 'Staff Sales' },
 ];
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-// Helper for formatting currency
 const formatCurrency = (val: number) => {
-  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0,
+  }).format(val);
 };
 
 export function ReportsView() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   const currentTabRaw = searchParams.get('tab') as ReportTab | null;
-  const activeTab = currentTabRaw && TABS.some(t => t.id === currentTabRaw) ? currentTabRaw : 'summary';
+  const activeTab = currentTabRaw && TABS.some((t) => t.id === currentTabRaw) ? currentTabRaw : 'summary';
 
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  // Fetch data from our new API
-  const { data: apiResponse, error, isLoading } = useSWR(`/api/reports/dynamic?tab=${activeTab}&start=${startDate}&end=${endDate}`, fetcher);
-  
+  const { data: apiResponse, error, isLoading } = useSWR(
+    `/api/reports/dynamic?tab=${activeTab}&start=${startDate}&end=${endDate}`,
+    fetcher
+  );
+
   const reportData = apiResponse?.data || [];
 
   const handleTabChange = (tabId: ReportTab) => {
@@ -45,19 +50,24 @@ export function ReportsView() {
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-text)' }}>
+    <div className="flex flex-col h-full gap-4">
+      <div className="flex flex-col gap-4">
+        <h1 className="text-xl font-extrabold text-[var(--color-text)]">
           Sales Dynamic Data
         </h1>
-        
-        <div className={styles.pillsScrollContainer}>
-          <div className={styles.pillsList}>
+
+        <div className="w-full overflow-x-auto pb-2 scrollbar-thin">
+          <div className="flex gap-2 min-w-max">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
-                className={`${styles.pill} ${activeTab === tab.id ? styles.pillActive : ''}`}
+                className={`px-4 py-2 rounded-full border text-sm font-medium transition-all whitespace-nowrap
+                  ${
+                    activeTab === tab.id
+                      ? 'bg-[var(--color-text)] text-[var(--color-bg)] border-[var(--color-text)]'
+                      : 'bg-transparent border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]'
+                  }`}
               >
                 {tab.label}
               </button>
@@ -65,35 +75,24 @@ export function ReportsView() {
           </div>
         </div>
 
-        <div className={styles.filters}>
-          <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', fontWeight: 500 }}>Dari:</span>
-            <input 
-              type="date" 
-              className={styles.dateSelect}
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-          </div>
-          <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', fontWeight: 500 }}>Sampai:</span>
-            <input 
-              type="date" 
-              className={styles.dateSelect}
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-          </div>
-          <div style={{ flex: 1 }} />
+        <div className="flex gap-4 items-center pb-4 border-b border-[var(--color-border)]">
+          <DateRangePicker 
+            value={{ start: startDate, end: endDate }}
+            onChange={(range: DateRange) => {
+              setStartDate(range.start);
+              setEndDate(range.end);
+            }}
+          />
+          <div className="flex-1" />
         </div>
       </div>
 
-      <div className={styles.tableContainer}>
-        {isLoading && <div className={styles.emptyState}>Memuat data laporan...</div>}
-        {error && <div className={styles.emptyState} style={{ color: 'red' }}>Gagal memuat data</div>}
-        
+      <div className="flex-1 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-lg overflow-hidden flex flex-col">
+        {isLoading && <div className="p-8 text-center text-[var(--color-text-muted)]">Memuat data laporan...</div>}
+        {error && <div className="p-8 text-center text-red-500">Gagal memuat data</div>}
+
         {!isLoading && !error && reportData.length === 0 && (
-          <div className={styles.emptyState}>Tidak ada data untuk filter ini.</div>
+          <div className="p-8 text-center text-[var(--color-text-muted)]">Tidak ada data untuk filter ini.</div>
         )}
 
         {!isLoading && !error && reportData.length > 0 && (
@@ -113,162 +112,170 @@ export function ReportsView() {
 
 // --- Dynamic Table Components ---
 
+function TableWrapper({ children }: { children: React.ReactNode }) {
+  return <div className="w-full overflow-x-auto">{children}</div>;
+}
+
+const tableClass = "w-full border-collapse text-left";
+const thClass = "px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface)] font-semibold text-[var(--color-text-muted)] text-xs uppercase tracking-wider";
+const tdClass = "px-4 py-3 border-b border-[var(--color-border)] text-sm text-[var(--color-text)]";
+
 function SummaryTable({ data }: { data: any[] }) {
   return (
-    <div className={styles.tableWrapper}>
-      <table className={styles.table}>
+    <TableWrapper>
+      <table className={tableClass}>
         <thead>
           <tr>
-            <th>Tanggal</th>
-            <th>Total Transaksi</th>
-            <th>Pendapatan (Revenue)</th>
-            <th>Rata-rata Transaksi</th>
+            <th className={thClass}>Tanggal</th>
+            <th className={thClass}>Total Transaksi</th>
+            <th className={thClass}>Pendapatan (Revenue)</th>
+            <th className={thClass}>Rata-rata Transaksi</th>
           </tr>
         </thead>
         <tbody>
           {data.map((row, i) => (
-            <tr key={i}>
-              <td>{row.date}</td>
-              <td>{row.total_transactions}</td>
-              <td>{formatCurrency(row.revenue)}</td>
-              <td>{formatCurrency(row.avg)}</td>
+            <tr key={i} className="hover:bg-[var(--color-surface)]/50 transition-colors">
+              <td className={tdClass}>{row.date}</td>
+              <td className={tdClass}>{row.total_transactions}</td>
+              <td className={tdClass}>{formatCurrency(row.revenue)}</td>
+              <td className={tdClass}>{formatCurrency(row.avg)}</td>
             </tr>
           ))}
         </tbody>
       </table>
-    </div>
+    </TableWrapper>
   );
 }
 
 function GrossProfitTable({ data }: { data: any[] }) {
   return (
-    <div className={styles.tableWrapper}>
-      <table className={styles.table}>
+    <TableWrapper>
+      <table className={tableClass}>
         <thead>
           <tr>
-            <th>Tanggal</th>
-            <th>Penjualan Bersih</th>
-            <th>Total HPP (COGS)</th>
-            <th>Laba Kotor (Gross Profit)</th>
-            <th>Margin (%)</th>
+            <th className={thClass}>Tanggal</th>
+            <th className={thClass}>Penjualan Bersih</th>
+            <th className={thClass}>Total HPP (COGS)</th>
+            <th className={thClass}>Laba Kotor (Gross Profit)</th>
+            <th className={thClass}>Margin (%)</th>
           </tr>
         </thead>
         <tbody>
           {data.map((row, i) => (
-            <tr key={i}>
-              <td>{row.date}</td>
-              <td>{formatCurrency(row.net_sales)}</td>
-              <td>{formatCurrency(row.cogs)}</td>
-              <td style={{ color: 'var(--color-success)', fontWeight: 600 }}>{formatCurrency(row.gross_profit)}</td>
-              <td>{row.margin.toFixed(2)}%</td>
+            <tr key={i} className="hover:bg-[var(--color-surface)]/50 transition-colors">
+              <td className={tdClass}>{row.date}</td>
+              <td className={tdClass}>{formatCurrency(row.net_sales)}</td>
+              <td className={tdClass}>{formatCurrency(row.cogs)}</td>
+              <td className={`${tdClass} text-[var(--color-success)] font-semibold`}>{formatCurrency(row.gross_profit)}</td>
+              <td className={tdClass}>{row.margin.toFixed(2)}%</td>
             </tr>
           ))}
         </tbody>
       </table>
-    </div>
+    </TableWrapper>
   );
 }
 
 function PaymentMethodsTable({ data }: { data: any[] }) {
   return (
-    <div className={styles.tableWrapper}>
-      <table className={styles.table}>
+    <TableWrapper>
+      <table className={tableClass}>
         <thead>
           <tr>
-            <th>Metode Pembayaran</th>
-            <th>Jumlah Transaksi</th>
-            <th>Total Nominal</th>
-            <th>Persentase</th>
+            <th className={thClass}>Metode Pembayaran</th>
+            <th className={thClass}>Jumlah Transaksi</th>
+            <th className={thClass}>Total Nominal</th>
+            <th className={thClass}>Persentase</th>
           </tr>
         </thead>
         <tbody>
           {data.map((row, i) => (
-            <tr key={i}>
-              <td>{row.method}</td>
-              <td>{row.count}</td>
-              <td>{formatCurrency(row.total)}</td>
-              <td>{row.percentage.toFixed(1)}%</td>
+            <tr key={i} className="hover:bg-[var(--color-surface)]/50 transition-colors">
+              <td className={tdClass}>{row.method}</td>
+              <td className={tdClass}>{row.count}</td>
+              <td className={tdClass}>{formatCurrency(row.total)}</td>
+              <td className={tdClass}>{row.percentage.toFixed(1)}%</td>
             </tr>
           ))}
         </tbody>
       </table>
-    </div>
+    </TableWrapper>
   );
 }
 
 function ItemsSalesTable({ data }: { data: any[] }) {
   return (
-    <div className={styles.tableWrapper}>
-      <table className={styles.table}>
+    <TableWrapper>
+      <table className={tableClass}>
         <thead>
           <tr>
-            <th>Nama Barang</th>
-            <th>Kategori</th>
-            <th>Qty Terjual</th>
-            <th>Total Penjualan</th>
+            <th className={thClass}>Nama Barang</th>
+            <th className={thClass}>Kategori</th>
+            <th className={thClass}>Qty Terjual</th>
+            <th className={thClass}>Total Penjualan</th>
           </tr>
         </thead>
         <tbody>
           {data.map((row, i) => (
-            <tr key={i}>
-              <td>{row.item_name}</td>
-              <td>{row.category_name}</td>
-              <td>{row.total_qty}</td>
-              <td>{formatCurrency(row.total_sales)}</td>
+            <tr key={i} className="hover:bg-[var(--color-surface)]/50 transition-colors">
+              <td className={tdClass}>{row.item_name}</td>
+              <td className={tdClass}>{row.category_name}</td>
+              <td className={tdClass}>{row.total_qty}</td>
+              <td className={tdClass}>{formatCurrency(row.total_sales)}</td>
             </tr>
           ))}
         </tbody>
       </table>
-    </div>
+    </TableWrapper>
   );
 }
 
 function CategorySalesTable({ data }: { data: any[] }) {
   return (
-    <div className={styles.tableWrapper}>
-      <table className={styles.table}>
+    <TableWrapper>
+      <table className={tableClass}>
         <thead>
           <tr>
-            <th>Nama Kategori</th>
-            <th>Qty Barang Terjual</th>
-            <th>Total Penjualan</th>
+            <th className={thClass}>Nama Kategori</th>
+            <th className={thClass}>Qty Barang Terjual</th>
+            <th className={thClass}>Total Penjualan</th>
           </tr>
         </thead>
         <tbody>
           {data.map((row, i) => (
-            <tr key={i}>
-              <td>{row.category_name}</td>
-              <td>{row.total_qty}</td>
-              <td>{formatCurrency(row.total_sales)}</td>
+            <tr key={i} className="hover:bg-[var(--color-surface)]/50 transition-colors">
+              <td className={tdClass}>{row.category_name}</td>
+              <td className={tdClass}>{row.total_qty}</td>
+              <td className={tdClass}>{formatCurrency(row.total_sales)}</td>
             </tr>
           ))}
         </tbody>
       </table>
-    </div>
+    </TableWrapper>
   );
 }
 
 function StaffSalesTable({ data }: { data: any[] }) {
   return (
-    <div className={styles.tableWrapper}>
-      <table className={styles.table}>
+    <TableWrapper>
+      <table className={tableClass}>
         <thead>
           <tr>
-            <th>Nama Staf (Kasir)</th>
-            <th>Jumlah Transaksi</th>
-            <th>Total Penjualan</th>
+            <th className={thClass}>Nama Staf (Kasir)</th>
+            <th className={thClass}>Jumlah Transaksi</th>
+            <th className={thClass}>Total Penjualan</th>
           </tr>
         </thead>
         <tbody>
           {data.map((row, i) => (
-            <tr key={i}>
-              <td>{row.staff_name}</td>
-              <td>{row.count}</td>
-              <td>{formatCurrency(row.total)}</td>
+            <tr key={i} className="hover:bg-[var(--color-surface)]/50 transition-colors">
+              <td className={tdClass}>{row.staff_name}</td>
+              <td className={tdClass}>{row.count}</td>
+              <td className={tdClass}>{formatCurrency(row.total)}</td>
             </tr>
           ))}
         </tbody>
       </table>
-    </div>
+    </TableWrapper>
   );
 }
