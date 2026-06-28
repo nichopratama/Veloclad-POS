@@ -20,10 +20,17 @@ import { Activity, CreditCard, TrendingUp, AlertTriangle, X } from "lucide-react
 
 // ── Utils ──────────────────────────────────────────────────────────────────────
 
-const getTodayISO = () => {
-  const d = new Date();
+const getThisMonthISO = () => {
+  const start = new Date();
+  start.setDate(1);
+  const end = new Date();
+  end.setMonth(end.getMonth() + 1);
+  end.setDate(0);
   const pad = (n: number) => n.toString().padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return {
+    start: `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`,
+    end: `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}`,
+  };
 };
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -389,7 +396,7 @@ function TopItemsCard({ startDate, endDate }: { startDate: string, endDate: stri
 
 export default function DashboardPage() {
   const { t } = useLocale();
-  const [dateRange, setDateRange] = useState({ start: getTodayISO(), end: getTodayISO() });
+  const [dateRange, setDateRange] = useState(getThisMonthISO());
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)", paddingBottom: "var(--space-8)" }}>
