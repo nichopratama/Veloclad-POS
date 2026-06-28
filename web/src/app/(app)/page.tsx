@@ -135,7 +135,7 @@ function SummaryCards({ startDate, endDate }: { startDate: string, endDate: stri
       label: t.dashboard.lowStockCard,
       value: isLowStockLoading ? <Skeleton width="60px" height="2.5rem" /> : (
         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-          <span className="money">{lowStockData?.total ?? 0} Item</span>
+          <span className="money">{lowStockData?.total ?? 0}</span>
           <button onClick={() => setIsModalOpen(true)} style={{ fontSize: "12px", textDecoration: "underline", color: "#03396c", cursor: "pointer", background: "none", border: "none", padding: 0, textAlign: "left" }}>{t.dashboard.viewAll}</button>
         </div>
       ),
@@ -197,7 +197,7 @@ function SummaryCards({ startDate, endDate }: { startDate: string, endDate: stri
                 style={{
                   margin: 0,
                   fontSize: "30px",
-                  fontWeight: 700,
+                  fontWeight: 400,
                   lineHeight: 1.1,
                   color: card.textColor,
                 }}
