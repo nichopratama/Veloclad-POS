@@ -6,6 +6,7 @@ import { cartReducer } from '@/components/pos/cartReducer';
 import { ProductPanel } from '@/components/pos/ProductPanel';
 import { CartPanel } from '@/components/pos/CartPanel';
 import { ReceiptModal } from '@/components/pos/ReceiptModal';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 import type { PosItem, TransactionReceipt, TransactionResponse } from '@/components/pos/types';
 
 type SuccessState = {
@@ -14,6 +15,7 @@ type SuccessState = {
 };
 
 export default function PosPage() {
+  const { t } = useLocale();
   const [lines, dispatch] = useReducer(cartReducer, []);
   const [customerId, setCustomerId] = useState<number | null>(null);
   const [paymentTypeId, setPaymentTypeId] = useState<number | null>(null);
@@ -64,20 +66,19 @@ export default function PosPage() {
     try {
       const res = await apiMutate<TransactionResponse>('/api/sales/transactions', 'POST', body);
       if (!res.receipt) {
-        // Replay idempoten tanpa receipt — anggap sudah diproses sebelumnya.
-        setErrorMessage('Transaksi sudah diproses sebelumnya.');
+        setErrorMessage(t.pos.alreadyProcessed);
         return;
       }
       setSuccess({ transactionId: res.transaction_id, receipt: res.receipt });
     } catch (err: unknown) {
       if (err instanceof FetchError) {
         if (err.status === 401 || err.status === 403) {
-          setErrorMessage('Sesi tidak valid atau akses ditolak. Silakan masuk ulang.');
+          setErrorMessage(t.common.sessionInvalid);
         } else {
-          setErrorMessage(err.message || 'Gagal memproses transaksi.');
+          setErrorMessage(err.message || t.pos.failedProcess);
         }
       } else {
-        setErrorMessage('Terjadi kesalahan tak terduga.');
+        setErrorMessage(t.common.unknownError);
       }
     } finally {
       setIsSubmitting(false);
@@ -97,10 +98,10 @@ export default function PosPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
       <div>
         <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 800, marginBottom: 'var(--space-1)' }}>
-          Kasir
+          {t.pos.pageTitle}
         </h1>
         <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
-          Pilih produk, atur keranjang, lalu proses pembayaran.
+          {t.pos.pageSubtitle}
         </p>
       </div>
 

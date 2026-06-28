@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type Dispatch } from 'react';
+import { useState, useEffect, type Dispatch } from 'react';
 import useSWR from 'swr';
 import { ShoppingCart, Trash2, Tag } from 'lucide-react';
 import { lineSubtotal, type CartAction } from './cartReducer';
@@ -50,6 +50,8 @@ export function CartPanel(props: Props) {
 
   const { t } = useLocale();
   const [discountVisibleIds, setDiscountVisibleIds] = useState<Record<number, boolean>>({});
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
   const { data: customersData } = useSWR<ListResponse<Customer>>('/api/library/customers');
   const { data: paymentData, error: paymentError } =
@@ -57,6 +59,15 @@ export function CartPanel(props: Props) {
 
   const customers = customersData?.data ?? [];
   const activePayments = (paymentData?.data ?? []).filter((p) => p.is_active);
+
+  useEffect(() => {
+    if (customerId) {
+      const c = customers.find(c => c.id === customerId);
+      if (c) setCustomerSearch(c.name);
+    } else {
+      setCustomerSearch('');
+    }
+  }, [customerId, customers]);
 
   const toggleDiscount = (id: number) => {
     setDiscountVisibleIds((prev) => ({
@@ -172,19 +183,59 @@ export function CartPanel(props: Props) {
 
         <div className={styles.paymentForm}>
           <span className={styles.paymentLabel}>{t.pos.customerOptional}</span>
-          <select
-            className="input"
-            value={customerId ?? ''}
-            onChange={(e) => onCustomerChange(e.target.value ? Number(e.target.value) : null)}
-            style={{ marginBottom: 'var(--space-2)' }}
-          >
-            <option value="">{t.pos.noCustomer}</option>
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name} {c.phone ? `— ${c.phone}` : ''}
-              </option>
-            ))}
-          </select>
+          <div style={{ position: 'relative', marginBottom: 'var(--space-2)' }}>
+            <input
+              className="input"
+              type="text"
+              placeholder={t.pos.noCustomer}
+              value={customerSearch}
+              onChange={(e) => {
+                setCustomerSearch(e.target.value);
+                setShowCustomerDropdown(true);
+                if (e.target.value === '') {
+                  onCustomerChange(null);
+                }
+              }}
+              onFocus={() => setShowCustomerDropdown(true)}
+              onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
+            />
+            {showCustomerDropdown && (
+              <ul style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                background: 'var(--color-surface-2)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-sm)',
+                maxHeight: '150px',
+                overflowY: 'auto',
+                zIndex: 10,
+                listStyle: 'none',
+                padding: 0,
+                margin: 0,
+                boxShadow: 'var(--shadow-sm)'
+              }}>
+                {customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.phone?.includes(customerSearch)).map(c => (
+                  <li
+                    key={c.id}
+                    style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--color-border)' }}
+                    onClick={() => {
+                      onCustomerChange(c.id);
+                      setCustomerSearch(c.name);
+                      setShowCustomerDropdown(false);
+                    }}
+                  >
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }}>{c.name}</div>
+                    {c.phone && <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{c.phone}</div>}
+                  </li>
+                ))}
+                {customerSearch && customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.phone?.includes(customerSearch)).length === 0 && (
+                  <li style={{ padding: '8px 12px', fontSize: '13px', color: 'var(--color-text-muted)' }}>Tidak ditemukan</li>
+                )}
+              </ul>
+            )}
+          </div>
 
           <span className={styles.paymentLabel}>{t.pos.paymentMethod}</span>
           <div className={styles.paymentGrid}>
@@ -209,11 +260,13 @@ export function CartPanel(props: Props) {
           <span className={styles.paymentLabel}>{t.pos.paymentAmount}</span>
           <input
             className="input"
-            type="number"
+            type="text"
             inputMode="numeric"
-            min={0}
-            value={paymentAmount}
-            onChange={(e) => onPaymentAmountChange(e.target.value)}
+            value={paymentAmount ? new Intl.NumberFormat('id-ID').format(Number(paymentAmount)) : ''}
+            onChange={(e) => {
+              const rawValue = e.target.value.replace(/\\D/g, '');
+              onPaymentAmountChange(rawValue);
+            }}
             placeholder="0"
           />
         </div>

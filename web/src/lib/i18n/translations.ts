@@ -76,6 +76,10 @@ export const translations = {
       cannotDeleteSelf: 'Cannot delete your own account',
     },
     pos: {
+      pageTitle: 'Cashier',
+      pageSubtitle: 'Select products, arrange the cart, then process payment.',
+      alreadyProcessed: 'Transaction has already been processed.',
+      failedProcess: 'Failed to process transaction.',
       cart: 'Cart',
       cartLabel: 'Cart and payment',
       emptyCart: 'Cart is empty. Select products from the left panel.',
@@ -437,6 +441,10 @@ export const translations = {
       cannotDeleteSelf: 'Tidak bisa menghapus akun sendiri',
     },
     pos: {
+      pageTitle: 'Kasir',
+      pageSubtitle: 'Pilih produk, atur keranjang, lalu proses pembayaran.',
+      alreadyProcessed: 'Transaksi sudah diproses sebelumnya.',
+      failedProcess: 'Gagal memproses transaksi.',
       cart: 'Keranjang',
       cartLabel: 'Keranjang dan pembayaran',
       emptyCart: 'Keranjang masih kosong. Pilih produk dari panel kiri.',
