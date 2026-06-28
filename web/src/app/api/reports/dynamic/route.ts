@@ -83,15 +83,34 @@ export async function GET(request: Request) {
         const total_cogs = Number(cogsResult[0]?.total_cogs || 0);
 
         // Get payment methods
+        const allPaymentTypes = await prisma.payment_types.findMany({
+          where: { is_active: true }
+        });
+
         const paymentsResult = await prisma.transactions.groupBy({
           by: ['payment_method_name'],
           where: dateFilter,
           _sum: { total: true }
         });
         
-        const payments = paymentsResult.map(p => ({
-          method: p.payment_method_name || 'Unknown',
-          amount: Number(p._sum.total || 0)
+        const paymentsMap = new Map<string, number>();
+        // Initialize all known active payment types with 0
+        allPaymentTypes.forEach(pt => paymentsMap.set(pt.name, 0));
+
+        // Add actual transaction amounts
+        paymentsResult.forEach(p => {
+          const method = p.payment_method_name || 'Unknown';
+          const amount = Number(p._sum.total || 0);
+          if (paymentsMap.has(method)) {
+            paymentsMap.set(method, paymentsMap.get(method)! + amount);
+          } else {
+            paymentsMap.set(method, amount);
+          }
+        });
+
+        const payments = Array.from(paymentsMap.entries()).map(([method, amount]) => ({
+          method,
+          amount
         })).sort((a, b) => b.amount - a.amount);
 
         const total = Number(sumResult._sum.total || 0);

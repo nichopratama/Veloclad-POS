@@ -82,6 +82,7 @@ const NAV: NavGroup[] = [
       { label: 'Users Management', href: '/settings/users' },
       { label: 'Taxes', href: '/library?tab=taxes' },
       { label: 'Discounts', href: '/library?tab=discounts' },
+      { label: 'Payment Methods', href: '/library?tab=payment-types' },
       { label: 'Receipts', href: '/settings?tab=receipts' },
     ],
   },

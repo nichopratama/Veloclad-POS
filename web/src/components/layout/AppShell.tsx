@@ -35,19 +35,23 @@ export function AppShell({
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
-      <Sidebar
-        role={role}
-        tenantName={tenantName}
-        isOpen={isSidebarOpen}
-        setIsOpen={setIsSidebarOpen}
-      />
-      <div className={`${styles.mainContent} ${!isSidebarOpen ? styles.mainContentCollapsed : ''}`}>
-        <Header 
-          userName={userName} 
-          role={role} 
-          toggleSidebar={toggleSidebar} 
+      <div className="print:hidden">
+        <Sidebar
+          role={role}
+          tenantName={tenantName}
+          isOpen={isSidebarOpen}
+          setIsOpen={setIsSidebarOpen}
         />
-        <main style={{ flex: 1, padding: 'var(--space-6)' }}>
+      </div>
+      <div className={`${styles.mainContent} ${!isSidebarOpen ? styles.mainContentCollapsed : ''}`}>
+        <div className="print:hidden">
+          <Header 
+            userName={userName} 
+            role={role} 
+            toggleSidebar={toggleSidebar} 
+          />
+        </div>
+        <main style={{ flex: 1, padding: 'var(--space-6)' }} className="print:p-0 print:m-0">
           {children}
         </main>
       </div>
