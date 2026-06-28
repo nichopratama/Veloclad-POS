@@ -5,25 +5,26 @@ import { requireAuth } from '@/lib/rbac';
 import { handleApiError } from '@/lib/api';
 
 const getQuerySchema = z.object({
-  period: z.enum(['today', 'month']).optional(),
+  start: z.string().optional(),
+  end: z.string().optional(),
 });
 
 export async function GET(req: NextRequest) {
   try {
     await requireAuth();
-    const { period } = getQuerySchema.parse(Object.fromEntries(req.nextUrl.searchParams));
+    const { start, end } = getQuerySchema.parse(Object.fromEntries(req.nextUrl.searchParams));
 
-    // Rentang tanggal sesuai period (default: semua waktu).
+    // Rentang tanggal sesuai period (default: hari ini).
     const now = new Date();
     let createdAt: { gte: Date; lte: Date } | undefined;
-    if (period === 'today') {
-      const start = new Date(now); start.setHours(0, 0, 0, 0);
-      const end = new Date(now); end.setHours(23, 59, 59, 999);
-      createdAt = { gte: start, lte: end };
-    } else if (period === 'month') {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-      createdAt = { gte: start, lte: end };
+    if (start && end) {
+      const s = new Date(start); s.setHours(0, 0, 0, 0);
+      const e = new Date(end); e.setHours(23, 59, 59, 999);
+      createdAt = { gte: s, lte: e };
+    } else {
+      const s = new Date(now); s.setHours(0, 0, 0, 0);
+      const e = new Date(now); e.setHours(23, 59, 59, 999);
+      createdAt = { gte: s, lte: e };
     }
 
     // groupBy aman & parameterized (ganti $queryRawUnsafe) — hormati tenant schema.
@@ -35,7 +36,7 @@ export async function GET(req: NextRequest) {
       },
       _sum: { qty: true, subtotal: true },
       orderBy: { _sum: { qty: 'desc' } },
-      take: 5,
+      take: 8,
     });
 
     const ids = top.map((t) => t.item_id).filter((id): id is number => id !== null);

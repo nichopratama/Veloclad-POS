@@ -8,46 +8,51 @@ export async function GET(req: NextRequest) {
   try {
     await requireAuth();
 
-    const today = new Date();
-    // Normalize to end of today
-    const endOfToday = new Date(today.setHours(23, 59, 59, 999));
-    
-    // 7 days ago, start of day
-    const startOf7DaysAgo = new Date();
-    startOf7DaysAgo.setDate(startOf7DaysAgo.getDate() - 6);
-    startOf7DaysAgo.setHours(0, 0, 0, 0);
+    const { searchParams } = req.nextUrl;
+    const startParam = searchParams.get('start');
+    const endParam = searchParams.get('end');
 
-    const transactions = await prisma.transactions.findMany({
-      where: {
-        status: 'completed',
-        created_at: {
-          gte: startOf7DaysAgo,
-          lte: endOfToday,
-        },
-      },
-      select: {
-        created_at: true,
-        total: true,
-      },
-    });
+    let startDate, endDate;
+    if (startParam && endParam) {
+      startDate = new Date(startParam);
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(endParam);
+      endDate.setHours(23, 59, 59, 999);
+    } else {
+      const today = new Date();
+      endDate = new Date(today.setHours(23, 59, 59, 999));
+      startDate = new Date();
+      startDate.setDate(startDate.getDate() - 6);
+      startDate.setHours(0, 0, 0, 0);
+    }
 
-    // Initialize map with 0 for the last 7 days
+    const result = await prisma.$queryRaw<{ date: string; sales: number }[]>`
+      SELECT 
+        TO_CHAR(created_at AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD') as date,
+        SUM(total) as sales
+      FROM transactions
+      WHERE status = 'completed'
+        AND created_at >= ${startDate}
+        AND created_at <= ${endDate}
+      GROUP BY TO_CHAR(created_at AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD')
+    `;
+
+    // Initialize map with 0 for the selected date range
     const salesMap = new Map<string, number>();
     const orderedKeys: string[] = [];
     
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const dateKey = d.toISOString().split('T')[0];
+    let current = new Date(startDate);
+    while (current <= endDate) {
+      const dateKey = current.toISOString().split('T')[0];
       salesMap.set(dateKey, 0);
       orderedKeys.push(dateKey);
+      current.setDate(current.getDate() + 1);
     }
 
-    // Aggregate
-    for (const tx of transactions) {
-      const dateKey = tx.created_at.toISOString().split('T')[0];
-      if (salesMap.has(dateKey)) {
-        salesMap.set(dateKey, salesMap.get(dateKey)! + Number(tx.total));
+    // Merge from SQL result
+    for (const row of result) {
+      if (salesMap.has(row.date)) {
+        salesMap.set(row.date, Number(row.sales));
       }
     }
 

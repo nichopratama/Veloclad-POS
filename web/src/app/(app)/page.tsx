@@ -10,19 +10,42 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
+  LineChart,
+  Line,
 } from "recharts";
 import { useLocale } from "@/lib/i18n/LocaleContext";
+import { fetcher } from "@/lib/fetcher";
+import { DateRangePicker } from "@/components/ui/DateRangePicker";
+import { Activity, CreditCard, TrendingUp, AlertTriangle, X } from "lucide-react";
+
+// ── Utils ──────────────────────────────────────────────────────────────────────
+
+const getTodayISO = () => {
+  const d = new Date();
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type SummaryResponse = {
   totalSales: number;
   transactionCount: number;
+  netProfit: number;
   totalItems: number;
+};
+
+type LowStockResponse = {
+  data: { id: number; name: string; code: string; stock: number; min_stock: number }[];
+  total: number;
 };
 
 type SalesChartResponse = {
   data: { date: string; sales: number }[];
+};
+
+type HeatmapResponse = {
+  data: { hour: string; count: number }[];
 };
 
 type TopItem = {
@@ -36,8 +59,6 @@ type TopItem = {
 type TopItemsResponse = {
   data: TopItem[];
 };
-
-type Period = "today" | "month";
 
 // ── Formatters ─────────────────────────────────────────────────────────────────
 
@@ -70,132 +91,157 @@ function Skeleton({ width = "100%", height = "1.2em" }: { width?: string; height
   );
 }
 
-// ── Summary Cards ──────────────────────────────────────────────────────────────
+// ── Components ─────────────────────────────────────────────────────────────────
 
-function SummaryCards() {
-  const { data, error, isLoading } = useSWR<SummaryResponse>("/api/dashboard/summary");
-  const { t } = useLocale();
+function SummaryCards({ startDate, endDate }: { startDate: string, endDate: string }) {
+  const { data, error, isLoading } = useSWR<SummaryResponse>(`/api/dashboard/summary?start=${startDate}&end=${endDate}`, fetcher, { refreshInterval: 60000 });
+  const { data: lowStockData, isLoading: isLowStockLoading } = useSWR<LowStockResponse>('/api/dashboard/low-stock', fetcher, { refreshInterval: 60000 });
 
-  const cards: {
-    label: string;
-    value: React.ReactNode;
-    accent?: boolean;
-  }[] = [
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const cards = [
     {
-      label: t.dashboard.todaySales,
-      value: isLoading ? (
-        <Skeleton width="140px" height="2.5rem" />
-      ) : error ? (
-        <span style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)" }}>
-          {t.common.loadError}
-        </span>
-      ) : (
-        <span className="money">{formatIDR(data?.totalSales ?? 0)}</span>
-      ),
+      label: "PENJUALAN",
+      value: isLoading ? <Skeleton width="140px" height="2.5rem" /> : <span className="money">{formatIDR(data?.totalSales ?? 0)}</span>,
+      icon: <Activity size={24} color="#03396c" style={{ opacity: 0.6 }} />,
       accent: true,
+      textColor: "#03396c",
     },
     {
-      label: t.dashboard.todayTransactions,
-      value: isLoading ? (
-        <Skeleton width="60px" height="2.5rem" />
-      ) : error ? (
-        <span style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)" }}>
-          {t.common.loadError}
-        </span>
-      ) : (
-        <span className="money">{data?.transactionCount ?? 0}</span>
-      ),
+      label: "TRANSAKSI",
+      value: isLoading ? <Skeleton width="60px" height="2.5rem" /> : <span className="money">{data?.transactionCount ?? 0}</span>,
+      icon: <CreditCard size={24} color="#03396c" style={{ opacity: 0.6 }} />,
+      textColor: "#03396c",
     },
     {
-      label: t.dashboard.activeProducts,
-      value: isLoading ? (
-        <Skeleton width="60px" height="2.5rem" />
-      ) : error ? (
-        <span style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)" }}>
-          {t.common.loadError}
+      label: "GROSS PROFIT",
+      value: isLoading ? <Skeleton width="140px" height="2.5rem" /> : (
+        <span className="money">
+          {formatIDR(data?.netProfit ?? 0)}
         </span>
-      ) : (
-        <span className="money">{data?.totalItems ?? 0}</span>
       ),
+      icon: <TrendingUp size={24} color="#03396c" style={{ opacity: 0.6 }} />,
+      textColor: "#03396c",
+    },
+    {
+      label: "STOK TIPIS",
+      value: isLowStockLoading ? <Skeleton width="60px" height="2.5rem" /> : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <span className="money">{lowStockData?.total ?? 0} Item</span>
+          <button onClick={() => setIsModalOpen(true)} style={{ fontSize: "12px", textDecoration: "underline", color: "#03396c", cursor: "pointer", background: "none", border: "none", padding: 0, textAlign: "left" }}>Lihat Semua</button>
+        </div>
+      ),
+      icon: <AlertTriangle size={24} color="#E00000" style={{ opacity: 0.8 }} />,
+      textColor: "#03396c",
     },
   ];
 
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-        gap: "var(--space-4)",
-      }}
-    >
-      {cards.map((card) => (
-        <div
-          key={card.label}
-          className="card"
-          style={{
-            position: "relative",
-            overflow: "hidden",
-            padding: "var(--space-6)",
-          }}
-        >
-          {card.accent && (
-            <span
-              aria-hidden="true"
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "4px",
-                height: "100%",
-                background: "var(--color-accent)",
-                borderRadius: "var(--radius) 0 0 var(--radius)",
-              }}
-            />
-          )}
-          <p
+    <>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: "var(--space-4)",
+        }}
+      >
+        {cards.map((card) => (
+          <div
+            key={card.label}
+            className="card"
             style={{
-              margin: "0 0 var(--space-2)",
-              fontSize: "var(--text-xs)",
-              fontWeight: 600,
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
-              color: "var(--color-text-muted)",
+              position: "relative",
+              overflow: "hidden",
+              padding: "var(--space-6)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
             }}
           >
-            {card.label}
-          </p>
-          <p
-            style={{
-              margin: 0,
-              fontSize: "var(--text-2xl)",
-              fontWeight: 700,
-              lineHeight: 1.1,
-              color: card.accent ? "var(--color-accent)" : "var(--color-text)",
-            }}
-          >
-            {card.value}
-          </p>
+            {card.accent && (
+              <span
+                aria-hidden="true"
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "4px",
+                  height: "100%",
+                  background: "#03396c",
+                  borderRadius: "var(--radius) 0 0 var(--radius)",
+                }}
+              />
+            )}
+            <div>
+              <p
+                style={{
+                  margin: "0 0 var(--space-2)",
+                  fontSize: "var(--text-xs)",
+                  fontWeight: 700,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  color: "#03396c",
+                }}
+              >
+                {card.label}
+              </p>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "30px",
+                  fontWeight: 700,
+                  lineHeight: 1.1,
+                  color: card.textColor,
+                }}
+              >
+                {card.value}
+              </p>
+            </div>
+            <div>
+              {card.icon}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {isModalOpen && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.5)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center"
+        }}>
+          <div className="card" style={{ width: "90%", maxWidth: "500px", maxHeight: "80vh", overflowY: "auto", position: "relative", background: "white", padding: "24px", borderRadius: "12px" }}>
+            <button onClick={() => setIsModalOpen(false)} style={{ position: "absolute", top: "16px", right: "16px", background: "none", border: "none", cursor: "pointer", color: "#666" }}>
+              <X size={20} />
+            </button>
+            <h2 style={{ fontSize: "18px", fontWeight: "bold", marginBottom: "16px", color: "var(--color-danger)" }}>
+              Peringatan Stok Tipis
+            </h2>
+            {lowStockData?.data.length === 0 ? (
+              <p style={{ color: "var(--color-text-muted)" }}>Tidak ada barang dengan stok tipis.</p>
+            ) : (
+              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "8px" }}>
+                {lowStockData?.data.map((item) => (
+                  <li key={item.id} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--color-border)", paddingBottom: "8px" }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: "14px", color: "#03396c" }}>{item.name}</div>
+                      <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>{item.code}</div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontWeight: "bold", color: "var(--color-danger)", fontSize: "14px" }}>Sisa: {item.stock}</div>
+                      <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>Min: {item.min_stock}</div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
-      ))}
-    </div>
+      )}
+    </>
   );
 }
 
-// ── Sales Chart ────────────────────────────────────────────────────────────────
-
-type TooltipPayloadEntry = {
-  name?: string;
-  value?: number;
-  color?: string;
-};
-
-type CustomTooltipProps = {
-  active?: boolean;
-  payload?: TooltipPayloadEntry[];
-  label?: string;
-};
-
-function ChartTooltip({ active, payload, label }: CustomTooltipProps) {
+function ChartTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   const value = payload[0]?.value ?? 0;
   return (
@@ -211,16 +257,15 @@ function ChartTooltip({ active, payload, label }: CustomTooltipProps) {
       <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-xs)", color: "var(--color-text-muted)" }}>
         {label}
       </p>
-      <p style={{ margin: 0, fontWeight: 700, fontSize: "var(--text-sm)" }}>
-        <span className="money">{formatIDR(value)}</span>
+      <p style={{ margin: 0, fontWeight: 700, fontSize: "var(--text-sm)", color: "#03396c" }}>
+        <span className="money">{payload[0]?.name === "Transaksi" ? value : formatIDR(value)}</span>
       </p>
     </div>
   );
 }
 
-function SalesChartCard() {
-  const { data, error, isLoading } = useSWR<SalesChartResponse>("/api/dashboard/sales-chart");
-  const { t } = useLocale();
+function SalesChartCard({ startDate, endDate }: { startDate: string, endDate: string }) {
+  const { data, error, isLoading } = useSWR<SalesChartResponse>(`/api/dashboard/sales-chart?start=${startDate}&end=${endDate}`, fetcher, { refreshInterval: 60000 });
 
   return (
     <div className="card" style={{ flex: "1 1 0", minWidth: 0 }}>
@@ -228,261 +273,110 @@ function SalesChartCard() {
         style={{
           fontSize: "var(--text-base)",
           fontWeight: 700,
-          color: "var(--color-text)",
+          color: "#03396c",
           marginBottom: "var(--space-4)",
         }}
       >
-        {t.dashboard.salesLast7Days}
+        Grafik Penjualan
       </h2>
-
-      {isLoading && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-          <Skeleton width="100%" height="180px" />
-          <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-text-muted)", textAlign: "center" }}>
-            {t.dashboard.loading}
-          </p>
-        </div>
-      )}
-
-      {error && !isLoading && (
-        <p style={{ margin: 0, color: "var(--color-danger)", fontSize: "var(--text-sm)" }}>
-          {t.common.loadError}
-        </p>
-      )}
-
+      {isLoading && <Skeleton width="100%" height="180px" />}
       {!isLoading && !error && (
-        <>
-          {(!data?.data || data.data.length === 0) ? (
-            <p style={{ margin: 0, color: "var(--color-text-muted)", fontSize: "var(--text-sm)" }}>
-              {t.dashboard.noSalesData}
-            </p>
-          ) : (
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart
-                data={data.data}
-                margin={{ top: 4, right: 4, left: 0, bottom: 0 }}
-                barCategoryGap="30%"
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="oklch(91% 0.005 255)"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 11, fill: "oklch(52% 0.02 262)", fontFamily: "var(--font-sans)" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fontSize: 11, fill: "oklch(52% 0.02 262)", fontFamily: "var(--font-sans)" }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v: number) => {
-                    if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(0)}jt`;
-                    if (v >= 1_000) return `${(v / 1_000).toFixed(0)}rb`;
-                    return String(v);
-                  }}
-                  width={48}
-                />
-                <Tooltip content={<ChartTooltip />} cursor={{ fill: "oklch(95% 0.03 264)" }} />
-                <Bar
-                  dataKey="sales"
-                  fill="oklch(56% 0.17 264)"
-                  radius={[4, 4, 0, 0]}
-                  name={t.dashboard.todaySales}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </>
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={data?.data || []} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} barCategoryGap="30%">
+            <CartesianGrid strokeDasharray="3 3" stroke="oklch(91% 0.005 255)" vertical={false} />
+            <XAxis dataKey="date" tick={{ fontSize: 11, fill: "oklch(52% 0.02 262)" }} axisLine={false} tickLine={false} tickFormatter={(v) => v?.length === 10 ? `${v.substring(8, 10)}-${v.substring(5, 7)}` : v} />
+            <YAxis tick={{ fontSize: 11, fill: "oklch(52% 0.02 262)" }} axisLine={false} tickLine={false} width={48} tickFormatter={(v) => v >= 1000000 ? `${(v/1000000).toFixed(0)}jt` : v >= 1000 ? `${(v/1000).toFixed(0)}rb` : String(v)} />
+            <Tooltip content={<ChartTooltip />} cursor={{ fill: "oklch(95% 0.03 264)" }} />
+            <Bar dataKey="sales" fill="#03396c" radius={[4, 4, 0, 0]} name="Penjualan" />
+          </BarChart>
+        </ResponsiveContainer>
       )}
     </div>
   );
 }
 
-// ── Top Items ──────────────────────────────────────────────────────────────────
-
-function TopItemsCard() {
-  const [period, setPeriod] = useState<Period>("today");
-  const { t } = useLocale();
-
-  const { data, error, isLoading } = useSWR<TopItemsResponse>(
-    `/api/dashboard/top-items?period=${period}`
-  );
+function HourlyHeatmapCard({ startDate, endDate }: { startDate: string, endDate: string }) {
+  const { data, error, isLoading } = useSWR<HeatmapResponse>(`/api/dashboard/hourly-heatmap?start=${startDate}&end=${endDate}`, fetcher, { refreshInterval: 60000 });
 
   return (
-    <div className="card" style={{ flex: "0 0 320px", minWidth: 0 }}>
-      <div
+    <div className="card" style={{ flex: "1 1 0", minWidth: 0 }}>
+      <h2
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
+          fontSize: "var(--text-base)",
+          fontWeight: 700,
+          color: "#03396c",
           marginBottom: "var(--space-4)",
-          flexWrap: "wrap",
-          gap: "var(--space-2)",
         }}
       >
-        <h2
-          style={{
-            fontSize: "var(--text-base)",
-            fontWeight: 700,
-            color: "var(--color-text)",
-            margin: 0,
-          }}
-        >
-          {t.dashboard.topProducts}
-        </h2>
-
-        <div
-          role="group"
-          aria-label={t.dashboard.selectPeriod}
-          style={{
-            display: "inline-flex",
-            border: "1px solid var(--color-border)",
-            borderRadius: "var(--radius-sm)",
-            overflow: "hidden",
-          }}
-        >
-          {(["today", "month"] as Period[]).map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => setPeriod(p)}
-              aria-pressed={period === p}
-              style={{
-                minHeight: "44px",
-                minWidth: "72px",
-                padding: "0 var(--space-3)",
-                border: "none",
-                borderRight: p === "today" ? "1px solid var(--color-border)" : "none",
-                background: period === p ? "var(--color-accent)" : "var(--color-surface)",
-                color: period === p ? "white" : "var(--color-text-muted)",
-                fontFamily: "var(--font-sans)",
-                fontSize: "var(--text-sm)",
-                fontWeight: 600,
-                cursor: "pointer",
-                transition: "background 150ms ease, color 150ms ease",
-              }}
-            >
-              {p === "today" ? t.dashboard.today : t.dashboard.thisMonth}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {isLoading && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-          {[1, 2, 3, 4, 5].map((n) => (
-            <div key={n} style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-              <Skeleton width="24px" height="24px" />
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-                <Skeleton width="60%" height="0.9em" />
-                <Skeleton width="40%" height="0.8em" />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {error && !isLoading && (
-        <p style={{ margin: 0, color: "var(--color-danger)", fontSize: "var(--text-sm)" }}>
-          {t.common.loadError}
-        </p>
-      )}
-
+        Heatmap Waktu Sibuk
+      </h2>
+      {isLoading && <Skeleton width="100%" height="180px" />}
       {!isLoading && !error && (
-        <>
-          {(!data?.data || data.data.length === 0) ? (
-            <p style={{ margin: 0, color: "var(--color-text-muted)", fontSize: "var(--text-sm)" }}>
-              {t.dashboard.noProductsSold}
-            </p>
-          ) : (
-            <ol
+        <ResponsiveContainer width="100%" height={200}>
+          <LineChart data={data?.data || []} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="oklch(91% 0.005 255)" vertical={false} />
+            <XAxis dataKey="hour" tick={{ fontSize: 11, fill: "oklch(52% 0.02 262)" }} axisLine={false} tickLine={false} interval={2} />
+            <YAxis tick={{ fontSize: 11, fill: "oklch(52% 0.02 262)" }} axisLine={false} tickLine={false} width={24} />
+            <Tooltip content={<ChartTooltip />} />
+            <Line type="monotone" dataKey="count" stroke="#F5A623" strokeWidth={3} dot={false} name="Transaksi" />
+          </LineChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  );
+}
+
+function TopItemsCard({ startDate, endDate }: { startDate: string, endDate: string }) {
+  const { data, error, isLoading } = useSWR<TopItemsResponse>(`/api/dashboard/top-items?start=${startDate}&end=${endDate}`, fetcher, { refreshInterval: 60000 });
+  const { t } = useLocale();
+
+  return (
+    <div className="card" style={{ flex: "0 0 375px", minWidth: 0 }}>
+      <h2
+        style={{
+          fontSize: "var(--text-base)",
+          fontWeight: 700,
+          color: "#03396c",
+          marginBottom: "var(--space-4)",
+        }}
+      >
+        {t.dashboard.topProducts}
+      </h2>
+
+      {isLoading && <Skeleton width="100%" height="200px" />}
+      {!isLoading && !error && (
+        <ol style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+          {(data?.data || []).map((item, index) => (
+            <li
+              key={item.id}
               style={{
-                margin: 0,
-                padding: 0,
-                listStyle: "none",
-                display: "flex",
-                flexDirection: "column",
-                gap: "var(--space-1)",
+                display: "flex", alignItems: "center", gap: "var(--space-3)", padding: "var(--space-3) 0",
+                borderBottom: index < (data?.data.length || 0) - 1 ? "1px solid var(--color-border)" : "none",
               }}
             >
-              {data.data.map((item, index) => (
-                <li
-                  key={item.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "var(--space-3)",
-                    padding: "var(--space-3) 0",
-                    borderBottom:
-                      index < data.data.length - 1
-                        ? "1px solid var(--color-border)"
-                        : "none",
-                  }}
-                >
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      width: "28px",
-                      height: "28px",
-                      borderRadius: "50%",
-                      background: index === 0 ? "var(--color-accent)" : "var(--color-surface-2)",
-                      color: index === 0 ? "white" : "var(--color-text-muted)",
-                      fontSize: "var(--text-xs)",
-                      fontWeight: 700,
-                      flexShrink: 0,
-                    }}
-                    aria-label={t.dashboard.rank(index + 1)}
-                  >
-                    {index + 1}
-                  </span>
-
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p
-                      style={{
-                        margin: 0,
-                        fontSize: "var(--text-sm)",
-                        fontWeight: 600,
-                        color: "var(--color-text)",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {item.name ?? item.code ?? `#${item.id}`}
-                    </p>
-                    <p
-                      style={{
-                        margin: 0,
-                        fontSize: "var(--text-xs)",
-                        color: "var(--color-text-muted)",
-                      }}
-                    >
-                      {t.dashboard.sold(item.qty)}
-                    </p>
-                  </div>
-
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: "var(--text-sm)",
-                      fontWeight: 700,
-                      color: "var(--color-success)",
-                      textAlign: "right",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <span className="money">{formatIDR(item.revenue)}</span>
-                  </p>
-                </li>
-              ))}
-            </ol>
-          )}
-        </>
+              <span
+                style={{
+                  display: "inline-flex", alignItems: "center", justifyContent: "center", width: "28px", height: "28px",
+                  borderRadius: "50%", background: index === 0 ? "#03396c" : "var(--color-surface-2)",
+                  color: index === 0 ? "white" : "var(--color-text-muted)", fontSize: "var(--text-xs)", fontWeight: 700, flexShrink: 0,
+                }}
+              >
+                {index + 1}
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: "13px", fontWeight: 600, color: "#03396c", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {item.name ?? item.code ?? `#${item.id}`}
+                </p>
+                <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-text-muted)" }}>
+                  Terjual: {item.qty}
+                </p>
+              </div>
+              <p style={{ margin: 0, fontSize: "13px", fontWeight: 700, color: "var(--color-success)", textAlign: "right", flexShrink: 0 }}>
+                <span className="money">{formatIDR(item.revenue)}</span>
+              </p>
+            </li>
+          ))}
+        </ol>
       )}
     </div>
   );
@@ -492,37 +386,53 @@ function TopItemsCard() {
 
 export default function DashboardPage() {
   const { t } = useLocale();
+  const [dateRange, setDateRange] = useState({ start: getTodayISO(), end: getTodayISO() });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-      <div>
-        <h1
-          style={{
-            fontSize: "var(--text-xl)",
-            fontWeight: 800,
-            color: "var(--color-text)",
-            marginBottom: "var(--space-1)",
-          }}
-        >
-          {t.dashboard.title}
-        </h1>
-        <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-text-muted)" }}>
-          {t.dashboard.subtitle}
-        </p>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)", paddingBottom: "var(--space-8)" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div>
+          <h1
+            style={{
+              fontSize: "var(--text-xl)",
+              fontWeight: 800,
+              color: "#03396c",
+              marginBottom: "var(--space-1)",
+            }}
+          >
+            {t.dashboard.title}
+          </h1>
+          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-text-muted)" }}>
+            {t.dashboard.subtitle}
+          </p>
+        </div>
+        <div style={{ alignSelf: "flex-start" }}>
+          <DateRangePicker 
+            value={dateRange} 
+            onChange={(range) => {
+              if (range.start && range.end) {
+                setDateRange(range);
+              }
+            }} 
+          />
+        </div>
       </div>
 
-      <SummaryCards />
+      <SummaryCards startDate={dateRange.start} endDate={dateRange.end} />
 
       <div
         style={{
           display: "flex",
           flexWrap: "wrap",
           gap: "var(--space-4)",
-          alignItems: "flex-start",
+          alignItems: "stretch",
         }}
       >
-        <SalesChartCard />
-        <TopItemsCard />
+        <div style={{ flex: "1 1 0", minWidth: 0, display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+          <SalesChartCard startDate={dateRange.start} endDate={dateRange.end} />
+          <HourlyHeatmapCard startDate={dateRange.start} endDate={dateRange.end} />
+        </div>
+        <TopItemsCard startDate={dateRange.start} endDate={dateRange.end} />
       </div>
     </div>
   );

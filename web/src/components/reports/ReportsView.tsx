@@ -6,16 +6,17 @@ import useSWR from 'swr';
 import { DateRangePicker, DateRange } from '@/components/ui/DateRangePicker';
 import { Activity, TrendingUp, CreditCard, ShoppingBag, Grid, Users, Printer, Banknote, QrCode, ArrowRightLeft, X, Utensils, Coffee, Pizza, Shirt, Wrench, Package, Scissors, Monitor, Box, FileSpreadsheet, FileText } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 type ReportTab = 'summary' | 'gross-profit' | 'payment-methods' | 'items-sales' | 'category-sales' | 'staff-sales';
 
-const TABS: { id: ReportTab; label: string; icon: React.ElementType }[] = [
-  { id: 'summary', label: 'Summary', icon: Activity },
-  { id: 'gross-profit', label: 'Gross Profit', icon: TrendingUp },
-  { id: 'payment-methods', label: 'Payment Methods', icon: CreditCard },
-  { id: 'items-sales', label: 'Items Sales', icon: ShoppingBag },
-  { id: 'category-sales', label: 'Category Sales', icon: Grid },
-  { id: 'staff-sales', label: 'Staff Sales', icon: Users },
+const TAB_CONFIG: { id: ReportTab; icon: React.ElementType }[] = [
+  { id: 'summary', icon: Activity },
+  { id: 'gross-profit', icon: TrendingUp },
+  { id: 'payment-methods', icon: CreditCard },
+  { id: 'items-sales', icon: ShoppingBag },
+  { id: 'category-sales', icon: Grid },
+  { id: 'staff-sales', icon: Users },
 ];
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -41,11 +42,21 @@ const getFirstDayOfMonth = () => {
 };
 
 export function ReportsView() {
+  const { t } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const currentTabRaw = searchParams.get('tab') as ReportTab | null;
-  const activeTab = currentTabRaw && TABS.some((t) => t.id === currentTabRaw) ? currentTabRaw : 'summary';
+  const activeTab = currentTabRaw && TAB_CONFIG.some((tab) => tab.id === currentTabRaw) ? currentTabRaw : 'summary';
+
+  const tabLabels: Record<ReportTab, string> = {
+    'summary': t.reports.tabs.summary,
+    'gross-profit': t.reports.tabs.grossProfit,
+    'payment-methods': t.reports.tabs.paymentMethods,
+    'items-sales': t.reports.tabs.itemsSales,
+    'category-sales': t.reports.tabs.categorySales,
+    'staff-sales': t.reports.tabs.staffSales,
+  };
 
   const [startDate, setStartDate] = useState(getFirstDayOfMonth());
   const [endDate, setEndDate] = useState(getTodayISO());
@@ -70,12 +81,12 @@ export function ReportsView() {
     <div className="flex flex-col h-full gap-4">
       <div className="flex flex-col gap-4 print:hidden">
         <h1 className="text-xl font-extrabold text-[var(--color-text)]">
-          Sales Dynamic Data
+          {t.reports.title}
         </h1>
 
         <div className="w-full overflow-x-auto pb-2 scrollbar-thin">
           <div className="flex gap-2 min-w-max">
-            {TABS.map((tab) => {
+            {TAB_CONFIG.map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
@@ -89,7 +100,7 @@ export function ReportsView() {
                     }`}
                 >
                   <Icon size={16} />
-                  {tab.label}
+                  {tabLabels[tab.id]}
                 </button>
               );
             })}
@@ -109,13 +120,13 @@ export function ReportsView() {
       </div>
 
       <div className="flex-1 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-lg overflow-hidden flex flex-col">
-        {isLoading && <div className="p-8 text-center text-[var(--color-text-muted)]">Memuat data laporan...</div>}
-        {error && <div className="p-8 text-center text-red-500">Gagal memuat data</div>}
+        {isLoading && <div className="p-8 text-center text-[var(--color-text-muted)]">{t.reports.loading}</div>}
+        {error && <div className="p-8 text-center text-red-500">{t.reports.loadError}</div>}
 
         {!isLoading && !error && (
           (Array.isArray(reportData) ? reportData.length === 0 : !reportData)
         ) && (
-          <div className="p-8 text-center text-[var(--color-text-muted)]">Tidak ada data untuk filter ini.</div>
+          <div className="p-8 text-center text-[var(--color-text-muted)]">{t.reports.noData}</div>
         )}
 
         {!isLoading && !error && (
@@ -146,6 +157,7 @@ const thClass = "px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color
 const tdClass = "px-4 py-3 border-b border-[var(--color-border)] text-sm text-[var(--color-text)]";
 
 function SummaryReport({ data }: { data: any }) {
+  const { t } = useLocale();
   if (!data) return null;
 
   const grossSales = data.gross_sales_categories?.reduce((acc: number, c: any) => acc + c.amount, 0) || 0;
@@ -189,23 +201,23 @@ function SummaryReport({ data }: { data: any }) {
     <div className="w-full flex flex-col gap-6 p-2">
       <div className="flex justify-between items-center bg-[var(--color-surface)] p-4 rounded-lg shadow-sm border border-[var(--color-border)]">
         <div>
-          <h2 className="text-xl font-bold">Laporan Keuangan</h2>
-          <div className="text-sm text-[var(--color-text-muted)]">Periode: {data.date}</div>
+          <h2 className="text-xl font-bold">{t.reports.financialReport}</h2>
+          <div className="text-sm text-[var(--color-text-muted)]">{t.reports.period} {data.date}</div>
         </div>
         <div className="flex gap-4 print:hidden items-center">
-          <button 
+          <button
             onClick={exportToExcel}
             className="hover:scale-110 transition-transform flex items-center justify-center p-1"
-            title="Export Excel"
+            title={t.reports.exportExcel}
           >
-            <img src="/icons/excel.svg" alt="Export Excel" className="w-8 h-8" />
+            <img src="/icons/excel.svg" alt={t.reports.exportExcel} className="w-8 h-8" />
           </button>
-          <button 
+          <button
             onClick={() => window.print()}
             className="hover:scale-110 transition-transform flex items-center justify-center p-1"
-            title="Cetak PDF"
+            title={t.reports.printPdf}
           >
-            <img src="/icons/pdf.svg" alt="Cetak PDF" className="w-8 h-8" />
+            <img src="/icons/pdf.svg" alt={t.reports.printPdf} className="w-8 h-8" />
           </button>
         </div>
       </div>
@@ -214,64 +226,64 @@ function SummaryReport({ data }: { data: any }) {
         <table className="w-full text-left border-collapse text-sm">
           <tbody>
             <tr>
-              <td colSpan={2} className="font-bold pb-2 pt-2 text-[var(--color-text-muted)] border-b border-[var(--color-border)]">PENDAPATAN (REVENUE)</td>
+              <td colSpan={2} className="font-bold pb-2 pt-2 text-[var(--color-text-muted)] border-b border-[var(--color-border)]">{t.reports.revenue}</td>
             </tr>
             <tr className="hover:bg-[var(--color-accent-soft)] transition-colors">
-              <td className="py-2 pl-4 flex items-center gap-2">↳ Penjualan Kotor <em className="text-xs text-[var(--color-text-muted)]">(Gross Sales)</em></td>
+              <td className="py-2 pl-4 flex items-center gap-2">↳ {t.reports.grossSales} <em className="text-xs text-[var(--color-text-muted)]">(Gross Sales)</em></td>
               <td className="py-2 pr-4 text-right money">{formatCurrency(grossSales)}</td>
             </tr>
             <tr className="hover:bg-[var(--color-accent-soft)] transition-colors">
-              <td className="py-2 pl-4 flex items-center gap-2 text-red-600">↳ Diskon Penjualan</td>
+              <td className="py-2 pl-4 flex items-center gap-2 text-red-600">↳ {t.reports.salesDiscount}</td>
               <td className="py-2 pr-4 text-right money text-red-600">({formatCurrency(data.discounts)})</td>
             </tr>
             <tr className="hover:bg-[var(--color-accent-soft)] transition-colors">
-              <td className="py-2 pl-4 flex items-center gap-2 text-red-600">↳ Retur / Refund</td>
+              <td className="py-2 pl-4 flex items-center gap-2 text-red-600">↳ {t.reports.returnsRefunds}</td>
               <td className="py-2 pr-4 text-right money text-red-600">({formatCurrency(data.refunds)})</td>
             </tr>
             <tr className="font-semibold bg-[var(--color-accent-soft)]">
-              <td className="py-3 pl-2 border-t border-[var(--color-border)]">Penjualan Bersih <em className="font-normal text-xs text-[var(--color-text-muted)]">(Net Sales)</em></td>
+              <td className="py-3 pl-2 border-t border-[var(--color-border)]">{t.reports.netSales} <em className="font-normal text-xs text-[var(--color-text-muted)]">(Net Sales)</em></td>
               <td className="py-3 pr-4 text-right border-t border-[var(--color-border)] money">{formatCurrency(data.net_sales)}</td>
             </tr>
 
             <tr><td colSpan={2} className="py-4"></td></tr>
 
             <tr>
-              <td colSpan={2} className="font-bold pb-2 pt-2 text-[var(--color-text-muted)] border-b border-[var(--color-border)]">BEBAN POKOK PENJUALAN (COGS)</td>
+              <td colSpan={2} className="font-bold pb-2 pt-2 text-[var(--color-text-muted)] border-b border-[var(--color-border)]">{t.reports.cogs}</td>
             </tr>
             <tr className="hover:bg-[var(--color-accent-soft)] transition-colors text-red-600">
-              <td className="py-2 pl-4 flex items-center gap-2">↳ Harga Pokok Penjualan <em className="text-xs opacity-70">(Total HPP)</em></td>
+              <td className="py-2 pl-4 flex items-center gap-2">↳ {t.reports.costOfGoods} <em className="text-xs opacity-70">(Total HPP)</em></td>
               <td className="py-2 pr-4 text-right money">({formatCurrency(data.cogs || 0)})</td>
             </tr>
 
             <tr><td colSpan={2} className="py-2"></td></tr>
 
             <tr className="font-bold text-base bg-[var(--color-surface-2)] shadow-sm">
-              <td className="py-3 pl-2 border-y border-[var(--color-border)]">LABA KOTOR <em className="font-normal text-xs text-[var(--color-text-muted)]">(GROSS PROFIT)</em></td>
+              <td className="py-3 pl-2 border-y border-[var(--color-border)]">{t.reports.grossProfit} <em className="font-normal text-xs text-[var(--color-text-muted)]">(GROSS PROFIT)</em></td>
               <td className="py-3 pr-4 text-right border-y border-[var(--color-border)] money">{formatCurrency(grossProfit)}</td>
             </tr>
             <tr className="hover:bg-[var(--color-accent-soft)] transition-colors">
-              <td className="py-2 pl-2 text-[var(--color-text-muted)]">Margin Laba Kotor <em className="text-xs text-[var(--color-text-muted)]">(Gross Margin)</em></td>
+              <td className="py-2 pl-2 text-[var(--color-text-muted)]">{t.reports.grossMargin} <em className="text-xs text-[var(--color-text-muted)]">(Gross Margin)</em></td>
               <td className="py-2 pr-4 text-right money">{margin.toFixed(2)}%</td>
             </tr>
 
             <tr><td colSpan={2} className="py-4"></td></tr>
 
             <tr>
-              <td colSpan={2} className="font-bold pb-2 pt-2 text-[var(--color-text-muted)] border-b border-[var(--color-border)]">ARUS KAS & PAJAK</td>
+              <td colSpan={2} className="font-bold pb-2 pt-2 text-[var(--color-text-muted)] border-b border-[var(--color-border)]">{t.reports.cashAndTax}</td>
             </tr>
             <tr className="hover:bg-[var(--color-accent-soft)] transition-colors">
-              <td className="py-2 pl-4 flex items-center gap-2">↳ Pajak Dipungut <em className="text-xs text-[var(--color-text-muted)]">(Tax)</em></td>
+              <td className="py-2 pl-4 flex items-center gap-2">↳ {t.reports.taxCollected} <em className="text-xs text-[var(--color-text-muted)]">(Tax)</em></td>
               <td className="py-2 pr-4 text-right money">{formatCurrency(data.tax)}</td>
             </tr>
             <tr className="font-bold text-base bg-[var(--color-surface-2)] shadow-sm">
-              <td className="py-3 pl-2 border-y border-[var(--color-border)] text-[var(--color-success)]">Total Kas Diterima <em className="font-normal text-xs opacity-80">(Total Collected)</em></td>
+              <td className="py-3 pl-2 border-y border-[var(--color-border)] text-[var(--color-success)]">{t.reports.totalCashReceived} <em className="font-normal text-xs opacity-80">(Total Collected)</em></td>
               <td className="py-3 pr-4 text-right border-y border-[var(--color-border)] money text-[var(--color-success)]">{formatCurrency(data.total_collected)}</td>
             </tr>
           </tbody>
         </table>
 
         <div className="mt-8 pt-4 border-t border-[var(--color-border)] print:hidden">
-          <h3 className="font-bold mb-3 text-[var(--color-text-muted)] text-xs uppercase tracking-wider">Rincian Metode Pembayaran</h3>
+          <h3 className="font-bold mb-3 text-[var(--color-text-muted)] text-xs uppercase tracking-wider">{t.reports.paymentBreakdown}</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {data.payment_methods?.map((p: any, i: number) => (
               <div key={i} className="flex justify-between items-center p-3 border border-[var(--color-border)] rounded-md bg-[var(--color-accent-soft)]">
@@ -287,10 +299,13 @@ function SummaryReport({ data }: { data: any }) {
 }
 
 function GrossProfitTable({ data }: { data: any[] }) {
+  const { t, locale } = useLocale();
+  const localeStr = locale === 'en' ? 'en-US' : 'id-ID';
+
   const formatDateString = (dateStr: string) => {
     try {
       const d = new Date(dateStr);
-      const dayName = new Intl.DateTimeFormat('id-ID', { weekday: 'long' }).format(d);
+      const dayName = new Intl.DateTimeFormat(localeStr, { weekday: 'long' }).format(d);
       const day = d.getDate().toString().padStart(2, '0');
       const month = (d.getMonth() + 1).toString().padStart(2, '0');
       const year = d.getFullYear();
@@ -305,11 +320,11 @@ function GrossProfitTable({ data }: { data: any[] }) {
       <table className={tableClass}>
         <thead>
           <tr>
-            <th className={thClass}>Tanggal</th>
-            <th className={`${thClass} text-right`}>Penjualan Bersih</th>
-            <th className={`${thClass} text-right`}>Total HPP (COGS)</th>
-            <th className={`${thClass} text-right`}>Laba Kotor (Gross Profit)</th>
-            <th className={`${thClass} text-right`}>Margin (%)</th>
+            <th className={thClass}>{t.reports.date}</th>
+            <th className={`${thClass} text-right`}>{t.reports.netSalesCol}</th>
+            <th className={`${thClass} text-right`}>{t.reports.totalCogsCol}</th>
+            <th className={`${thClass} text-right`}>{t.reports.grossProfitCol}</th>
+            <th className={`${thClass} text-right`}>{t.reports.margin}</th>
           </tr>
         </thead>
         <tbody>
@@ -328,11 +343,12 @@ function GrossProfitTable({ data }: { data: any[] }) {
   );
 }
 
-function PaymentMethodDetailModal({ 
-  isOpen, onClose, methodName, startDate, endDate 
-}: { 
+function PaymentMethodDetailModal({
+  isOpen, onClose, methodName, startDate, endDate
+}: {
   isOpen: boolean; onClose: () => void; methodName: string; startDate: string; endDate: string;
 }) {
+  const { t } = useLocale();
   const [page, setPage] = useState(1);
   const [expandedTxId, setExpandedTxId] = useState<string | null>(null);
 
@@ -351,8 +367,8 @@ function PaymentMethodDetailModal({
       <div className="bg-[var(--color-bg)] w-full max-w-4xl rounded-xl shadow-2xl border border-[var(--color-border)] flex flex-col overflow-hidden max-h-[90vh]">
         <div className="flex justify-between items-center p-6 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
           <div>
-            <h2 className="text-lg font-bold text-[var(--color-text)]">Rincian Transaksi: {methodName}</h2>
-            <p className="text-sm text-[var(--color-text-muted)]">Periode: {startDate} hingga {endDate}</p>
+            <h2 className="text-lg font-bold text-[var(--color-text)]">{t.reports.txDetail(methodName)}</h2>
+            <p className="text-sm text-[var(--color-text-muted)]">{t.reports.periodRange(startDate, endDate)}</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-[var(--color-accent-soft)] rounded-full transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
             <X size={20} />
@@ -360,21 +376,21 @@ function PaymentMethodDetailModal({
         </div>
         
         <div className="flex-1 overflow-y-auto p-6">
-          {isLoading && <div className="text-center py-8 text-[var(--color-text-muted)]">Memuat rincian transaksi...</div>}
-          {error && <div className="text-center py-8 text-red-500">Gagal memuat rincian.</div>}
-          
+          {isLoading && <div className="text-center py-8 text-[var(--color-text-muted)]">{t.reports.loadingTx}</div>}
+          {error && <div className="text-center py-8 text-red-500">{t.reports.loadDetailError}</div>}
+
           {!isLoading && !error && txData.length === 0 && (
-            <div className="text-center py-8 text-[var(--color-text-muted)]">Tidak ada transaksi ditemukan.</div>
+            <div className="text-center py-8 text-[var(--color-text-muted)]">{t.reports.noTxFound}</div>
           )}
-          
+
           {!isLoading && !error && txData.length > 0 && (
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr>
-                  <th className="pb-3 border-b border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] uppercase">Waktu</th>
-                  <th className="pb-3 border-b border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] uppercase">ID Transaksi</th>
-                  <th className="pb-3 border-b border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] uppercase">Kasir</th>
-                  <th className="pb-3 border-b border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] uppercase text-right">Total</th>
+                  <th className="pb-3 border-b border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] uppercase">{t.reports.time}</th>
+                  <th className="pb-3 border-b border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] uppercase">{t.reports.transactionId}</th>
+                  <th className="pb-3 border-b border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] uppercase">{t.reports.cashier}</th>
+                  <th className="pb-3 border-b border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-muted)] uppercase text-right">{t.common.total}</th>
                 </tr>
               </thead>
               <tbody>
@@ -403,11 +419,11 @@ function PaymentMethodDetailModal({
                             <table className="w-full text-sm text-left">
                               <thead className="bg-[var(--color-bg)]">
                                 <tr>
-                                  <th className="px-4 py-2 font-medium text-[var(--color-text-muted)]">Nama Item</th>
-                                  <th className="px-4 py-2 font-medium text-[var(--color-text-muted)] text-right">Harga</th>
-                                  <th className="px-4 py-2 font-medium text-[var(--color-text-muted)] text-right">Qty</th>
-                                  <th className="px-4 py-2 font-medium text-[var(--color-text-muted)] text-right">Diskon</th>
-                                  <th className="px-4 py-2 font-medium text-[var(--color-text-muted)] text-right">Total</th>
+                                  <th className="px-4 py-2 font-medium text-[var(--color-text-muted)]">{t.reports.itemDetailHeader}</th>
+                                  <th className="px-4 py-2 font-medium text-[var(--color-text-muted)] text-right">{t.reports.price}</th>
+                                  <th className="px-4 py-2 font-medium text-[var(--color-text-muted)] text-right">{t.reports.qty}</th>
+                                  <th className="px-4 py-2 font-medium text-[var(--color-text-muted)] text-right">{t.reports.discount}</th>
+                                  <th className="px-4 py-2 font-medium text-[var(--color-text-muted)] text-right">{t.common.total}</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -437,7 +453,7 @@ function PaymentMethodDetailModal({
         {!isLoading && !error && pagination.total > 0 && (
           <div className="flex flex-col sm:flex-row justify-between items-center p-4 border-t border-[var(--color-border)] bg-[var(--color-bg)] gap-4">
             <div className="text-sm text-[var(--color-text-muted)]">
-              Showing {(pagination.page - 1) * pagination.limit + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} results
+              {t.reports.showing((pagination.page - 1) * pagination.limit + 1, Math.min(pagination.page * pagination.limit, pagination.total), pagination.total)}
             </div>
             <div className="flex items-center gap-1">
               <button 
@@ -500,11 +516,12 @@ function PaymentMethodDetailModal({
   );
 }
 
-function CategoryDetailModal({ 
-  isOpen, onClose, categoryName, startDate, endDate 
-}: { 
+function CategoryDetailModal({
+  isOpen, onClose, categoryName, startDate, endDate
+}: {
   isOpen: boolean; onClose: () => void; categoryName: string; startDate: string; endDate: string;
 }) {
+  const { t } = useLocale();
   const [page, setPage] = useState(1);
 
   const { data: apiResponse, error, isLoading } = useSWR(
@@ -522,8 +539,8 @@ function CategoryDetailModal({
       <div className="bg-[var(--color-bg)] w-full max-w-4xl rounded-xl shadow-2xl border border-[var(--color-border)] flex flex-col overflow-hidden max-h-[90vh]">
         <div className="flex justify-between items-center p-6 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
           <div>
-            <h2 className="text-lg font-bold text-[var(--color-text)]">Rincian Penjualan Barang: {categoryName}</h2>
-            <p className="text-sm text-[var(--color-text-muted)]">Periode: {startDate} hingga {endDate}</p>
+            <h2 className="text-lg font-bold text-[var(--color-text)]">{t.reports.itemSalesDetail(categoryName)}</h2>
+            <p className="text-sm text-[var(--color-text-muted)]">{t.reports.periodRange(startDate, endDate)}</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-[var(--color-accent-soft)] rounded-full transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
             <X size={20} />
@@ -531,11 +548,11 @@ function CategoryDetailModal({
         </div>
         
         <div className="flex-1 overflow-y-auto p-6">
-          {isLoading && <div className="text-center py-8 text-[var(--color-text-muted)]">Memuat rincian barang...</div>}
-          {error && <div className="text-center py-8 text-red-500">Gagal memuat rincian.</div>}
-          
+          {isLoading && <div className="text-center py-8 text-[var(--color-text-muted)]">{t.reports.loadingItems}</div>}
+          {error && <div className="text-center py-8 text-red-500">{t.reports.loadDetailError}</div>}
+
           {!isLoading && !error && itemData.length === 0 && (
-            <div className="text-center py-8 text-[var(--color-text-muted)]">Tidak ada barang yang terjual.</div>
+            <div className="text-center py-8 text-[var(--color-text-muted)]">{t.reports.noItemsSold}</div>
           )}
           
           {!isLoading && !error && itemData.length > 0 && (
@@ -548,6 +565,7 @@ function CategoryDetailModal({
 }
 
 function PaymentMethodsGrid({ data, startDate, endDate }: { data: any[]; startDate: string; endDate: string }) {
+  const { t } = useLocale();
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
 
   const getIconAndColor = (method: string) => {
@@ -584,7 +602,7 @@ function PaymentMethodsGrid({ data, startDate, endDate }: { data: any[]; startDa
                 
                 <div className="flex items-center justify-between mt-auto pt-2">
                   <div className="text-sm font-medium text-[var(--color-text-muted)]">
-                    {row.count} trx
+                    {t.reports.trxCount(row.count)}
                   </div>
                   <div className={`flex items-center gap-1 text-sm font-semibold ${isUp ? 'text-emerald-500' : 'text-[var(--color-text-muted)]'}`}>
                     {row.percentage.toFixed(1)}%
@@ -596,7 +614,7 @@ function PaymentMethodsGrid({ data, startDate, endDate }: { data: any[]; startDa
                 onClick={() => setSelectedMethod(row.method)}
                 className={`w-full py-3 px-5 text-left text-sm font-semibold border-t border-[var(--color-border)] bg-[var(--color-surface)] ${color} hover:${bgSoft} transition-colors group-hover:bg-[var(--color-accent-soft)]`}
               >
-                View all
+                {t.reports.viewAll}
               </button>
             </div>
           );
@@ -614,6 +632,7 @@ function PaymentMethodsGrid({ data, startDate, endDate }: { data: any[]; startDa
   );
 }
 function CategorySalesGrid({ data, startDate, endDate }: { data: any[]; startDate: string; endDate: string }) {
+  const { t } = useLocale();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const getCategoryTheme = (name: string, index: number) => {
@@ -647,7 +666,7 @@ function CategorySalesGrid({ data, startDate, endDate }: { data: any[]; startDat
               
               {isBestSeller && (
                 <div className="absolute top-0 right-0 bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1 rounded-bl-lg shadow-sm border-b border-l border-amber-200 flex items-center gap-1 z-10">
-                  <span className="text-[10px]">👑</span> Paling Laris
+                  <span className="text-[10px]">👑</span> {t.reports.bestSeller}
                 </div>
               )}
               
@@ -666,7 +685,7 @@ function CategorySalesGrid({ data, startDate, endDate }: { data: any[]; startDat
                 
                 <div className="flex items-center justify-between mt-auto pt-2">
                   <div className="text-sm font-medium text-[var(--color-text-muted)] truncate">
-                    {row.total_qty} terjual
+                    {t.reports.soldCount(row.total_qty)}
                   </div>
                   <div className={`flex items-center gap-1 text-sm font-semibold text-[var(--color-text-muted)]`}>
                     {row.percentage.toFixed(1)}%
@@ -678,7 +697,7 @@ function CategorySalesGrid({ data, startDate, endDate }: { data: any[]; startDat
                 onClick={() => setSelectedCategory(row.category_name)}
                 className={`w-full py-3 px-5 text-left text-sm font-semibold border-t border-[var(--color-border)] bg-[var(--color-surface)] ${color} hover:${bgSoft} transition-colors group-hover:bg-[var(--color-accent-soft)]`}
               >
-                View all items
+                {t.reports.viewAllItems}
               </button>
             </div>
           );
@@ -698,16 +717,17 @@ function CategorySalesGrid({ data, startDate, endDate }: { data: any[]; startDat
 
 
 function ItemsSalesTable({ data, pagination, setPage }: { data: any[]; pagination?: any; setPage?: (val: number | ((prev: number) => number)) => void }) {
+  const { t } = useLocale();
   return (
     <div className="flex flex-col w-full">
       <TableWrapper>
         <table className={tableClass}>
           <thead>
             <tr>
-              <th className={thClass}>Nama Barang</th>
-              <th className={thClass}>Kategori</th>
-              <th className={thClass}>Qty Terjual</th>
-              <th className={`${thClass} text-right`}>Total Penjualan</th>
+              <th className={thClass}>{t.reports.itemNameCol}</th>
+              <th className={thClass}>{t.reports.categoryCol}</th>
+              <th className={thClass}>{t.reports.qtySold}</th>
+              <th className={`${thClass} text-right`}>{t.reports.totalSalesCol}</th>
             </tr>
           </thead>
           <tbody>
@@ -726,7 +746,7 @@ function ItemsSalesTable({ data, pagination, setPage }: { data: any[]; paginatio
       {pagination && pagination.total > 0 && setPage && (
         <div className="flex flex-col sm:flex-row justify-between items-center p-4 border-t border-[var(--color-border)] bg-[var(--color-bg)] gap-4">
           <div className="text-sm text-[var(--color-text-muted)]">
-            Showing {(pagination.page - 1) * pagination.limit + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} results
+            {t.reports.showing((pagination.page - 1) * pagination.limit + 1, Math.min(pagination.page * pagination.limit, pagination.total), pagination.total)}
           </div>
           <div className="flex items-center gap-1">
             <button 
@@ -788,6 +808,7 @@ function ItemsSalesTable({ data, pagination, setPage }: { data: any[]; paginatio
 
 
 function StaffSalesGrid({ data }: { data: any[] }) {
+  const { t } = useLocale();
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-6">
       {data.map((row, i) => {
@@ -799,7 +820,7 @@ function StaffSalesGrid({ data }: { data: any[] }) {
             
             {isTopKasir && (
               <div className="absolute top-0 right-0 bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1 rounded-bl-lg shadow-sm border-b border-l border-amber-200 flex items-center gap-1 z-10">
-                <span className="text-[10px]">🏆</span> Top Kasir
+                <span className="text-[10px]">🏆</span> {t.reports.topCashier}
               </div>
             )}
             
@@ -818,11 +839,11 @@ function StaffSalesGrid({ data }: { data: any[] }) {
               
               <div className="flex flex-col mt-auto pt-4 border-t border-[var(--color-border)] gap-2">
                 <div className="flex items-center justify-between">
-                  <div className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider">Transaksi</div>
-                  <div className="text-sm font-semibold text-[var(--color-text)]">{row.count} trx</div>
+                  <div className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider">{t.reports.transactionsLabel}</div>
+                  <div className="text-sm font-semibold text-[var(--color-text)]">{t.reports.trxCount(row.count)}</div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <div className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider" title="Average Order Value">AOV (Rata-rata)</div>
+                  <div className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider" title="Average Order Value">{t.reports.aov}</div>
                   <div className="text-sm font-semibold text-[var(--color-text)] money">{formatCurrency(aov)}</div>
                 </div>
               </div>

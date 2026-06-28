@@ -50,6 +50,7 @@ function buildNav(t: TranslationKeys): NavGroup[] {
       icon: Package,
       adminOnly: true,
       sub: [
+        { label: n.productManagement, href: '/library?tab=items' },
         { label: n.stockDetails, href: '/inventory?tab=stock' },
         { label: n.stockAdjustments, href: '/inventory?tab=adjustments' },
         { label: n.categories, href: '/library?tab=categories' },
@@ -61,7 +62,7 @@ function buildNav(t: TranslationKeys): NavGroup[] {
       icon: BarChart,
       adminOnly: true,
       sub: [
-        { label: n.salesDynamic, href: '/reports?tab=dynamic' },
+        { label: n.salesDynamic, href: '/reports?tab=summary' },
         { label: n.transactions, href: '/sales' },
       ],
     },
@@ -80,6 +81,9 @@ function buildNav(t: TranslationKeys): NavGroup[] {
       adminOnly: true,
       sub: [
         { label: n.generalSettings, href: '/settings' },
+        { label: n.paymentTypes, href: '/library?tab=payment-types' },
+        { label: n.discounts, href: '/library?tab=discounts' },
+        { label: n.receipts, href: '/settings?tab=receipts' },
         { label: n.userManagement, href: '/settings/users' },
       ],
     },
