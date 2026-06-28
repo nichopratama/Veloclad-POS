@@ -237,3 +237,24 @@ h3 {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* Dashboard Grid Layout (Responsive) */
+.dashboard-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  align-items: stretch;
+}
+
+@media (min-width: 1024px) {
+  .dashboard-grid {
+    flex-direction: row;
+  }
+  .dashboard-grid > .main {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .dashboard-grid > .sidebar {
+    flex: 0 0 375px;
+  }
+}

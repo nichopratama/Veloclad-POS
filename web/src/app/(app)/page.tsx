@@ -334,7 +334,7 @@ function TopItemsCard({ startDate, endDate }: { startDate: string, endDate: stri
   const { t } = useLocale();
 
   return (
-    <div className="card" style={{ flex: "0 0 375px", minWidth: 0 }}>
+    <div className="card sidebar" style={{ minWidth: 0 }}>
       <h2
         style={{
           fontSize: "var(--text-base)",
@@ -423,15 +423,8 @@ export default function DashboardPage() {
 
       <SummaryCards startDate={dateRange.start} endDate={dateRange.end} />
 
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "var(--space-4)",
-          alignItems: "stretch",
-        }}
-      >
-        <div style={{ flex: "1 1 0", minWidth: 0, display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+      <div className="dashboard-grid">
+        <div className="main" style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
           <SalesChartCard startDate={dateRange.start} endDate={dateRange.end} />
           <HourlyHeatmapCard startDate={dateRange.start} endDate={dateRange.end} />
         </div>
