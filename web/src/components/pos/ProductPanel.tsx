@@ -6,6 +6,7 @@ import { useDebounce } from './useDebounce';
 import { formatIDR } from './format';
 import type { ListResponse, PosItem } from './types';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -15,6 +16,7 @@ type Props = {
 
 export function ProductPanel({ onPick }: Props) {
   const [search, setSearch] = useState('');
+  const { t } = useLocale();
   const debouncedSearch = useDebounce(search, SEARCH_DEBOUNCE_MS);
   const [dynamicLimit, setDynamicLimit] = useState(15);
   const gridContainerRef = useRef<HTMLElement>(null);
@@ -22,13 +24,9 @@ export function ProductPanel({ onPick }: Props) {
   useEffect(() => {
     const calculateCapacity = () => {
       if (!gridContainerRef.current) return;
-      // padding is 24px each side (48px total)
       const availableWidth = gridContainerRef.current.clientWidth - 48;
-      // css grid: minmax(150px, 1fr) with 12px gap
       let cols = Math.floor((availableWidth + 12) / 162);
       if (cols < 1) cols = 1;
-      
-      // Target 3 rows. Minimum 9 items so it doesn't look empty on mobile.
       setDynamicLimit(Math.max(9, cols * 3));
     };
 
@@ -66,19 +64,19 @@ export function ProductPanel({ onPick }: Props) {
         flexDirection: 'column',
         gap: 'var(--space-4)',
       }}
-      aria-label="Pilih produk"
+      aria-label={t.pos.selectProduct}
     >
       <div>
         <h2 style={{ fontSize: 'var(--text-base)', fontWeight: 700, marginBottom: 'var(--space-3)' }}>
-          Produk
+          {t.pos.products}
         </h2>
         <input
           className="input"
           type="search"
-          placeholder="Cari nama atau kode produk…"
+          placeholder={t.pos.searchProduct}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          aria-label="Cari produk"
+          aria-label={t.pos.searchProductLabel}
         />
       </div>
 
@@ -113,13 +111,13 @@ export function ProductPanel({ onPick }: Props) {
 
       {error && !isLoading && (
         <p role="alert" style={{ margin: 0, color: 'var(--color-danger)', fontSize: 'var(--text-sm)' }}>
-          Gagal memuat data produk
+          {t.common.loadError}
         </p>
       )}
 
       {!isLoading && !error && items.length === 0 && (
         <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>
-          Produk tidak ditemukan.
+          {t.common.notFound}
         </p>
       )}
 
@@ -167,15 +165,7 @@ export function ProductPanel({ onPick }: Props) {
                     e.currentTarget.style.borderColor = 'var(--color-border)';
                   }}
                 >
-                  <span
-                    style={{
-                      fontWeight: 600,
-                      fontSize: 'var(--text-sm)',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
+                  <span style={{ fontWeight: 600, fontSize: 'var(--text-sm)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {item.name}
                   </span>
                   <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
@@ -184,13 +174,8 @@ export function ProductPanel({ onPick }: Props) {
                   <span className="money" style={{ fontSize: 'var(--text-sm)', fontWeight: 700 }}>
                     {formatIDR(price)}
                   </span>
-                  <span
-                    style={{
-                      fontSize: 'var(--text-xs)',
-                      color: isOut ? 'var(--color-danger)' : 'var(--color-text-muted)',
-                    }}
-                  >
-                    {isOut ? 'Stok habis' : `Stok: ${item.stock}`}
+                  <span style={{ fontSize: 'var(--text-xs)', color: isOut ? 'var(--color-danger)' : 'var(--color-text-muted)' }}>
+                    {isOut ? t.pos.outOfStock : t.pos.stock(item.stock)}
                   </span>
                 </button>
               </li>

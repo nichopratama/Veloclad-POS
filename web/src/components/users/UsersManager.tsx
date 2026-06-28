@@ -6,6 +6,7 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { fetcher, apiMutate, FetchError } from '@/lib/fetcher';
 import { ROLE_VALUES, ROLE_LABELS, roleLabel, isAdmin, type Role } from '@/lib/roles';
 import { SkeletonTable } from '@/components/ui/Skeleton';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 type UserRow = {
   id: string;
@@ -26,6 +27,7 @@ const cellStyle: React.CSSProperties = { padding: 'var(--space-3) var(--space-4)
 
 export function UsersManager({ currentUserId }: { currentUserId: string }) {
   const { data, error, isLoading, mutate } = useSWR<UsersResponse, FetchError>('/api/users', fetcher);
+  const { t } = useLocale();
 
   const [modal, setModal] = useState<ModalState | null>(null);
   const [formData, setFormData] = useState<FormData>(EMPTY_FORM);
@@ -62,7 +64,7 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
     try {
       if (modal.mode === 'create') {
         await apiMutate('/api/users', 'POST', formData);
-        setBanner({ type: 'success', text: `User ${formData.email} berhasil dibuat.` });
+        setBanner({ type: 'success', text: t.users.createSuccess(formData.email) });
       } else {
         const payload: { name: string; role: Role; password?: string } = {
           name: formData.name,
@@ -70,26 +72,26 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
         };
         if (formData.password) payload.password = formData.password;
         await apiMutate(`/api/users/${modal.id}`, 'PATCH', payload);
-        setBanner({ type: 'success', text: 'User berhasil diperbarui.' });
+        setBanner({ type: 'success', text: t.users.updateSuccess });
       }
       closeModal();
       mutate();
     } catch (err: unknown) {
-      setBanner({ type: 'error', text: err instanceof FetchError ? err.message : 'Terjadi kesalahan.' });
+      setBanner({ type: 'error', text: err instanceof FetchError ? err.message : t.users.unknownError });
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (u: UserRow) => {
-    if (!confirm(`Cabut akses login untuk ${u.name} (${u.email})? Riwayat transaksinya tetap tersimpan.`)) return;
+    if (!confirm(t.users.revokeConfirm(u.name, u.email))) return;
     setBanner(null);
     try {
       await apiMutate(`/api/users/${u.id}`, 'DELETE');
-      setBanner({ type: 'success', text: `Akses login ${u.email} dicabut.` });
+      setBanner({ type: 'success', text: t.users.revokeSuccess(u.email) });
       mutate();
     } catch (err: unknown) {
-      setBanner({ type: 'error', text: err instanceof FetchError ? err.message : 'Gagal mencabut akses.' });
+      setBanner({ type: 'error', text: err instanceof FetchError ? err.message : t.users.revokeFailed });
     }
   };
 
@@ -111,7 +113,7 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
           <button
             type="button"
             onClick={() => setBanner(null)}
-            aria-label="Tutup notifikasi"
+            aria-label={t.users.closeNotif}
             style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', padding: '0 var(--space-2)', fontSize: 'var(--text-lg)' }}
           >
             ✕
@@ -121,93 +123,93 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
 
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <button type="button" className="btn" onClick={openCreate} style={{ padding: 'var(--space-2) var(--space-4)' }}>
-          + Tambah User
+          {t.users.addUser}
         </button>
       </div>
 
       {isLoading ? (
         <SkeletonTable rows={4} cols={4} />
       ) : (
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
-          <thead>
-            <tr style={{ background: 'var(--color-surface-2)', borderBottom: '1px solid var(--color-border)' }}>
-              <th style={cellStyle}>Nama</th>
-              <th style={cellStyle}>Email</th>
-              <th style={cellStyle}>Role</th>
-              <th style={{ ...cellStyle, textAlign: 'center' }}>Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {error && (
-              <tr>
-                <td colSpan={4} style={{ ...cellStyle, textAlign: 'center', color: 'var(--color-danger)' }}>
-                  Gagal memuat daftar pengguna: {error.message}
-                </td>
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
+            <thead>
+              <tr style={{ background: 'var(--color-surface-2)', borderBottom: '1px solid var(--color-border)' }}>
+                <th style={cellStyle}>{t.users.name}</th>
+                <th style={cellStyle}>{t.users.email}</th>
+                <th style={cellStyle}>{t.users.role}</th>
+                <th style={{ ...cellStyle, textAlign: 'center' }}>{t.common.actions}</th>
               </tr>
-            )}
-
-            {!error && users.length === 0 && (
-              <tr>
-                <td colSpan={4} style={{ ...cellStyle, textAlign: 'center', color: 'var(--color-text-muted)' }}>
-                  Belum ada pengguna.
-                </td>
-              </tr>
-            )}
-
-            {!error && users.map((u) => {
-              const isSelf = u.id === currentUserId;
-              return (
-                <tr key={u.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  <td style={cellStyle}>
-                    {u.name}
-                    {isSelf && <span style={{ marginLeft: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>(Anda)</span>}
-                  </td>
-                  <td style={cellStyle}>{u.email}</td>
-                  <td style={cellStyle}>
-                    <span
-                      style={{
-                        padding: '2px 10px',
-                        borderRadius: '999px',
-                        fontSize: 'var(--text-xs)',
-                        fontWeight: 700,
-                        background: isAdmin(u.role) ? 'var(--color-accent-soft)' : 'var(--color-surface-2)',
-                        color: isAdmin(u.role) ? 'var(--color-accent)' : 'var(--color-text-muted)',
-                      }}
-                    >
-                      {roleLabel(u.role)}
-                    </span>
-                  </td>
-                  <td style={{ ...cellStyle, textAlign: 'center' }}>
-                    <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'center' }}>
-                      <button type="button" className="hover:scale-110 transition-transform p-1 text-[var(--color-accent)]" onClick={() => openEdit(u)} title="Edit">
-                        <Pencil size={18} />
-                      </button>
-                      <button
-                        type="button"
-                        className="hover:scale-110 transition-transform p-1 text-[var(--color-danger)]"
-                        onClick={() => handleDelete(u)}
-                        disabled={isSelf}
-                        title={isSelf ? 'Tidak bisa menghapus akun sendiri' : 'Hapus'}
-                        style={{ opacity: isSelf ? 0.4 : 1 }}
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
+            </thead>
+            <tbody>
+              {error && (
+                <tr>
+                  <td colSpan={4} style={{ ...cellStyle, textAlign: 'center', color: 'var(--color-danger)' }}>
+                    {t.users.loadError(error.message)}
                   </td>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+              )}
+
+              {!error && users.length === 0 && (
+                <tr>
+                  <td colSpan={4} style={{ ...cellStyle, textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                    {t.users.noUsers}
+                  </td>
+                </tr>
+              )}
+
+              {!error && users.map((u) => {
+                const isSelf = u.id === currentUserId;
+                return (
+                  <tr key={u.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <td style={cellStyle}>
+                      {u.name}
+                      {isSelf && <span style={{ marginLeft: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>{t.common.you}</span>}
+                    </td>
+                    <td style={cellStyle}>{u.email}</td>
+                    <td style={cellStyle}>
+                      <span
+                        style={{
+                          padding: '2px 10px',
+                          borderRadius: '999px',
+                          fontSize: 'var(--text-xs)',
+                          fontWeight: 700,
+                          background: isAdmin(u.role) ? 'var(--color-accent-soft)' : 'var(--color-surface-2)',
+                          color: isAdmin(u.role) ? 'var(--color-accent)' : 'var(--color-text-muted)',
+                        }}
+                      >
+                        {roleLabel(u.role)}
+                      </span>
+                    </td>
+                    <td style={{ ...cellStyle, textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'center' }}>
+                        <button type="button" className="hover:scale-110 transition-transform p-1 text-[var(--color-accent)]" onClick={() => openEdit(u)} title={t.common.edit}>
+                          <Pencil size={18} />
+                        </button>
+                        <button
+                          type="button"
+                          className="hover:scale-110 transition-transform p-1 text-[var(--color-danger)]"
+                          onClick={() => handleDelete(u)}
+                          disabled={isSelf}
+                          title={isSelf ? t.common.cannotDeleteSelf : t.common.delete}
+                          style={{ opacity: isSelf ? 0.4 : 1 }}
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {modal && (
         <div
           role="dialog"
           aria-modal="true"
-          aria-label={modal.mode === 'create' ? 'Tambah User' : 'Edit User'}
+          aria-label={modal.mode === 'create' ? t.users.addUserTitle : t.users.editUser}
           onClick={closeModal}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--space-4)', zIndex: 50 }}
         >
@@ -218,16 +220,16 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
             style={{ width: '100%', maxWidth: '440px', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}
           >
             <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>
-              {modal.mode === 'create' ? 'Tambah User' : 'Edit User'}
+              {modal.mode === 'create' ? t.users.addUserTitle : t.users.editUser}
             </h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-              <label htmlFor={nameId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Nama <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+              <label htmlFor={nameId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{t.users.name} <span style={{ color: 'var(--color-danger)' }}>*</span></label>
               <input id={nameId} type="text" className="input" value={formData.name} onChange={(e) => setField('name', e.target.value)} required />
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-              <label htmlFor={emailId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Email <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+              <label htmlFor={emailId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{t.users.email} <span style={{ color: 'var(--color-danger)' }}>*</span></label>
               <input
                 id={emailId}
                 type="email"
@@ -236,13 +238,15 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
                 onChange={(e) => setField('email', e.target.value)}
                 required
                 disabled={modal.mode === 'edit'}
-                title={modal.mode === 'edit' ? 'Email tidak dapat diubah' : undefined}
+                title={modal.mode === 'edit' ? t.users.emailCannotChange : undefined}
               />
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
               <label htmlFor={passwordId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>
-                Password {modal.mode === 'create' ? <span style={{ color: 'var(--color-danger)' }}>*</span> : <span style={{ fontWeight: 400, color: 'var(--color-text-muted)' }}>(kosongkan jika tak diubah)</span>}
+                {t.users.password} {modal.mode === 'create'
+                  ? <span style={{ color: 'var(--color-danger)' }}>*</span>
+                  : <span style={{ fontWeight: 400, color: 'var(--color-text-muted)' }}>{t.users.passwordHint}</span>}
               </label>
               <input
                 id={passwordId}
@@ -252,29 +256,29 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
                 onChange={(e) => setField('password', e.target.value)}
                 required={modal.mode === 'create'}
                 minLength={8}
-                placeholder="Minimal 8 karakter"
+                placeholder={t.users.passwordPlaceholder}
                 autoComplete="new-password"
               />
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-              <label htmlFor={roleId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Role <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+              <label htmlFor={roleId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{t.users.role} <span style={{ color: 'var(--color-danger)' }}>*</span></label>
               <select id={roleId} className="input" value={formData.role} onChange={(e) => setFormData((prev) => ({ ...prev, role: e.target.value as Role }))} required>
                 {ROLE_VALUES.map((r) => (
                   <option key={r} value={r}>{ROLE_LABELS[r]}</option>
                 ))}
               </select>
               <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-                Admin: akses semua menu. Cashier: hanya Dashboard &amp; Penjualan.
+                {t.users.roleHint}
               </span>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
               <button type="button" className="btn btn--ghost" onClick={closeModal} disabled={submitting} style={{ padding: 'var(--space-2) var(--space-4)' }}>
-                Batal
+                {t.common.cancel}
               </button>
               <button type="submit" className="btn" disabled={submitting} style={{ padding: 'var(--space-2) var(--space-4)' }}>
-                {submitting ? 'Menyimpan...' : 'Simpan'}
+                {submitting ? t.common.saving : t.common.save}
               </button>
             </div>
           </form>

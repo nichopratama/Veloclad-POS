@@ -11,6 +11,7 @@ import { useDebounce } from '@/components/pos/useDebounce';
 import { formatIDRFromString } from '@/components/pos/format';
 import { EntityFormModal } from './EntityFormModal';
 import { SkeletonRows } from '@/components/ui/Skeleton';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 interface EntityManagerProps {
   config: EntityConfig;
@@ -20,6 +21,7 @@ interface EntityManagerProps {
 export function EntityManager({ config, role }: EntityManagerProps) {
   const [page, setPage] = useState(1);
   const [localSearch, setLocalSearch] = useState('');
+  const { t } = useLocale();
   const search = useDebounce(localSearch, 300);
 
   const [formState, setFormState] = useState<{ isOpen: boolean; initialData: EntityRow | null }>({ isOpen: false, initialData: null });
@@ -50,7 +52,7 @@ export function EntityManager({ config, role }: EntityManagerProps) {
   const canDelete = isAdmin(role);
 
   const handleDelete = async (id: number | string) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus data ini?')) return;
+    if (!confirm(t.common.deleteConfirm)) return;
     setDeleteError('');
     try {
       await apiMutate(`${config.endpoint}/${id}`, 'DELETE');
@@ -58,12 +60,12 @@ export function EntityManager({ config, role }: EntityManagerProps) {
     } catch (err: unknown) {
       if (err instanceof FetchError) {
         if (err.status === 400 && err.message.toLowerCase().includes('referenced')) {
-          setDeleteError('Data tidak dapat dihapus karena masih digunakan di transaksi atau tabel lain.');
+          setDeleteError(t.library.cannotDelete);
         } else {
           setDeleteError(err.message);
         }
       } else {
-        setDeleteError('Terjadi kesalahan yang tidak diketahui');
+        setDeleteError(t.common.unknownError);
       }
     }
   };
@@ -78,8 +80,8 @@ export function EntityManager({ config, role }: EntityManagerProps) {
       {deleteError && (
         <div style={{ padding: 'var(--space-3)', background: 'var(--color-danger)', color: 'white', borderRadius: 'var(--radius-sm)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-             <span>{deleteError}</span>
-             <button onClick={() => setDeleteError('')} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', padding: '0 var(--space-2)' }}>✕</button>
+            <span>{deleteError}</span>
+            <button onClick={() => setDeleteError('')} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', padding: '0 var(--space-2)' }}>✕</button>
           </div>
         </div>
       )}
@@ -90,8 +92,8 @@ export function EntityManager({ config, role }: EntityManagerProps) {
             <input
               type="text"
               className="input"
-              placeholder={`Cari ${config.label}...`}
-              aria-label={`Cari ${config.label}`}
+              placeholder={t.library.search(config.label)}
+              aria-label={t.library.searchLabel(config.label)}
               value={localSearch}
               onChange={handleSearchChange}
             />
@@ -100,7 +102,7 @@ export function EntityManager({ config, role }: EntityManagerProps) {
         <div>
           {canMutate && (
             <button className="btn" onClick={() => setFormState({ isOpen: true, initialData: null })}>
-              + Tambah {config.label}
+              {t.library.add(config.label)}
             </button>
           )}
         </div>
@@ -109,7 +111,7 @@ export function EntityManager({ config, role }: EntityManagerProps) {
       <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
         {error ? (
           <div style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--color-danger)' }}>
-            Gagal memuat data: {error.message}
+            {t.common.loadError}: {error.message}
           </div>
         ) : isLoading ? (
           <SkeletonRows rows={8} cols={5} />
@@ -120,7 +122,7 @@ export function EntityManager({ config, role }: EntityManagerProps) {
                 {config.fields.filter(f => f.showInTable).map(f => (
                   <th key={f.key} style={{ padding: 'var(--space-3) var(--space-4)' }}>{f.label}</th>
                 ))}
-                <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>Aksi</th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>{t.common.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -133,7 +135,9 @@ export function EntityManager({ config, role }: EntityManagerProps) {
                     if (f.type === 'money') {
                       display = <span className="money">{formatIDRFromString(String(val ?? 0))}</span>;
                     } else if (f.type === 'checkbox') {
-                      display = val ? <span style={{ color: 'var(--color-success)', fontWeight: 600 }}>Aktif</span> : <span style={{ color: 'var(--color-text-muted)' }}>Nonaktif</span>;
+                      display = val
+                        ? <span style={{ color: 'var(--color-success)', fontWeight: 600 }}>{t.common.active}</span>
+                        : <span style={{ color: 'var(--color-text-muted)' }}>{t.common.inactive}</span>;
                     } else if (f.type === 'select') {
                       const nestedObjKey = f.optionsEndpoint?.split('/').pop();
                       const nested = nestedObjKey ? (row[nestedObjKey] as Record<string, unknown> | null | undefined) : undefined;
@@ -151,12 +155,12 @@ export function EntityManager({ config, role }: EntityManagerProps) {
                   <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'center' }}>
                       {canMutate && (
-                        <button className="hover:scale-110 transition-transform p-1 text-[var(--color-accent)]" onClick={() => setFormState({ isOpen: true, initialData: row })} title="Edit">
+                        <button className="hover:scale-110 transition-transform p-1 text-[var(--color-accent)]" onClick={() => setFormState({ isOpen: true, initialData: row })} title={t.common.edit}>
                           <Pencil size={18} />
                         </button>
                       )}
                       {canDelete && (
-                        <button className="hover:scale-110 transition-transform p-1 text-[var(--color-danger)]" onClick={() => handleDelete(row.id)} title="Hapus">
+                        <button className="hover:scale-110 transition-transform p-1 text-[var(--color-danger)]" onClick={() => handleDelete(row.id)} title={t.common.delete}>
                           <Trash2 size={18} />
                         </button>
                       )}
@@ -167,34 +171,26 @@ export function EntityManager({ config, role }: EntityManagerProps) {
               {items.length === 0 && (
                 <tr>
                   <td colSpan={config.fields.filter(f => f.showInTable).length + 1} style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-                    Belum ada data
+                    {t.common.noData}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         )}
-        
+
         {config.paginated && pagination && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-4)', borderTop: '1px solid var(--color-border)' }}>
             <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>
-              Total {pagination.total} baris
+              {t.common.totalRows(pagination.total)}
             </div>
             <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-              <button 
-                className="btn btn--ghost" 
-                disabled={page <= 1} 
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-              >
-                Prev
+              <button className="btn btn--ghost" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+                {t.common.prev}
               </button>
               <span style={{ margin: '0 var(--space-2)' }}>{page} / {pagination.totalPages || 1}</span>
-              <button 
-                className="btn btn--ghost" 
-                disabled={page >= pagination.totalPages} 
-                onClick={() => setPage(p => p + 1)}
-              >
-                Next
+              <button className="btn btn--ghost" disabled={page >= pagination.totalPages} onClick={() => setPage(p => p + 1)}>
+                {t.common.next}
               </button>
             </div>
           </div>

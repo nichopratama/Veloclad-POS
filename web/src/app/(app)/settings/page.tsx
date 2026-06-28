@@ -1,9 +1,9 @@
 import { requireAdminPage } from '@/lib/rbac';
 import { SettingsForm } from '@/components/settings/SettingsForm';
 import { UnderConstruction } from '@/components/ui/UnderConstruction';
+import { SettingsPageTitle } from '@/components/settings/SettingsPageTitle';
 
 export default async function SettingsPage(props: { searchParams: Promise<{ tab?: string }> }) {
-  // Guard server: non-admin (kasir) yang membuka /settings via URL → ditendang ke beranda.
   const session = await requireAdminPage();
   const role = session.user.role ?? 'kasir';
 
@@ -11,9 +11,7 @@ export default async function SettingsPage(props: { searchParams: Promise<{ tab?
 
   return (
     <div style={{ padding: 'var(--space-6)' }}>
-      <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 800, marginBottom: 'var(--space-6)', textAlign: 'center' }}>
-        {sp.tab === 'receipts' ? 'Receipts' : 'Pengaturan Toko'}
-      </h1>
+      <SettingsPageTitle tab={sp.tab} />
       {sp.tab === 'receipts' ? (
         <UnderConstruction />
       ) : (

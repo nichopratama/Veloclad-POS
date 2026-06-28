@@ -7,6 +7,7 @@ import { Adjustment, FlatResponse } from './types';
 import { AdjustmentFormModal } from './AdjustmentFormModal';
 import { isAdmin } from '@/lib/roles';
 import { SkeletonRows } from '@/components/ui/Skeleton';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 interface AdjustmentsTabProps {
   role: string;
@@ -14,6 +15,7 @@ interface AdjustmentsTabProps {
 
 export function AdjustmentsTab({ role }: AdjustmentsTabProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { t } = useLocale();
 
   const { data, error, isLoading, mutate } = useSWR<FlatResponse<Adjustment>>('/api/inventory/adjustments', fetcher);
   const items = data?.data || [];
@@ -25,7 +27,7 @@ export function AdjustmentsTab({ role }: AdjustmentsTabProps) {
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         {canWrite && (
           <button className="btn" onClick={() => setIsModalOpen(true)}>
-            + Penyesuaian
+            {t.inventory.addAdjustment}
           </button>
         )}
       </div>
@@ -33,7 +35,7 @@ export function AdjustmentsTab({ role }: AdjustmentsTabProps) {
       <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
         {error ? (
           <div style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--color-danger)' }}>
-            Gagal memuat data: {error instanceof Error ? error.message : 'Error tidak diketahui'}
+            {t.common.loadError}: {error instanceof Error ? error.message : t.common.unknownError}
           </div>
         ) : isLoading ? (
           <SkeletonRows rows={8} cols={5} />
@@ -41,19 +43,19 @@ export function AdjustmentsTab({ role }: AdjustmentsTabProps) {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>Item</th>
-                <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>Perubahan Qty</th>
-                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>Alasan</th>
-                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>Catatan</th>
-                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>Oleh</th>
-                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>Tanggal</th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.adjustments.item}</th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>{t.adjustments.qtyChange}</th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.adjustments.reason}</th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.adjustments.notes}</th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.adjustments.by}</th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.adjustments.date}</th>
               </tr>
             </thead>
             <tbody>
               {items.map((row) => {
                 const isPositive = row.qty_change > 0;
                 const isNegative = row.qty_change < 0;
-                
+
                 let qtyColor = 'inherit';
                 let qtySign = '';
                 if (isPositive) { qtyColor = 'var(--color-success)'; qtySign = '+'; }
@@ -75,7 +77,7 @@ export function AdjustmentsTab({ role }: AdjustmentsTabProps) {
               {items.length === 0 && (
                 <tr>
                   <td colSpan={6} style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-                    Belum ada penyesuaian stok
+                    {t.inventory.noAdjustments}
                   </td>
                 </tr>
               )}

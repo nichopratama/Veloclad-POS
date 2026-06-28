@@ -18,6 +18,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { isAdmin } from '@/lib/roles';
+import { useLocale } from '@/lib/i18n/LocaleContext';
+import type { TranslationKeys } from '@/lib/i18n/translations';
 import styles from './Sidebar.module.css';
 
 type SubItem = { label: string; href: string };
@@ -25,68 +27,64 @@ type NavGroup = {
   label: string;
   icon: LucideIcon;
   adminOnly?: boolean;
-  href?: string; // single link (tanpa submenu)
-  sub?: SubItem[]; // submenu collapsible
+  href?: string;
+  sub?: SubItem[];
 };
 
-// Struktur menu diselaraskan dengan aplikasi lama, tapi rute dipetakan ke skema
-// app baru (tab via ?tab=). Role-gating dipertahankan: kasir tak lihat menu admin
-// (ini hanya UX — RBAC server tetap penjaga sebenarnya).
-const NAV: NavGroup[] = [
-  { label: 'Dashboard', icon: LayoutDashboard, href: '/' },
-  { label: 'Cashier POS', icon: ShoppingCart, href: '/pos' },
-  {
-    label: 'Purchase Order',
-    icon: Truck,
-    adminOnly: true,
-    sub: [
-      { label: 'Purchase Orders List', href: '/inventory?tab=po' },
-      { label: 'Suppliers List', href: '/library?tab=suppliers' },
-    ],
-  },
-  {
-    label: 'Inventory',
-    icon: Package,
-    adminOnly: true,
-    sub: [
-      { label: 'Stock Details', href: '/inventory?tab=stock' },
-      { label: 'Stock Adjustments', href: '/inventory?tab=adjustments' },
-      { label: 'Categories', href: '/library?tab=categories' },
-      { label: 'Bundle Packages', href: '/inventory?tab=bundles' },
-    ],
-  },
-  {
-    label: 'Reports',
-    icon: BarChart,
-    adminOnly: true,
-    sub: [
-      { label: 'Sales Dynamic Data', href: '/reports?tab=dynamic' },
-      { label: 'Transactions', href: '/sales' },
-    ],
-  },
-  {
-    label: 'Customers',
-    icon: Users,
-    adminOnly: true,
-    sub: [
-      { label: 'Customers List', href: '/library?tab=customers' },
-      { label: 'Customer Loyalty Programs', href: '/customers?tab=loyalty' },
-    ],
-  },
-  {
-    label: 'Settings',
-    icon: Settings,
-    adminOnly: true,
-    sub: [
-      { label: 'Account Info', href: '/settings' },
-      { label: 'Users Management', href: '/settings/users' },
-      { label: 'Taxes', href: '/library?tab=taxes' },
-      { label: 'Discounts', href: '/library?tab=discounts' },
-      { label: 'Payment Methods', href: '/library?tab=payment-types' },
-      { label: 'Receipts', href: '/settings?tab=receipts' },
-    ],
-  },
-];
+function buildNav(t: TranslationKeys): NavGroup[] {
+  const n = t.nav;
+  return [
+    { label: n.dashboard, icon: LayoutDashboard, href: '/' },
+    { label: n.cashierPos, icon: ShoppingCart, href: '/pos' },
+    {
+      label: n.purchaseOrder,
+      icon: Truck,
+      adminOnly: true,
+      sub: [
+        { label: n.purchaseOrdersList, href: '/inventory?tab=po' },
+        { label: n.suppliersList, href: '/library?tab=suppliers' },
+      ],
+    },
+    {
+      label: n.inventory,
+      icon: Package,
+      adminOnly: true,
+      sub: [
+        { label: n.stockDetails, href: '/inventory?tab=stock' },
+        { label: n.stockAdjustments, href: '/inventory?tab=adjustments' },
+        { label: n.categories, href: '/library?tab=categories' },
+        { label: n.bundlePackages, href: '/inventory?tab=bundles' },
+      ],
+    },
+    {
+      label: n.reports,
+      icon: BarChart,
+      adminOnly: true,
+      sub: [
+        { label: n.salesDynamic, href: '/reports?tab=dynamic' },
+        { label: n.transactions, href: '/sales' },
+      ],
+    },
+    {
+      label: n.customers,
+      icon: Users,
+      adminOnly: true,
+      sub: [
+        { label: n.customersList, href: '/library?tab=customers' },
+        { label: n.loyaltyPrograms, href: '/customers?tab=loyalty' },
+      ],
+    },
+    {
+      label: n.settings,
+      icon: Settings,
+      adminOnly: true,
+      sub: [
+        { label: n.generalSettings, href: '/settings' },
+        { label: n.userManagement, href: '/settings/users' },
+      ],
+    },
+  ];
+}
 
 const DEFAULT_TAB: Record<string, string> = { 
   '/inventory': 'stock', 
@@ -116,8 +114,9 @@ export function Sidebar({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+  const { t } = useLocale();
 
-  const items = NAV.filter((i) => !i.adminOnly || isAdmin(role));
+  const items = buildNav(t).filter((i) => !i.adminOnly || isAdmin(role));
 
   const isSubActive = (href: string): boolean => {
     const { path, tab } = parseHref(href);

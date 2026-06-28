@@ -3,6 +3,7 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { LocaleProvider } from '@/lib/i18n/LocaleContext';
 import styles from './AppShell.module.css';
 
 export function AppShell({
@@ -34,27 +35,29 @@ export function AppShell({
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
-      <div className="print:hidden">
-        <Sidebar
-          role={role}
-          tenantName={tenantName}
-          isOpen={isSidebarOpen}
-          setIsOpen={setIsSidebarOpen}
-        />
-      </div>
-      <div className={`${styles.mainContent} ${!isSidebarOpen ? styles.mainContentCollapsed : ''}`}>
+    <LocaleProvider>
+      <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
         <div className="print:hidden">
-          <Header 
-            userName={userName} 
-            role={role} 
-            toggleSidebar={toggleSidebar} 
+          <Sidebar
+            role={role}
+            tenantName={tenantName}
+            isOpen={isSidebarOpen}
+            setIsOpen={setIsSidebarOpen}
           />
         </div>
-        <main style={{ flex: 1, padding: 'var(--space-6)' }} className="print:p-0 print:m-0">
-          {children}
-        </main>
+        <div className={`${styles.mainContent} ${!isSidebarOpen ? styles.mainContentCollapsed : ''}`}>
+          <div className="print:hidden">
+            <Header
+              userName={userName}
+              role={role}
+              toggleSidebar={toggleSidebar}
+            />
+          </div>
+          <main style={{ flex: 1, padding: 'var(--space-6)' }} className="print:p-0 print:m-0">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </LocaleProvider>
   );
 }

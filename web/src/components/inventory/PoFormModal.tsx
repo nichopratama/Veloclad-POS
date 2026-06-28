@@ -3,6 +3,7 @@ import useSWR from 'swr';
 import { fetcher, apiMutate, FetchError } from '@/lib/fetcher';
 import { Supplier, PickItem, PaginatedResponse, FlatResponse } from './types';
 import { formatIDRFromString } from '@/components/pos/format';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 interface PoFormModalProps {
   onClose: () => void;
@@ -10,14 +11,15 @@ interface PoFormModalProps {
 }
 
 export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
+  const { t } = useLocale();
   const [supplierId, setSupplierId] = useState('');
   const [notes, setNotes] = useState('');
-  
+
   const [items, setItems] = useState<{ id: string; item_id: string; item_name: string; qty: string; cost: string }[]>([]);
-  
+
   const [itemSearch, setItemSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -40,7 +42,7 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
   const handleAddItem = (pickItem: PickItem) => {
     setItems(prev => [
       ...prev,
-      { id: Math.random().toString(), item_id: String(pickItem.id), item_name: pickItem.name, qty: '1', cost: '0' }
+      { id: Math.random().toString(), item_id: String(pickItem.id), item_name: pickItem.name, qty: '1', cost: '0' },
     ]);
     setItemSearch('');
   };
@@ -62,11 +64,11 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!supplierId) {
-      setErrorMsg('Pilih supplier terlebih dahulu.');
+      setErrorMsg(t.common.supplier + ' ' + t.common.optional);
       return;
     }
     if (items.length === 0) {
-      setErrorMsg('Tambahkan minimal 1 item.');
+      setErrorMsg(t.inventory.noItemAdded);
       return;
     }
 
@@ -76,8 +78,8 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
       items: items.map(it => ({
         item_id: Number(it.item_id),
         qty: Number(it.qty),
-        cost: Number(it.cost)
-      }))
+        cost: Number(it.cost),
+      })),
     };
 
     setIsSubmitting(true);
@@ -89,12 +91,12 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
     } catch (err: unknown) {
       if (err instanceof FetchError) {
         if (err.status === 401 || err.status === 403) {
-          setErrorMsg('Sesi tidak valid / akses ditolak');
+          setErrorMsg(t.common.sessionInvalid);
         } else {
           setErrorMsg(err.message);
         }
       } else {
-        setErrorMsg('Terjadi kesalahan yang tidak diketahui');
+        setErrorMsg(t.common.unknownError);
       }
       setIsSubmitting(false);
     }
@@ -104,8 +106,8 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
     <div role="dialog" aria-modal="true" style={{ position: 'fixed', inset: 0, background: 'oklch(20% 0.02 262 / 0.45)', display: 'grid', placeItems: 'center', padding: 'var(--space-4)', zIndex: 50 }}>
       <div className="card" style={{ width: 'min(100%, 700px)', maxHeight: '90vh', display: 'flex', flexDirection: 'column', padding: 0, boxShadow: 'var(--shadow)' }}>
         <div style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 800 }}>Buat Purchase Order</h2>
-          <button type="button" className="btn btn--ghost" onClick={onClose} style={{ minHeight: '32px', padding: '0 var(--space-2)' }}>Tutup</button>
+          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 800 }}>{t.inventory.createPurchaseOrder}</h2>
+          <button type="button" className="btn btn--ghost" onClick={onClose} style={{ minHeight: '32px', padding: '0 var(--space-2)' }}>{t.common.close}</button>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
@@ -115,30 +117,30 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
                 {errorMsg}
               </div>
             )}
-            
+
             <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-                <label htmlFor={supplierFieldId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Supplier <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+                <label htmlFor={supplierFieldId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{t.common.supplier} <span style={{ color: 'var(--color-danger)' }}>*</span></label>
                 <select id={supplierFieldId} className="input" value={supplierId} onChange={(e) => setSupplierId(e.target.value)} required>
-                  <option value="" disabled>- Pilih Supplier -</option>
+                  <option value="" disabled>- {t.common.supplier} -</option>
                   {suppliers.map(s => <option key={s.id} value={String(s.id)}>{s.name}</option>)}
                 </select>
               </div>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-                <label htmlFor={notesFieldId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Catatan Tambahan</label>
-                <input id={notesFieldId} type="text" className="input" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opsional" />
+                <label htmlFor={notesFieldId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{t.inventory.additionalNotes}</label>
+                <input id={notesFieldId} type="text" className="input" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t.common.optional} />
               </div>
             </div>
 
             <div style={{ borderTop: '1px solid var(--color-border)', margin: 'var(--space-2) 0', paddingTop: 'var(--space-4)' }}>
-              <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 700, marginBottom: 'var(--space-2)' }}>Item PO</h3>
-              
+              <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 700, marginBottom: 'var(--space-2)' }}>{t.inventory.poItems}</h3>
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
                 <input
                   type="text"
                   className="input"
-                  placeholder="Cari item untuk ditambahkan..."
-                  aria-label="Cari item PO"
+                  placeholder={t.inventory.searchItemPo}
+                  aria-label={t.inventory.searchItemPoLabel}
                   value={itemSearch}
                   onChange={(e) => setItemSearch(e.target.value)}
                 />
@@ -150,7 +152,7 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
                         {p.name}
                       </div>
                     ))}
-                    {pickItems.length === 0 && <div style={{ padding: 'var(--space-2) var(--space-3)', color: 'var(--color-text-muted)' }}>Tidak ditemukan</div>}
+                    {pickItems.length === 0 && <div style={{ padding: 'var(--space-2) var(--space-3)', color: 'var(--color-text-muted)' }}>{t.inventory.noItemFound}</div>}
                   </div>
                 )}
               </div>
@@ -158,9 +160,9 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--color-border)', fontSize: 'var(--text-sm)' }}>
-                    <th style={{ padding: 'var(--space-2) 0' }}>Item</th>
-                    <th style={{ padding: 'var(--space-2) 0', width: '80px' }}>Qty</th>
-                    <th style={{ padding: 'var(--space-2) 0', width: '150px' }}>Harga Satuan</th>
+                    <th style={{ padding: 'var(--space-2) 0' }}>{t.common.name}</th>
+                    <th style={{ padding: 'var(--space-2) 0', width: '80px' }}>{t.common.quantity}</th>
+                    <th style={{ padding: 'var(--space-2) 0', width: '150px' }}>{t.inventory.unitPrice}</th>
                     <th style={{ padding: 'var(--space-2) 0', width: '50px' }}></th>
                   </tr>
                 </thead>
@@ -172,17 +174,17 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
                         <input type="number" className="input" value={it.qty} onChange={(e) => updateItem(it.id, 'qty', e.target.value)} required min="1" aria-label={`Qty ${it.item_name}`} style={{ padding: 'var(--space-1) var(--space-2)' }} />
                       </td>
                       <td style={{ padding: 'var(--space-2) var(--space-2) var(--space-2) 0' }}>
-                        <input 
-                          type="text" 
-                          className="input" 
-                          value={it.cost ? Number(it.cost).toLocaleString('id-ID') : ''} 
+                        <input
+                          type="text"
+                          className="input"
+                          value={it.cost ? Number(it.cost).toLocaleString('id-ID') : ''}
                           onChange={(e) => {
                             const raw = e.target.value.replace(/\D/g, '');
                             updateItem(it.id, 'cost', raw);
-                          }} 
-                          required 
-                          aria-label={`Harga satuan ${it.item_name}`} 
-                          style={{ padding: 'var(--space-1) var(--space-2)' }} 
+                          }}
+                          required
+                          aria-label={`${t.inventory.unitPrice} ${it.item_name}`}
+                          style={{ padding: 'var(--space-1) var(--space-2)' }}
                         />
                       </td>
                       <td style={{ padding: 'var(--space-2) 0', textAlign: 'right' }}>
@@ -192,21 +194,21 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
                   ))}
                   {items.length === 0 && (
                     <tr>
-                      <td colSpan={4} style={{ padding: 'var(--space-4) 0', textAlign: 'center', color: 'var(--color-text-muted)' }}>Belum ada item ditambahkan</td>
+                      <td colSpan={4} style={{ padding: 'var(--space-4) 0', textAlign: 'center', color: 'var(--color-text-muted)' }}>{t.inventory.noItemAdded}</td>
                     </tr>
                   )}
                 </tbody>
               </table>
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-4)', fontSize: 'var(--text-lg)' }}>
-                <strong>Total Estimasi: <span className="money">{formatIDRFromString(String(previewTotal))}</span></strong>
+                <strong>{t.inventory.estimatedTotal} <span className="money">{formatIDRFromString(String(previewTotal))}</span></strong>
               </div>
             </div>
           </div>
 
           <div style={{ padding: 'var(--space-4)', borderTop: '1px solid var(--color-border)', display: 'flex', gap: 'var(--space-3)' }}>
-            <button type="button" className="btn btn--ghost" style={{ flex: 1 }} onClick={onClose}>Batal</button>
+            <button type="button" className="btn btn--ghost" style={{ flex: 1 }} onClick={onClose}>{t.common.cancel}</button>
             <button type="submit" className="btn" style={{ flex: 1 }} disabled={isSubmitting}>
-              {isSubmitting ? 'Menyimpan...' : 'Simpan PO'}
+              {isSubmitting ? t.common.saving : t.inventory.savePo}
             </button>
           </div>
         </form>

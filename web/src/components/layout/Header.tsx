@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Menu, Globe, Bell, User } from 'lucide-react';
 import { signOut } from '@/lib/auth-client';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 import styles from './Header.module.css';
 
 export function Header({
@@ -17,15 +18,11 @@ export function Header({
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const [lang, setLang] = useState('ID');
-
-  const handleToggleLang = () => {
-    setLang(lang === 'ID' ? 'EN' : 'ID');
-  };
+  const { locale, t, toggleLocale } = useLocale();
 
   async function handleLogout() {
     if (busy) return;
-    if (!window.confirm('Keluar dari akun?')) return;
+    if (!window.confirm(t.header.logoutConfirm)) return;
     setBusy(true);
     await signOut();
     router.replace('/login');
@@ -46,9 +43,9 @@ export function Header({
       </div>
 
       <div className={styles.right}>
-        <button className={styles.iconBtn} onClick={handleToggleLang}>
+        <button className={styles.iconBtn} onClick={toggleLocale} aria-label="Toggle language">
           <Globe size={20} />
-          <span className={styles.langText}>{lang}</span>
+          <span className={styles.langText}>{locale.toUpperCase()}</span>
         </button>
 
         <button className={styles.iconBtn}>
@@ -61,8 +58,8 @@ export function Header({
           className={styles.userBlock}
           onClick={handleLogout}
           disabled={busy}
-          aria-label={`Keluar dari akun ${userName}`}
-          title={busy ? 'Keluar…' : 'Klik untuk keluar'}
+          aria-label={`${t.header.logout} ${userName}`}
+          title={busy ? t.header.loggingOut : t.header.clickToLogout}
         >
           <div className={styles.userAvatar}>
             <User size={20} />

@@ -2,6 +2,7 @@
 
 import { formatIDRFromString } from './format';
 import type { TransactionReceipt } from './types';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 type Props = {
   transactionId: string;
@@ -9,25 +10,23 @@ type Props = {
   onNew: () => void;
 };
 
-/**
- * Modal struk. Angka diambil dari response.receipt (otoritatif server),
- * BUKAN hitungan klien. Cetak via window.print() pada area #receipt-print.
- */
 export function ReceiptModal({ transactionId, receipt, onNew }: Props) {
+  const { t } = useLocale();
+
   const rows: { label: string; value: string; strong?: boolean }[] = [
-    { label: 'Subtotal', value: formatIDRFromString(receipt.subtotal) },
-    { label: 'Diskon', value: formatIDRFromString(receipt.discount_amount) },
-    { label: 'Pajak', value: formatIDRFromString(receipt.tax_amount) },
-    { label: 'Total', value: formatIDRFromString(receipt.total), strong: true },
-    { label: 'Bayar', value: formatIDRFromString(receipt.payment_amount) },
-    { label: 'Kembalian', value: formatIDRFromString(receipt.change_amount), strong: true },
+    { label: t.pos.subtotal, value: formatIDRFromString(receipt.subtotal) },
+    { label: t.pos.discount, value: formatIDRFromString(receipt.discount_amount) },
+    { label: t.pos.tax, value: formatIDRFromString(receipt.tax_amount) },
+    { label: t.common.total, value: formatIDRFromString(receipt.total), strong: true },
+    { label: t.pos.paymentAmount, value: formatIDRFromString(receipt.payment_amount) },
+    { label: t.pos.change, value: formatIDRFromString(receipt.change_amount), strong: true },
   ];
 
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Struk transaksi"
+      aria-label={t.pos.receipt}
       style={{
         position: 'fixed',
         inset: 0,
@@ -52,11 +51,8 @@ export function ReceiptModal({ transactionId, receipt, onNew }: Props) {
           style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}
         >
           <div style={{ textAlign: 'center', marginBottom: 'var(--space-2)' }}>
-            <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 800 }}>Transaksi Berhasil</h2>
-            <p
-              className="money"
-              style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}
-            >
+            <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 800 }}>{t.pos.transactionSuccess}</h2>
+            <p className="money" style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
               {transactionId}
             </p>
           </div>
@@ -107,16 +103,11 @@ export function ReceiptModal({ transactionId, receipt, onNew }: Props) {
           className="receipt-actions"
           style={{ display: 'flex', gap: 'var(--space-3)', marginTop: 'var(--space-6)' }}
         >
-          <button
-            type="button"
-            className="btn btn--ghost"
-            style={{ flex: 1 }}
-            onClick={() => window.print()}
-          >
-            Cetak
+          <button type="button" className="btn btn--ghost" style={{ flex: 1 }} onClick={() => window.print()}>
+            {t.pos.print}
           </button>
           <button type="button" className="btn" style={{ flex: 1 }} onClick={onNew}>
-            Transaksi Baru
+            {t.pos.newTransaction}
           </button>
         </div>
       </div>

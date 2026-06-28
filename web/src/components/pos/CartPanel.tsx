@@ -6,6 +6,7 @@ import { ShoppingCart, Trash2, Tag } from 'lucide-react';
 import { lineSubtotal, type CartAction } from './cartReducer';
 import { formatIDR } from './format';
 import type { CartLine, Customer, ListResponse, PaymentType } from './types';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 import styles from './CartPanel.module.css';
 
 type Props = {
@@ -47,6 +48,7 @@ export function CartPanel(props: Props) {
     onPay,
   } = props;
 
+  const { t } = useLocale();
   const [discountVisibleIds, setDiscountVisibleIds] = useState<Record<number, boolean>>({});
 
   const { data: customersData } = useSWR<ListResponse<Customer>>('/api/library/customers');
@@ -64,18 +66,16 @@ export function CartPanel(props: Props) {
   };
 
   return (
-    <section className={`card ${styles.cartPanel}`} aria-label="Keranjang dan pembayaran" style={{ padding: 0 }}>
-      {/* Header */}
+    <section className={`card ${styles.cartPanel}`} aria-label={t.pos.cartLabel} style={{ padding: 0 }}>
       <div className={styles.cartHeader}>
         <ShoppingCart size={20} />
-        <h2>Keranjang ({lines.length})</h2>
+        <h2>{t.pos.cart} ({lines.length})</h2>
       </div>
 
-      {/* Cart lines */}
       <div className={styles.cartItems}>
         {lines.length === 0 ? (
           <div className={styles.emptyCart}>
-            Keranjang masih kosong. Pilih produk dari panel kiri.
+            {t.pos.emptyCart}
           </div>
         ) : (
           lines.map((line) => (
@@ -89,20 +89,20 @@ export function CartPanel(props: Props) {
 
               <div className={styles.cartItemActions}>
                 <div className={styles.qtyControl}>
-                  <button 
+                  <button
                     type="button"
-                    className={styles.qtyBtn} 
+                    className={styles.qtyBtn}
                     onClick={() => dispatch({ type: 'setQty', id: line.id, qty: line.qty - 1 })}
-                    aria-label={`Kurangi qty ${line.name}`}
+                    aria-label={t.pos.reduceQty(line.name)}
                   >
                     −
                   </button>
                   <span className={styles.qtyValue}>{line.qty}</span>
-                  <button 
+                  <button
                     type="button"
-                    className={styles.qtyBtn} 
+                    className={styles.qtyBtn}
                     onClick={() => dispatch({ type: 'setQty', id: line.id, qty: line.qty + 1 })}
-                    aria-label={`Tambah qty ${line.name}`}
+                    aria-label={t.pos.increaseQty(line.name)}
                   >
                     +
                   </button>
@@ -113,8 +113,8 @@ export function CartPanel(props: Props) {
                     type="button"
                     className={`${styles.iconBtn} ${discountVisibleIds[line.id] ? styles.active : ''}`}
                     onClick={() => toggleDiscount(line.id)}
-                    aria-label={`Diskon ${line.name}`}
-                    title="Atur Diskon"
+                    aria-label={t.pos.discountItem(line.name)}
+                    title={t.pos.setDiscount}
                   >
                     <Tag size={16} />
                   </button>
@@ -122,8 +122,8 @@ export function CartPanel(props: Props) {
                     type="button"
                     className={`${styles.iconBtn} ${styles.danger}`}
                     onClick={() => dispatch({ type: 'remove', id: line.id })}
-                    aria-label={`Hapus ${line.name}`}
-                    title="Hapus Item"
+                    aria-label={t.pos.deleteItem(line.name)}
+                    title={t.common.delete}
                   >
                     <Trash2 size={16} />
                   </button>
@@ -132,7 +132,7 @@ export function CartPanel(props: Props) {
 
               {discountVisibleIds[line.id] && (
                 <div className={styles.discountRow}>
-                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>Diskon (Rp):</span>
+                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>{t.pos.discountRp}</span>
                   <input
                     className="input"
                     type="number"
@@ -149,38 +149,36 @@ export function CartPanel(props: Props) {
         )}
       </div>
 
-      {/* Checkout Panel */}
       <div className={styles.checkoutPanel}>
         <div className={styles.summaryRow}>
-          <span>Subtotal</span>
+          <span>{t.pos.subtotal}</span>
           <span className="money">{formatIDR(subtotal)}</span>
         </div>
         {discountTotal > 0 && (
           <div className={styles.summaryRow}>
-            <span>Total Diskon</span>
+            <span>{t.pos.totalDiscount}</span>
             <span className="money">-{formatIDR(discountTotal)}</span>
           </div>
         )}
         <div className={styles.summaryRow}>
-          <span>Pajak</span>
-          <span style={{ fontStyle: 'italic' }}>dihitung server</span>
+          <span>{t.pos.tax}</span>
+          <span style={{ fontStyle: 'italic' }}>{t.pos.taxServerCalc}</span>
         </div>
-        
+
         <div className={styles.totalRow}>
-          <span>Total Bayar</span>
+          <span>{t.pos.grandTotal}</span>
           <span className="money">{formatIDR(total)}</span>
         </div>
 
         <div className={styles.paymentForm}>
-          {/* Customer select (Optional) */}
-          <span className={styles.paymentLabel}>Pelanggan (opsional)</span>
+          <span className={styles.paymentLabel}>{t.pos.customerOptional}</span>
           <select
             className="input"
             value={customerId ?? ''}
             onChange={(e) => onCustomerChange(e.target.value ? Number(e.target.value) : null)}
             style={{ marginBottom: 'var(--space-2)' }}
           >
-            <option value="">Tanpa pelanggan</option>
+            <option value="">{t.pos.noCustomer}</option>
             {customers.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name} {c.phone ? `— ${c.phone}` : ''}
@@ -188,8 +186,7 @@ export function CartPanel(props: Props) {
             ))}
           </select>
 
-          {/* Payment Method Grid */}
-          <span className={styles.paymentLabel}>Metode Pembayaran</span>
+          <span className={styles.paymentLabel}>{t.pos.paymentMethod}</span>
           <div className={styles.paymentGrid}>
             {activePayments.map((p) => (
               <button
@@ -205,12 +202,11 @@ export function CartPanel(props: Props) {
           </div>
           {paymentError && (
             <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-danger)' }}>
-              Gagal memuat metode bayar
+              {t.pos.loadPaymentError}
             </span>
           )}
 
-          {/* Amount input */}
-          <span className={styles.paymentLabel}>Jumlah Bayar (Rp)</span>
+          <span className={styles.paymentLabel}>{t.pos.paymentAmount}</span>
           <input
             className="input"
             type="number"
@@ -223,7 +219,7 @@ export function CartPanel(props: Props) {
         </div>
 
         <div className={styles.summaryRow} style={{ marginTop: 'var(--space-2)' }}>
-          <span style={{ fontWeight: 600 }}>Kembalian</span>
+          <span style={{ fontWeight: 600 }}>{t.pos.change}</span>
           <span className="money" style={{ fontWeight: 700, color: (change >= 0 && paymentAmount !== '') ? 'var(--color-success)' : 'inherit' }}>
             {formatIDR(change)}
           </span>
@@ -259,7 +255,7 @@ export function CartPanel(props: Props) {
             cursor: !canPay || isSubmitting ? 'not-allowed' : 'pointer',
           }}
         >
-          {isSubmitting ? 'Memproses…' : 'Proses Pembayaran'}
+          {isSubmitting ? t.pos.processing : t.pos.processPayment}
         </button>
       </div>
     </section>

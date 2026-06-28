@@ -11,6 +11,7 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
+import { useLocale } from "@/lib/i18n/LocaleContext";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -73,6 +74,7 @@ function Skeleton({ width = "100%", height = "1.2em" }: { width?: string; height
 
 function SummaryCards() {
   const { data, error, isLoading } = useSWR<SummaryResponse>("/api/dashboard/summary");
+  const { t } = useLocale();
 
   const cards: {
     label: string;
@@ -80,12 +82,12 @@ function SummaryCards() {
     accent?: boolean;
   }[] = [
     {
-      label: "Penjualan Hari Ini",
+      label: t.dashboard.todaySales,
       value: isLoading ? (
         <Skeleton width="140px" height="2.5rem" />
       ) : error ? (
         <span style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)" }}>
-          Gagal memuat data
+          {t.common.loadError}
         </span>
       ) : (
         <span className="money">{formatIDR(data?.totalSales ?? 0)}</span>
@@ -93,24 +95,24 @@ function SummaryCards() {
       accent: true,
     },
     {
-      label: "Transaksi Hari Ini",
+      label: t.dashboard.todayTransactions,
       value: isLoading ? (
         <Skeleton width="60px" height="2.5rem" />
       ) : error ? (
         <span style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)" }}>
-          Gagal memuat data
+          {t.common.loadError}
         </span>
       ) : (
         <span className="money">{data?.transactionCount ?? 0}</span>
       ),
     },
     {
-      label: "Total Produk Aktif",
+      label: t.dashboard.activeProducts,
       value: isLoading ? (
         <Skeleton width="60px" height="2.5rem" />
       ) : error ? (
         <span style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)" }}>
-          Gagal memuat data
+          {t.common.loadError}
         </span>
       ) : (
         <span className="money">{data?.totalItems ?? 0}</span>
@@ -218,6 +220,7 @@ function ChartTooltip({ active, payload, label }: CustomTooltipProps) {
 
 function SalesChartCard() {
   const { data, error, isLoading } = useSWR<SalesChartResponse>("/api/dashboard/sales-chart");
+  const { t } = useLocale();
 
   return (
     <div className="card" style={{ flex: "1 1 0", minWidth: 0 }}>
@@ -229,21 +232,21 @@ function SalesChartCard() {
           marginBottom: "var(--space-4)",
         }}
       >
-        Penjualan 7 Hari Terakhir
+        {t.dashboard.salesLast7Days}
       </h2>
 
       {isLoading && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
           <Skeleton width="100%" height="180px" />
           <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-text-muted)", textAlign: "center" }}>
-            Memuat…
+            {t.dashboard.loading}
           </p>
         </div>
       )}
 
       {error && !isLoading && (
         <p style={{ margin: 0, color: "var(--color-danger)", fontSize: "var(--text-sm)" }}>
-          Gagal memuat data
+          {t.common.loadError}
         </p>
       )}
 
@@ -251,7 +254,7 @@ function SalesChartCard() {
         <>
           {(!data?.data || data.data.length === 0) ? (
             <p style={{ margin: 0, color: "var(--color-text-muted)", fontSize: "var(--text-sm)" }}>
-              Belum ada data penjualan.
+              {t.dashboard.noSalesData}
             </p>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
@@ -287,7 +290,7 @@ function SalesChartCard() {
                   dataKey="sales"
                   fill="oklch(56% 0.17 264)"
                   radius={[4, 4, 0, 0]}
-                  name="Penjualan"
+                  name={t.dashboard.todaySales}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -302,6 +305,7 @@ function SalesChartCard() {
 
 function TopItemsCard() {
   const [period, setPeriod] = useState<Period>("today");
+  const { t } = useLocale();
 
   const { data, error, isLoading } = useSWR<TopItemsResponse>(
     `/api/dashboard/top-items?period=${period}`
@@ -309,7 +313,6 @@ function TopItemsCard() {
 
   return (
     <div className="card" style={{ flex: "0 0 320px", minWidth: 0 }}>
-      {/* Header with toggle */}
       <div
         style={{
           display: "flex",
@@ -328,12 +331,12 @@ function TopItemsCard() {
             margin: 0,
           }}
         >
-          Produk Terlaris
+          {t.dashboard.topProducts}
         </h2>
 
         <div
           role="group"
-          aria-label="Pilih periode"
+          aria-label={t.dashboard.selectPeriod}
           style={{
             display: "inline-flex",
             border: "1px solid var(--color-border)",
@@ -362,13 +365,12 @@ function TopItemsCard() {
                 transition: "background 150ms ease, color 150ms ease",
               }}
             >
-              {p === "today" ? "Hari Ini" : "Bulan Ini"}
+              {p === "today" ? t.dashboard.today : t.dashboard.thisMonth}
             </button>
           ))}
         </div>
       </div>
 
-      {/* States */}
       {isLoading && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
           {[1, 2, 3, 4, 5].map((n) => (
@@ -385,7 +387,7 @@ function TopItemsCard() {
 
       {error && !isLoading && (
         <p style={{ margin: 0, color: "var(--color-danger)", fontSize: "var(--text-sm)" }}>
-          Gagal memuat data
+          {t.common.loadError}
         </p>
       )}
 
@@ -393,7 +395,7 @@ function TopItemsCard() {
         <>
           {(!data?.data || data.data.length === 0) ? (
             <p style={{ margin: 0, color: "var(--color-text-muted)", fontSize: "var(--text-sm)" }}>
-              Belum ada produk terjual pada periode ini.
+              {t.dashboard.noProductsSold}
             </p>
           ) : (
             <ol
@@ -420,7 +422,6 @@ function TopItemsCard() {
                         : "none",
                   }}
                 >
-                  {/* Rank badge */}
                   <span
                     style={{
                       display: "inline-flex",
@@ -435,12 +436,11 @@ function TopItemsCard() {
                       fontWeight: 700,
                       flexShrink: 0,
                     }}
-                    aria-label={`Peringkat ${index + 1}`}
+                    aria-label={t.dashboard.rank(index + 1)}
                   >
                     {index + 1}
                   </span>
 
-                  {/* Name + code */}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p
                       style={{
@@ -453,7 +453,7 @@ function TopItemsCard() {
                         textOverflow: "ellipsis",
                       }}
                     >
-                      {item.name ?? item.code ?? `Produk #${item.id}`}
+                      {item.name ?? item.code ?? `#${item.id}`}
                     </p>
                     <p
                       style={{
@@ -462,11 +462,10 @@ function TopItemsCard() {
                         color: "var(--color-text-muted)",
                       }}
                     >
-                      {item.qty} terjual
+                      {t.dashboard.sold(item.qty)}
                     </p>
                   </div>
 
-                  {/* Revenue */}
                   <p
                     style={{
                       margin: 0,
@@ -492,9 +491,10 @@ function TopItemsCard() {
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
+  const { t } = useLocale();
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-      {/* Page heading */}
       <div>
         <h1
           style={{
@@ -504,17 +504,15 @@ export default function DashboardPage() {
             marginBottom: "var(--space-1)",
           }}
         >
-          Dashboard
+          {t.dashboard.title}
         </h1>
         <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-text-muted)" }}>
-          Ringkasan aktivitas penjualan hari ini.
+          {t.dashboard.subtitle}
         </p>
       </div>
 
-      {/* Summary row */}
       <SummaryCards />
 
-      {/* Chart + Top items */}
       <div
         style={{
           display: "flex",

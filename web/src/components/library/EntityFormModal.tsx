@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { EntityConfig, FormValue, EntityRow } from './types';
 import { FieldInput } from './FieldInput';
 import { apiMutate, FetchError } from '@/lib/fetcher';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 interface EntityFormModalProps {
   config: EntityConfig;
@@ -11,6 +12,7 @@ interface EntityFormModalProps {
 }
 
 export function EntityFormModal({ config, initialData, onClose, onSuccess }: EntityFormModalProps) {
+  const { t } = useLocale();
   const [formData, setFormData] = useState<Record<string, FormValue>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -40,7 +42,7 @@ export function EntityFormModal({ config, initialData, onClose, onSuccess }: Ent
 
     config.fields.forEach(f => {
       const val = formData[f.key];
-      
+
       if (f.type === 'number' || f.type === 'money') {
         if (val === '' || val === null || val === undefined) {
           payload[f.key] = f.nullable ? null : 0;
@@ -54,11 +56,11 @@ export function EntityFormModal({ config, initialData, onClose, onSuccess }: Ent
           payload[f.key] = Number(val);
         }
       } else if (f.type === 'email' || f.type === 'text' || f.type === 'textarea') {
-         if (val === '') {
-           payload[f.key] = f.nullable ? null : '';
-         } else {
-           payload[f.key] = val;
-         }
+        if (val === '') {
+          payload[f.key] = f.nullable ? null : '';
+        } else {
+          payload[f.key] = val;
+        }
       } else {
         payload[f.key] = val;
       }
@@ -74,12 +76,12 @@ export function EntityFormModal({ config, initialData, onClose, onSuccess }: Ent
     } catch (err: unknown) {
       if (err instanceof FetchError) {
         if (err.status === 401 || err.status === 403) {
-          setErrorMsg('Sesi tidak valid / akses ditolak');
+          setErrorMsg(t.common.sessionInvalid);
         } else {
           setErrorMsg(err.message);
         }
       } else {
-        setErrorMsg('Terjadi kesalahan yang tidak diketahui');
+        setErrorMsg(t.common.unknownError);
       }
     } finally {
       setIsSubmitting(false);
@@ -113,9 +115,9 @@ export function EntityFormModal({ config, initialData, onClose, onSuccess }: Ent
       >
         <div style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 800 }}>
-            {isEdit ? 'Edit' : 'Tambah'} {config.label}
+            {isEdit ? t.library.edit(config.label) : t.library.addLabel(config.label)}
           </h2>
-          <button type="button" className="btn btn--ghost" onClick={onClose} style={{ minHeight: '32px', padding: '0 var(--space-2)' }}>Tutup</button>
+          <button type="button" className="btn btn--ghost" onClick={onClose} style={{ minHeight: '32px', padding: '0 var(--space-2)' }}>{t.common.close}</button>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
@@ -125,7 +127,7 @@ export function EntityFormModal({ config, initialData, onClose, onSuccess }: Ent
                 {errorMsg}
               </div>
             )}
-            
+
             {config.fields.map(f => (
               <FieldInput
                 key={f.key}
@@ -137,9 +139,9 @@ export function EntityFormModal({ config, initialData, onClose, onSuccess }: Ent
           </div>
 
           <div style={{ padding: 'var(--space-4)', borderTop: '1px solid var(--color-border)', display: 'flex', gap: 'var(--space-3)' }}>
-            <button type="button" className="btn btn--ghost" style={{ flex: 1 }} onClick={onClose}>Batal</button>
+            <button type="button" className="btn btn--ghost" style={{ flex: 1 }} onClick={onClose}>{t.common.cancel}</button>
             <button type="submit" className="btn" style={{ flex: 1 }} disabled={isSubmitting}>
-              {isSubmitting ? 'Menyimpan...' : 'Simpan'}
+              {isSubmitting ? t.common.saving : t.common.save}
             </button>
           </div>
         </form>

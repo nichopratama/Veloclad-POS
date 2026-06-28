@@ -9,6 +9,7 @@ import { formatIDRFromString } from '@/components/pos/format';
 import { isAdmin } from '@/lib/roles';
 import { PoFormModal } from './PoFormModal';
 import { SkeletonRows } from '@/components/ui/Skeleton';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 interface PurchaseOrdersTabProps {
   role: string;
@@ -17,6 +18,7 @@ interface PurchaseOrdersTabProps {
 export function PurchaseOrdersTab({ role }: PurchaseOrdersTabProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const { t } = useLocale();
 
   const { data, error, isLoading, mutate } = useSWR<FlatResponse<PurchaseOrder>>('/api/inventory/purchase-orders', fetcher);
   const items = data?.data || [];
@@ -24,7 +26,7 @@ export function PurchaseOrdersTab({ role }: PurchaseOrdersTabProps) {
   const canWrite = isAdmin(role);
 
   const handleReceive = async (poId: number) => {
-    if (!confirm('Apakah Anda yakin ingin menerima PO ini? Stok akan otomatis ditambahkan.')) return;
+    if (!confirm(t.inventory.confirmReceivePo)) return;
     setErrorMsg('');
     try {
       await apiMutate(`/api/inventory/purchase-orders/${poId}/receive`, 'PATCH');
@@ -32,18 +34,18 @@ export function PurchaseOrdersTab({ role }: PurchaseOrdersTabProps) {
     } catch (err: unknown) {
       if (err instanceof FetchError) {
         if (err.status === 401 || err.status === 403) {
-          setErrorMsg('Akses ditolak.');
+          setErrorMsg(t.common.accessDenied);
         } else {
           setErrorMsg(err.message);
         }
       } else {
-        setErrorMsg('Terjadi kesalahan yang tidak diketahui.');
+        setErrorMsg(t.common.unknownError);
       }
     }
   };
 
   const handleDelete = async (poId: number) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus PO ini? Data tidak dapat dikembalikan.')) return;
+    if (!confirm(t.inventory.confirmDeletePo)) return;
     setErrorMsg('');
     try {
       await apiMutate(`/api/inventory/purchase-orders/${poId}`, 'DELETE');
@@ -51,12 +53,12 @@ export function PurchaseOrdersTab({ role }: PurchaseOrdersTabProps) {
     } catch (err: unknown) {
       if (err instanceof FetchError) {
         if (err.status === 401 || err.status === 403) {
-          setErrorMsg('Akses ditolak.');
+          setErrorMsg(t.common.accessDenied);
         } else {
           setErrorMsg(err.message);
         }
       } else {
-        setErrorMsg('Terjadi kesalahan yang tidak diketahui.');
+        setErrorMsg(t.common.unknownError);
       }
     }
   };
@@ -66,8 +68,8 @@ export function PurchaseOrdersTab({ role }: PurchaseOrdersTabProps) {
       {errorMsg && (
         <div style={{ padding: 'var(--space-3)', background: 'var(--color-danger)', color: 'white', borderRadius: 'var(--radius-sm)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-             <span>{errorMsg}</span>
-             <button onClick={() => setErrorMsg('')} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', padding: '0 var(--space-2)' }}>✕</button>
+            <span>{errorMsg}</span>
+            <button onClick={() => setErrorMsg('')} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', padding: '0 var(--space-2)' }}>✕</button>
           </div>
         </div>
       )}
@@ -75,7 +77,7 @@ export function PurchaseOrdersTab({ role }: PurchaseOrdersTabProps) {
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         {canWrite && (
           <button className="btn" onClick={() => setIsModalOpen(true)}>
-            + Buat PO
+            {t.inventory.createPo}
           </button>
         )}
       </div>
@@ -83,7 +85,7 @@ export function PurchaseOrdersTab({ role }: PurchaseOrdersTabProps) {
       <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
         {error ? (
           <div style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--color-danger)' }}>
-            Gagal memuat data: {error instanceof Error ? error.message : 'Error tidak diketahui'}
+            {t.common.loadError}: {error instanceof Error ? error.message : t.common.unknownError}
           </div>
         ) : isLoading ? (
           <SkeletonRows rows={8} cols={5} />
@@ -91,13 +93,13 @@ export function PurchaseOrdersTab({ role }: PurchaseOrdersTabProps) {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>No. PO</th>
-                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>Supplier</th>
-                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>Dibuat Oleh</th>
-                <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>Total</th>
-                <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>Status</th>
-                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>Tanggal</th>
-                <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>Aksi</th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.inventory.poNumber}</th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.common.supplier}</th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.inventory.createdBy}</th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>{t.common.total}</th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>{t.common.status}</th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.common.date}</th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>{t.common.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -109,19 +111,19 @@ export function PurchaseOrdersTab({ role }: PurchaseOrdersTabProps) {
                   <td className="money" style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>{formatIDRFromString(row.total_amount)}</td>
                   <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>
                     {row.status === 'pending' ? (
-                      <span style={{ padding: 'var(--space-1) var(--space-2)', background: 'var(--color-warning)', color: 'white', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-xs)', fontWeight: 600 }}>Pending</span>
+                      <span style={{ padding: 'var(--space-1) var(--space-2)', background: 'var(--color-warning)', color: 'white', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-xs)', fontWeight: 600 }}>{t.inventory.pending}</span>
                     ) : (
-                      <span style={{ padding: 'var(--space-1) var(--space-2)', background: 'var(--color-success)', color: 'white', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-xs)', fontWeight: 600 }}>Received</span>
+                      <span style={{ padding: 'var(--space-1) var(--space-2)', background: 'var(--color-success)', color: 'white', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-xs)', fontWeight: 600 }}>{t.inventory.received}</span>
                     )}
                   </td>
                   <td style={{ padding: 'var(--space-3) var(--space-4)' }}>{new Date(row.created_at).toLocaleDateString('id-ID')}</td>
                   <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>
                     {canWrite && row.status === 'pending' && (
                       <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'center' }}>
-                        <button className="hover:scale-110 transition-transform p-1 text-[var(--color-success)]" onClick={() => handleReceive(row.id)} title="Terima PO">
+                        <button className="hover:scale-110 transition-transform p-1 text-[var(--color-success)]" onClick={() => handleReceive(row.id)} title={t.inventory.receivePo}>
                           <Check size={18} />
                         </button>
-                        <button className="hover:scale-110 transition-transform p-1 text-[var(--color-danger)]" onClick={() => handleDelete(row.id)} title="Hapus PO">
+                        <button className="hover:scale-110 transition-transform p-1 text-[var(--color-danger)]" onClick={() => handleDelete(row.id)} title={t.inventory.deletePo}>
                           <Trash2 size={18} />
                         </button>
                       </div>
@@ -132,7 +134,7 @@ export function PurchaseOrdersTab({ role }: PurchaseOrdersTabProps) {
               {items.length === 0 && (
                 <tr>
                   <td colSpan={7} style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-                    Belum ada data PO
+                    {t.inventory.noDataPo}
                   </td>
                 </tr>
               )}

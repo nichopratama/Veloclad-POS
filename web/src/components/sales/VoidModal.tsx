@@ -4,6 +4,7 @@ import { useState, useId } from 'react';
 import { Transaction } from './types';
 import { formatIDRFromString } from '@/components/pos/format';
 import { apiMutate, FetchError } from '@/lib/fetcher';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 interface VoidModalProps {
   transaction: Transaction;
@@ -12,6 +13,7 @@ interface VoidModalProps {
 }
 
 export function VoidModal({ transaction, onClose, onSuccess }: VoidModalProps) {
+  const { t } = useLocale();
   const [selectedItems, setSelectedItems] = useState<Record<number, { qty: number; refund_amount: number }>>({});
   const [reason, setReason] = useState('Returned Goods');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,7 +61,7 @@ export function VoidModal({ transaction, onClose, onSuccess }: VoidModalProps) {
     }));
 
     if (itemsPayload.length === 0) {
-      setErrorMsg('Pilih minimal satu item untuk di-void.');
+      setErrorMsg(t.sales.selectAtLeastOne);
       return;
     }
 
@@ -72,11 +74,11 @@ export function VoidModal({ transaction, onClose, onSuccess }: VoidModalProps) {
       onSuccess();
     } catch (err: unknown) {
       if (err instanceof FetchError && (err.status === 401 || err.status === 403)) {
-        setErrorMsg('Sesi tidak valid / akses ditolak');
+        setErrorMsg(t.common.sessionInvalid);
       } else if (err instanceof FetchError) {
-        setErrorMsg(err.message || 'Gagal melakukan void');
+        setErrorMsg(err.message || t.sales.failedVoid);
       } else {
-        setErrorMsg('Terjadi kesalahan tak terduga.');
+        setErrorMsg(t.sales.unexpectedError);
       }
     } finally {
       setIsSubmitting(false);
@@ -110,8 +112,8 @@ export function VoidModal({ transaction, onClose, onSuccess }: VoidModalProps) {
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 800 }}>Void Transaksi: {transaction.id}</h2>
-          <button className="btn btn--ghost" onClick={onClose} style={{ minHeight: '32px', padding: '0 var(--space-2)' }}>Batal</button>
+          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 800 }}>{t.sales.voidTransaction(transaction.id)}</h2>
+          <button className="btn btn--ghost" onClick={onClose} style={{ minHeight: '32px', padding: '0 var(--space-2)' }}>{t.common.cancel}</button>
         </div>
 
         {errorMsg && (
@@ -121,17 +123,17 @@ export function VoidModal({ transaction, onClose, onSuccess }: VoidModalProps) {
         )}
 
         <div>
-          <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 700, marginBottom: 'var(--space-2)' }}>Pilih Item</h3>
+          <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 700, marginBottom: 'var(--space-2)' }}>{t.sales.selectItems}</h3>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-sm)' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  <th style={{ padding: 'var(--space-2)' }}>Pilih</th>
-                  <th style={{ padding: 'var(--space-2)' }}>Nama Item</th>
-                  <th style={{ padding: 'var(--space-2)' }}>Harga Satuan</th>
-                  <th style={{ padding: 'var(--space-2)' }}>Qty Asli</th>
-                  <th style={{ padding: 'var(--space-2)' }}>Qty Void</th>
-                  <th style={{ padding: 'var(--space-2)' }}>Nilai Refund</th>
+                  <th style={{ padding: 'var(--space-2)' }}>{t.sales.select}</th>
+                  <th style={{ padding: 'var(--space-2)' }}>{t.sales.itemName}</th>
+                  <th style={{ padding: 'var(--space-2)' }}>{t.sales.unitPrice}</th>
+                  <th style={{ padding: 'var(--space-2)' }}>{t.sales.originalQty}</th>
+                  <th style={{ padding: 'var(--space-2)' }}>{t.sales.voidQty}</th>
+                  <th style={{ padding: 'var(--space-2)' }}>{t.sales.refundValue}</th>
                 </tr>
               </thead>
               <tbody>
@@ -143,7 +145,7 @@ export function VoidModal({ transaction, onClose, onSuccess }: VoidModalProps) {
                       <td style={{ padding: 'var(--space-2)' }}>
                         <input
                           type="checkbox"
-                          aria-label={`Pilih item ${item.items.name}`}
+                          aria-label={t.sales.selectItem(item.items.name)}
                           checked={isSelected}
                           onChange={() => handleToggleItem(item.item_id, item.qty, Math.round(unitPrice * item.qty))}
                         />
@@ -160,7 +162,7 @@ export function VoidModal({ transaction, onClose, onSuccess }: VoidModalProps) {
                           disabled={!isSelected}
                           value={selectedItems[item.item_id]?.qty || ''}
                           onChange={(e) => handleQtyChange(item.item_id, e.target.value, item.qty, unitPrice)}
-                          aria-label={`Qty void ${item.items.name}`}
+                          aria-label={t.sales.voidQtyLabel(item.items.name)}
                           style={{ minHeight: '32px', padding: '0 var(--space-2)', width: '60px' }}
                         />
                       </td>
@@ -172,7 +174,7 @@ export function VoidModal({ transaction, onClose, onSuccess }: VoidModalProps) {
                           disabled={!isSelected}
                           value={selectedItems[item.item_id]?.refund_amount ?? ''}
                           onChange={(e) => handleRefundChange(item.item_id, e.target.value)}
-                          aria-label={`Nilai refund ${item.items.name}`}
+                          aria-label={t.sales.refundValueLabel(item.items.name)}
                           style={{ minHeight: '32px', padding: '0 var(--space-2)', width: '120px' }}
                         />
                       </td>
@@ -185,17 +187,12 @@ export function VoidModal({ transaction, onClose, onSuccess }: VoidModalProps) {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-          <label htmlFor={reasonSelectId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Alasan Void</label>
-          <select
-            id={reasonSelectId}
-            className="input"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-          >
-            <option value="Returned Goods">Barang dikembalikan (Stok kembali)</option>
-            <option value="Damaged Goods">Barang rusak/hilang (Stok tidak kembali)</option>
-            <option value="Input Error">Salah input (Stok tidak kembali)</option>
-            <option value="Other">Lainnya</option>
+          <label htmlFor={reasonSelectId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{t.sales.voidReason}</label>
+          <select id={reasonSelectId} className="input" value={reason} onChange={(e) => setReason(e.target.value)}>
+            <option value="Returned Goods">{t.sales.returnedGoods}</option>
+            <option value="Damaged Goods">{t.sales.damagedGoods}</option>
+            <option value="Input Error">{t.sales.inputError}</option>
+            <option value="Other">{t.sales.otherReason}</option>
           </select>
         </div>
 
@@ -206,7 +203,7 @@ export function VoidModal({ transaction, onClose, onSuccess }: VoidModalProps) {
             onClick={handleSubmit}
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Memproses...' : 'Proses Void'}
+            {isSubmitting ? t.common.processing : t.sales.processVoid}
           </button>
         </div>
       </div>

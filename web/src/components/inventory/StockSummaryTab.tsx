@@ -7,10 +7,12 @@ import { StockItem, PaginatedResponse } from './types';
 import { useDebounce } from '@/components/pos/useDebounce';
 import { formatIDRFromString } from '@/components/pos/format';
 import { SkeletonRows } from '@/components/ui/Skeleton';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 export function StockSummaryTab() {
   const [page, setPage] = useState(1);
   const [localSearch, setLocalSearch] = useState('');
+  const { t } = useLocale();
   const search = useDebounce(localSearch, 300);
   const limit = 30;
 
@@ -36,8 +38,8 @@ export function StockSummaryTab() {
           <input
             type="text"
             className="input"
-            placeholder="Cari Kode / Nama Item..."
-            aria-label="Cari kode atau nama item"
+            placeholder={t.inventory.searchStockItem}
+            aria-label={t.inventory.searchStockItemLabel}
             value={localSearch}
             onChange={handleSearchChange}
           />
@@ -47,7 +49,7 @@ export function StockSummaryTab() {
       <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
         {error ? (
           <div style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--color-danger)' }}>
-            Gagal memuat data: {error instanceof Error ? error.message : 'Error tidak diketahui'}
+            {t.common.loadError}: {error instanceof Error ? error.message : t.common.unknownError}
           </div>
         ) : isLoading ? (
           <SkeletonRows rows={8} cols={6} />
@@ -55,12 +57,12 @@ export function StockSummaryTab() {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>Kode</th>
-                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>Nama Item</th>
-                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>Kategori</th>
-                <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>Stok</th>
-                <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>Min Stok</th>
-                <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>Harga</th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.stock.code}</th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.stock.itemName}</th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.stock.category}</th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>{t.stock.stock}</th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>{t.stock.minStock}</th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>{t.stock.price}</th>
               </tr>
             </thead>
             <tbody>
@@ -71,7 +73,7 @@ export function StockSummaryTab() {
                     <td style={{ padding: 'var(--space-3) var(--space-4)', fontFamily: 'var(--font-mono)' }}>{row.code}</td>
                     <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
                       <div style={{ fontWeight: 600 }}>{row.name}</div>
-                      {isLowStock && <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-danger)', fontWeight: 700 }}>Menipis!</div>}
+                      {isLowStock && <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-danger)', fontWeight: 700 }}>{t.inventory.lowStock}</div>}
                     </td>
                     <td style={{ padding: 'var(--space-3) var(--space-4)' }}>{row.categories?.name || '-'}</td>
                     <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', fontWeight: isLowStock ? 700 : 400, color: isLowStock ? 'var(--color-danger)' : 'inherit' }}>
@@ -85,34 +87,26 @@ export function StockSummaryTab() {
               {items.length === 0 && (
                 <tr>
                   <td colSpan={6} style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-                    Belum ada data
+                    {t.inventory.noStockData}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         )}
-        
+
         {pagination && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-4)', borderTop: '1px solid var(--color-border)' }}>
             <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>
-              Total {pagination.total} baris
+              {t.common.totalRows(pagination.total)}
             </div>
             <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-              <button 
-                className="btn btn--ghost" 
-                disabled={page <= 1} 
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-              >
-                Prev
+              <button className="btn btn--ghost" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+                {t.common.prev}
               </button>
               <span style={{ margin: '0 var(--space-2)' }}>{page} / {pagination.totalPages || 1}</span>
-              <button 
-                className="btn btn--ghost" 
-                disabled={page >= pagination.totalPages} 
-                onClick={() => setPage(p => p + 1)}
-              >
-                Next
+              <button className="btn btn--ghost" disabled={page >= pagination.totalPages} onClick={() => setPage(p => p + 1)}>
+                {t.common.next}
               </button>
             </div>
           </div>
