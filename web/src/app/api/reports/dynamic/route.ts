@@ -1,47 +1,127 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/rbac';
+import { Prisma } from '@prisma/client';
 
 export async function GET(request: Request) {
   try {
-    // 1. RBAC Guard - hanya admin yang bisa melihat laporan
     try {
       await requireRole('admin');
     } catch (authError: any) {
       return NextResponse.json({ success: false, message: authError.message || 'Unauthorized' }, { status: authError.status || 401 });
     }
 
-    // 2. Ambil parameter tab dari URL
     const { searchParams } = new URL(request.url);
     const tab = searchParams.get('tab') || 'summary';
-    // const dateRange = searchParams.get('range') || 'today'; // Untuk pengembangan ke depan
+    const startDate = searchParams.get('start');
+    const endDate = searchParams.get('end');
+
+    let dateFilter = {};
+    let rawDateWhere = Prisma.empty;
+    let labelDate = 'All Time';
+
+    if (startDate && endDate) {
+      // Local date parsing. Assuming the input is YYYY-MM-DD
+      const startObj = new Date(`${startDate}T00:00:00.000Z`);
+      const endObj = new Date(`${endDate}T23:59:59.999Z`);
+      
+      dateFilter = {
+        created_at: {
+          gte: startObj,
+          lte: endObj
+        }
+      };
+
+      rawDateWhere = Prisma.sql`WHERE t.created_at >= ${startObj} AND t.created_at <= ${endObj}`;
+      labelDate = `${startDate} - ${endDate}`;
+    }
 
     let data: any = [];
 
     switch (tab) {
       case 'summary': {
-        const totalTransactions = await prisma.transactions.count();
-        const sumResult = await prisma.transactions.aggregate({ _sum: { total: true } });
-        const revenue = Number(sumResult._sum.total || 0);
-        const avg = totalTransactions > 0 ? revenue / totalTransactions : 0;
+        const totalTransactions = await prisma.transactions.count({ where: dateFilter });
+        const sumResult = await prisma.transactions.aggregate({ 
+          where: dateFilter,
+          _sum: { 
+            subtotal: true,
+            discount_amount: true,
+            refunds: true,
+            net_sales: true,
+            tax_amount: true,
+            total: true
+          } 
+        });
+
+        // Get gross sales by category
+        const categoryResult = await prisma.$queryRaw<any[]>`
+          SELECT 
+            c.name as category_name,
+            SUM(ti.qty * ti.price) as gross_sales
+          FROM transaction_items ti
+          LEFT JOIN items i ON ti.item_id = i.id
+          LEFT JOIN categories c ON i.category_id = c.id
+          LEFT JOIN transactions t ON ti.transaction_id = t.id
+          ${rawDateWhere}
+          GROUP BY c.id, c.name
+          ORDER BY gross_sales DESC
+        `;
         
-        data = [{
-          date: 'All Time',
-          total_transactions: totalTransactions,
-          revenue: revenue,
-          avg: avg
-        }];
+        const categories = categoryResult.map(c => ({
+          category_name: c.category_name || 'Uncategorized',
+          amount: Number(c.gross_sales || 0)
+        }));
+
+        // Get COGS
+        const cogsResult = await prisma.$queryRaw<any[]>`
+          SELECT SUM(ti.qty * COALESCE(i.hpp, 0)) as total_cogs
+          FROM transaction_items ti
+          LEFT JOIN items i ON ti.item_id = i.id
+          LEFT JOIN transactions t ON ti.transaction_id = t.id
+          ${rawDateWhere}
+        `;
+        const total_cogs = Number(cogsResult[0]?.total_cogs || 0);
+
+        // Get payment methods
+        const paymentsResult = await prisma.transactions.groupBy({
+          by: ['payment_method_name'],
+          where: dateFilter,
+          _sum: { total: true }
+        });
+        
+        const payments = paymentsResult.map(p => ({
+          method: p.payment_method_name || 'Unknown',
+          amount: Number(p._sum.total || 0)
+        })).sort((a, b) => b.amount - a.amount);
+
+        const total = Number(sumResult._sum.total || 0);
+        const avg = totalTransactions > 0 ? total / totalTransactions : 0;
+        
+        data = {
+          date: labelDate,
+          invoices: totalTransactions,
+          avg_ticket: avg,
+          gross_sales_categories: categories,
+          discounts: Number(sumResult._sum.discount_amount || 0),
+          refunds: Number(sumResult._sum.refunds || 0),
+          net_sales: Number(sumResult._sum.net_sales || 0),
+          cogs: total_cogs,
+          tax: Number(sumResult._sum.tax_amount || 0),
+          total_collected: total,
+          payment_methods: payments
+        };
         break;
       }
 
       case 'gross-profit': {
-        // Gross Profit = Net Sales - (QTY * current HPP)
         const rawResult = await prisma.$queryRaw<any[]>`
           SELECT 
             SUM(ti.qty * COALESCE(i.hpp, 0)) as total_cogs,
             SUM(ti.subtotal) as total_sales
           FROM transaction_items ti
           LEFT JOIN items i ON ti.item_id = i.id
+          LEFT JOIN transactions t ON ti.transaction_id = t.id
+          ${rawDateWhere}
         `;
         
         const total_sales = Number(rawResult[0]?.total_sales || 0);
@@ -50,7 +130,7 @@ export async function GET(request: Request) {
         const margin = total_sales > 0 ? (gross_profit / total_sales) * 100 : 0;
 
         data = [{
-          date: 'All Time',
+          date: labelDate,
           net_sales: total_sales,
           cogs: total_cogs,
           gross_profit: gross_profit,
@@ -62,6 +142,7 @@ export async function GET(request: Request) {
       case 'payment-methods': {
         const result = await prisma.transactions.groupBy({
           by: ['payment_method_name'],
+          where: dateFilter,
           _count: { id: true },
           _sum: { total: true }
         });
@@ -90,6 +171,8 @@ export async function GET(request: Request) {
           FROM transaction_items ti
           LEFT JOIN items i ON ti.item_id = i.id
           LEFT JOIN categories c ON i.category_id = c.id
+          LEFT JOIN transactions t ON ti.transaction_id = t.id
+          ${rawDateWhere}
           GROUP BY i.id, i.name, c.name
           ORDER BY total_qty DESC
           LIMIT 100
@@ -113,6 +196,8 @@ export async function GET(request: Request) {
           FROM transaction_items ti
           LEFT JOIN items i ON ti.item_id = i.id
           LEFT JOIN categories c ON i.category_id = c.id
+          LEFT JOIN transactions t ON ti.transaction_id = t.id
+          ${rawDateWhere}
           GROUP BY c.id, c.name
           ORDER BY total_sales DESC
         `;
@@ -128,6 +213,7 @@ export async function GET(request: Request) {
       case 'staff-sales': {
         const result = await prisma.transactions.groupBy({
           by: ['cashier_name'],
+          where: dateFilter,
           _count: { id: true },
           _sum: { total: true }
         });
