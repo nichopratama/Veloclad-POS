@@ -87,12 +87,24 @@ async function planLotDepletion(
 
 export async function persistSale(client: SaleDbClient, p: PersistSaleParams): Promise<string> {
   return client.$transaction(async (tx) => {
+    // Denormalisasi nama metode bayar ke transaksi. Report Sales Summary
+    // mengelompokkan via kolom string `payment_method_name`; tanpa ini transaksi
+    // jatuh ke kategori "Unknown" meski payment_type_id terisi.
+    const paymentType =
+      p.paymentTypeId != null
+        ? await tx.payment_types.findUnique({
+            where: { id: p.paymentTypeId },
+            select: { name: true },
+          })
+        : null;
+
     await tx.transactions.create({
       data: {
         id: p.transactionId,
         user_id: p.userId,
         customer_id: p.customerId,
         payment_type_id: p.paymentTypeId,
+        payment_method_name: paymentType?.name ?? null,
         subtotal: p.subtotal,
         tax_amount: p.taxAmount,
         discount_amount: p.discountTotal,
