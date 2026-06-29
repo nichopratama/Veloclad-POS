@@ -57,6 +57,7 @@ describe.skipIf(!hasDb)('persistSale (integrasi DB)', () => {
     qty,
     price: new D(price),
     discount: new D(0),
+    costPrice: new D(0),
     lineGross: new D(price).times(qty),
   });
 

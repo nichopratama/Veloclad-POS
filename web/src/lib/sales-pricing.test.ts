@@ -31,7 +31,7 @@ describe('computeSale — pajak EKSKLUSIF', () => {
   it('menghitung subtotal, pajak, dan total dari harga DB', () => {
     // Arrange
     const items = [{ id: 1, qty: 2, discount: 0 }];
-    const itemById = itemMap([{ id: 1, price: 100, is_active: true }]);
+    const itemById = itemMap([{ id: 1, price: 100, is_active: true, hpp: 0 }]);
 
     // Act
     const r = computeSale({ items, itemById, taxRate: new D('0.11'), isInclusive: false });
@@ -45,7 +45,7 @@ describe('computeSale — pajak EKSKLUSIF', () => {
 
   it('diskon per-baris mengurangi basis kena pajak', () => {
     const items = [{ id: 1, qty: 2, discount: 50 }];
-    const itemById = itemMap([{ id: 1, price: 100, is_active: true }]);
+    const itemById = itemMap([{ id: 1, price: 100, is_active: true, hpp: 0 }]);
 
     const r = computeSale({ items, itemById, taxRate: new D('0.11'), isInclusive: false });
 
@@ -62,8 +62,8 @@ describe('computeSale — pajak EKSKLUSIF', () => {
       { id: 2, qty: 3, discount: 0 },
     ];
     const itemById = itemMap([
-      { id: 1, price: 100, is_active: true },
-      { id: 2, price: 50, is_active: true },
+      { id: 1, price: 100, is_active: true, hpp: 0 },
+      { id: 2, price: 50, is_active: true, hpp: 0 },
     ]);
 
     const r = computeSale({ items, itemById, taxRate: new D('0'), isInclusive: false });
@@ -75,7 +75,7 @@ describe('computeSale — pajak EKSKLUSIF', () => {
 
   it('tarif pajak nol → total = subtotal − diskon', () => {
     const items = [{ id: 1, qty: 1, discount: 25 }];
-    const itemById = itemMap([{ id: 1, price: 100, is_active: true }]);
+    const itemById = itemMap([{ id: 1, price: 100, is_active: true, hpp: 0 }]);
 
     const r = computeSale({ items, itemById, taxRate: new D('0'), isInclusive: false });
 
@@ -88,7 +88,7 @@ describe('computeSale — pajak INKLUSIF', () => {
   it('memisahkan komponen pajak tanpa menambah total', () => {
     // 111 sudah termasuk pajak 11% → harga dasar 100, pajak 11.
     const items = [{ id: 1, qty: 1, discount: 0 }];
-    const itemById = itemMap([{ id: 1, price: 111, is_active: true }]);
+    const itemById = itemMap([{ id: 1, price: 111, is_active: true, hpp: 0 }]);
 
     const r = computeSale({ items, itemById, taxRate: new D('0.11'), isInclusive: true });
 
@@ -100,7 +100,7 @@ describe('computeSale — pajak INKLUSIF', () => {
 describe('computeSale — presisi Decimal (anti galat float)', () => {
   it('0.10 × 3 = 0.30 persis (bukan 0.30000000000000004)', () => {
     const items = [{ id: 1, qty: 3, discount: 0 }];
-    const itemById = itemMap([{ id: 1, price: '0.10', is_active: true }]);
+    const itemById = itemMap([{ id: 1, price: '0.10', is_active: true, hpp: 0 }]);
 
     const r = computeSale({ items, itemById, taxRate: new D('0'), isInclusive: false });
 
@@ -112,7 +112,7 @@ describe('computeSale — presisi Decimal (anti galat float)', () => {
 describe('computeSale — penolakan input invalid (ApiError 400)', () => {
   it('menolak item yang tidak ada di DB', () => {
     const items = [{ id: 99, qty: 1, discount: 0 }];
-    const itemById = itemMap([{ id: 1, price: 100, is_active: true }]);
+    const itemById = itemMap([{ id: 1, price: 100, is_active: true, hpp: 0 }]);
 
     expectApiError(
       () => computeSale({ items, itemById, taxRate: new D('0'), isInclusive: false }),
@@ -123,7 +123,7 @@ describe('computeSale — penolakan input invalid (ApiError 400)', () => {
 
   it('menolak item nonaktif', () => {
     const items = [{ id: 1, qty: 1, discount: 0 }];
-    const itemById = itemMap([{ id: 1, price: 100, is_active: false }]);
+    const itemById = itemMap([{ id: 1, price: 100, is_active: false, hpp: 0 }]);
 
     expectApiError(
       () => computeSale({ items, itemById, taxRate: new D('0'), isInclusive: false }),
@@ -134,7 +134,7 @@ describe('computeSale — penolakan input invalid (ApiError 400)', () => {
 
   it('menolak diskon baris yang melebihi subtotal baris (cegah total negatif)', () => {
     const items = [{ id: 1, qty: 1, discount: 150 }]; // diskon 150 > gross 100
-    const itemById = itemMap([{ id: 1, price: 100, is_active: true }]);
+    const itemById = itemMap([{ id: 1, price: 100, is_active: true, hpp: 0 }]);
 
     expectApiError(
       () => computeSale({ items, itemById, taxRate: new D('0'), isInclusive: false }),
