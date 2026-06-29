@@ -6,12 +6,14 @@ import { fetcher, apiMutate, FetchError } from '@/lib/fetcher';
 import { isAdmin } from '@/lib/roles';
 import { StoreSettings } from './types';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 interface SettingsFormProps {
   role: string;
 }
 
 export function SettingsForm({ role }: SettingsFormProps) {
+  const { t } = useLocale();
   const { data, error, isLoading, mutate } = useSWR<StoreSettings>('/api/settings/store', fetcher);
 
   const [formData, setFormData] = useState<StoreSettings>({
@@ -59,7 +61,7 @@ export function SettingsForm({ role }: SettingsFormProps) {
     setSuccessMsg('');
 
     if (formData.tax_rate < 0 || formData.tax_rate > 100) {
-      setErrorMsg('Tarif pajak harus antara 0 dan 100.');
+      setErrorMsg(t.settings.taxRateError);
       return;
     }
 
@@ -77,17 +79,17 @@ export function SettingsForm({ role }: SettingsFormProps) {
 
     try {
       await apiMutate('/api/settings/store', 'PUT', payload);
-      setSuccessMsg('Pengaturan berhasil disimpan.');
+      setSuccessMsg(t.settings.saveSuccess);
       mutate();
     } catch (err: unknown) {
       if (err instanceof FetchError) {
         if (err.status === 401 || err.status === 403) {
-          setErrorMsg('Sesi tidak valid / akses ditolak.');
+          setErrorMsg(t.common.sessionInvalid);
         } else {
           setErrorMsg(err.message);
         }
       } else {
-        setErrorMsg('Terjadi kesalahan yang tidak diketahui.');
+        setErrorMsg(t.common.unknownError);
       }
     } finally {
       setIsSubmitting(false);
@@ -101,7 +103,7 @@ export function SettingsForm({ role }: SettingsFormProps) {
   if (error) {
     return (
       <div style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--color-danger)' }}>
-        Gagal memuat pengaturan: {error instanceof Error ? error.message : 'Error tidak diketahui'}
+        {t.settings.loadError(error instanceof Error ? error.message : t.common.unknownError)}
       </div>
     );
   }
@@ -142,10 +144,10 @@ export function SettingsForm({ role }: SettingsFormProps) {
       )}
 
       <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-        <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-2)' }}>Identitas Toko</h2>
-        
+        <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-2)' }}>{t.settings.storeIdentity}</h2>
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-          <label htmlFor={storeNameId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Nama Toko <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+          <label htmlFor={storeNameId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{t.settings.storeName} <span style={{ color: 'var(--color-danger)' }}>*</span></label>
           <input
             id={storeNameId}
             type="text"
@@ -159,7 +161,7 @@ export function SettingsForm({ role }: SettingsFormProps) {
 
         <div style={{ display: 'flex', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', flex: '1 1 250px' }}>
-            <label htmlFor={phoneId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Telepon</label>
+            <label htmlFor={phoneId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{t.settings.phone}</label>
             <input
               id={phoneId}
               type="text"
@@ -170,7 +172,7 @@ export function SettingsForm({ role }: SettingsFormProps) {
             />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', flex: '1 1 250px' }}>
-            <label htmlFor={emailId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Email</label>
+            <label htmlFor={emailId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{t.users.email}</label>
             <input
               id={emailId}
               type="email"
@@ -183,7 +185,7 @@ export function SettingsForm({ role }: SettingsFormProps) {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-          <label htmlFor={addressId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Alamat</label>
+          <label htmlFor={addressId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{t.settings.address}</label>
           <textarea
             id={addressId}
             className="input"
@@ -196,8 +198,8 @@ export function SettingsForm({ role }: SettingsFormProps) {
       </div>
 
       <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-        <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-2)' }}>Pajak (PPN)</h2>
-        
+        <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-2)' }}>{t.settings.taxSection}</h2>
+
         <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', cursor: canWrite ? 'pointer' : 'default', fontWeight: 600, fontSize: 'var(--text-sm)' }}>
           <input
             type="checkbox"
@@ -205,11 +207,11 @@ export function SettingsForm({ role }: SettingsFormProps) {
             onChange={(e) => handleChange('is_tax_active', e.target.checked)}
             disabled={!canWrite}
           />
-          Aktifkan Pajak (PPN) pada Transaksi Penjualan
+          {t.settings.taxActive}
         </label>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-          <label htmlFor={taxRateId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Tarif Pajak (%) <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+          <label htmlFor={taxRateId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{t.settings.taxRate} <span style={{ color: 'var(--color-danger)' }}>*</span></label>
           <input
             id={taxRateId}
             type="number"
@@ -227,16 +229,16 @@ export function SettingsForm({ role }: SettingsFormProps) {
       </div>
 
       <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-        <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-2)' }}>Footer Struk</h2>
-        
+        <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-2)' }}>{t.settings.receiptFooterSection}</h2>
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-          <label htmlFor={receiptFooterId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Pesan Penutup di Struk</label>
+          <label htmlFor={receiptFooterId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{t.settings.receiptFooterLabel}</label>
           <textarea
             id={receiptFooterId}
             className="input"
             value={formData.receipt_footer}
             onChange={(e) => handleChange('receipt_footer', e.target.value)}
-            placeholder="Misal: Terima kasih telah berbelanja!"
+            placeholder={t.settings.receiptFooterPlaceholder}
             style={{ minHeight: '80px', paddingTop: 'var(--space-2)' }}
             disabled={!canWrite}
           />
@@ -246,7 +248,7 @@ export function SettingsForm({ role }: SettingsFormProps) {
       {canWrite && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-2)' }}>
           <button type="submit" className="btn" disabled={isSubmitting} style={{ padding: 'var(--space-3) var(--space-6)' }}>
-            {isSubmitting ? 'Menyimpan...' : 'Simpan Pengaturan'}
+            {isSubmitting ? t.common.saving : t.settings.saveSettings}
           </button>
         </div>
       )}
