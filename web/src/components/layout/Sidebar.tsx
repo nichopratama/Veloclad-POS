@@ -107,11 +107,13 @@ export function Sidebar({
   tenantName,
   isOpen,
   setIsOpen,
+  storePhone,
 }: {
   role: string;
   tenantName: string;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
+  storePhone?: string | null;
 }) {
   // Inisial untuk state sidebar collapsed (mis. "vapescrew" → "VA").
   const tenantInitials = tenantName.slice(0, 2).toUpperCase();
@@ -236,7 +238,7 @@ export function Sidebar({
       <div className={styles.footer}>
         <div className={styles.phone}>
           <Phone size={14} fill="currentColor" />
-          <span>1500970</span>
+          <span>{storePhone || '1500970'}</span>
         </div>
         <button type="button" className={styles.help}>
           <span className={styles.helpIcon}>

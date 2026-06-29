@@ -11,11 +11,13 @@ export function AppShell({
   userName,
   role,
   tenantName,
+  storePhone,
   children,
 }: {
   userName: string;
   role: string;
   tenantName: string;
+  storePhone?: string | null;
   children: ReactNode;
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -42,6 +44,7 @@ export function AppShell({
           <Sidebar
             role={role}
             tenantName={tenantName}
+            storePhone={storePhone}
             isOpen={isSidebarOpen}
             setIsOpen={setIsSidebarOpen}
           />
