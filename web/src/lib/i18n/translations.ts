@@ -175,6 +175,7 @@ export const translations = {
       payStatusPaid: 'Paid',
       payStatusUnpaid: 'Unpaid',
       payStatusPartial: 'Partial',
+      consignmentOnly: 'Consignment only',
     },
     adjustments: {
       item: 'Item',
@@ -634,6 +635,7 @@ export const translations = {
       payStatusPaid: 'Lunas',
       payStatusUnpaid: 'Belum Lunas',
       payStatusPartial: 'Sebagian',
+      consignmentOnly: 'Hanya Konsinyasi',
     },
     adjustments: {
       item: 'Item',

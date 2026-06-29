@@ -11,6 +11,7 @@ const getQuerySchema = z.object({
   categoryId: z.coerce.number().int().optional(),
   sortBy: z.enum(['name', 'category', 'stock']).optional(),
   sortDir: z.enum(['asc', 'desc']).default('asc'),
+  consignmentOnly: z.string().optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -33,6 +34,11 @@ export async function GET(req: NextRequest) {
     }
     if (query.categoryId) {
       whereClause.category_id = query.categoryId;
+    }
+    if (query.consignmentOnly === 'true') {
+      whereClause.stock_lots = {
+        some: { source_type: 'CONSIGNMENT', status: 'ACTIVE', qty_remaining: { gt: 0 } },
+      };
     }
 
     // Build the orderBy clause

@@ -17,6 +17,7 @@ export function StockSummaryTab() {
   const [categoryId, setCategoryId] = useState('');
   const [sortBy, setSortBy] = useState<'name'|'category'|'stock'>('name');
   const [sortDir, setSortDir] = useState<'asc'|'desc'>('asc');
+  const [consignmentOnly, setConsignmentOnly] = useState(false);
   const { t } = useLocale();
   const search = useDebounce(localSearch, 300);
   const limit = 30;
@@ -26,6 +27,7 @@ export function StockSummaryTab() {
   qs.set('limit', limit.toString());
   if (search) qs.set('search', search);
   if (categoryId) qs.set('categoryId', categoryId);
+  if (consignmentOnly) qs.set('consignmentOnly', 'true');
   qs.set('sortBy', sortBy);
   qs.set('sortDir', sortDir);
 
@@ -72,6 +74,14 @@ export function StockSummaryTab() {
             ))}
           </select>
         </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', cursor: 'pointer', fontSize: 'var(--text-sm)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+          <input
+            type="checkbox"
+            checked={consignmentOnly}
+            onChange={(e) => { setConsignmentOnly(e.target.checked); setPage(1); }}
+          />
+          {t.inventory.consignmentOnly}
+        </label>
       </div>
 
       <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
