@@ -210,7 +210,10 @@ export function Sidebar({
                   <span className={styles.label}>{group.label}</span>
                 </button>
 
-                {open && (
+                <div
+                  className={styles.submenuWrapper}
+                  style={{ gridTemplateRows: open ? '1fr' : '0fr' }}
+                >
                   <ul className={styles.submenu}>
                     {(group.sub ?? []).map((s) => (
                       <li key={s.href}>
@@ -223,7 +226,7 @@ export function Sidebar({
                       </li>
                     ))}
                   </ul>
-                )}
+                </div>
               </li>
             );
           })}

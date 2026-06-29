@@ -99,11 +99,22 @@
   flex: 1;
 }
 
+.submenuWrapper {
+  display: grid;
+  transition: grid-template-rows 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .submenu {
+  overflow: hidden;
+  min-height: 0;
   list-style: none;
-  padding: 2px 0 8px;
+  padding: 0;
   margin: 0;
 }
+
+/* We need some padding, but only if open, OR we apply padding to the links themselves instead of the ul. */
+/* Let's remove ul padding and shift it to the inner wrapper or adjust it. */
+/* Actually, grid-template-rows transition handles inner content size. */
 
 .sublink {
   display: block;
