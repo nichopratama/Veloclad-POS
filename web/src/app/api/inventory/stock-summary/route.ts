@@ -60,8 +60,20 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
+    // Attach the consignment portion of each item's stock (active CONSIGNMENT lots).
+    const itemIds = data.map((d) => d.id);
+    const consignLots = itemIds.length
+      ? await prisma.stock_lots.groupBy({
+          by: ['item_id'],
+          where: { item_id: { in: itemIds }, source_type: 'CONSIGNMENT', status: 'ACTIVE' },
+          _sum: { qty_remaining: true },
+        })
+      : [];
+    const consignMap = new Map(consignLots.map((l) => [l.item_id, Number(l._sum.qty_remaining ?? 0)]));
+    const dataWithConsign = data.map((d) => ({ ...d, consignment_stock: consignMap.get(d.id) ?? 0 }));
+
     return NextResponse.json({
-      data,
+      data: dataWithConsign,
       pagination: {
         total,
         page: query.page,

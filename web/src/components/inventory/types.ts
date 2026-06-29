@@ -6,9 +6,10 @@ export interface StockItem {
   min_stock: number; 
   price: string; 
   unit: string | null; 
-  is_active: boolean; 
-  categories: { name: string } | null; 
-  suppliers: { name: string } | null; 
+  is_active: boolean;
+  categories: { name: string } | null;
+  suppliers: { name: string } | null;
+  consignment_stock?: number;
 }
 
 export interface PurchaseOrder {
@@ -23,6 +24,13 @@ export interface PurchaseOrder {
   created_at: string;
   suppliers: { name: string } | null;
   users: { name: string } | null;
+  po_items?: {
+    item_id: number;
+    qty: number;
+    cost: string | number;
+    subtotal: string | number;
+    items: { name: string; code: string } | null;
+  }[];
 }
 
 export interface Adjustment { 

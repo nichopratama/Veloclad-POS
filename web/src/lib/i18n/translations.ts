@@ -230,6 +230,9 @@ export const translations = {
       payError: 'Failed to record payment',
       consignmentSuccess: 'New consignment debt recorded successfully.',
       consignmentError: 'Failed to create consignment bill',
+      qtySold: 'Qty Sold',
+      computedDebt: 'Computed Debt (sold consignment)',
+      noUnsettledConsignment: 'No unsettled consignment sales.',
     },
     sales: {
       id: 'ID',
@@ -686,6 +689,9 @@ export const translations = {
       payError: 'Gagal mencatat pembayaran',
       consignmentSuccess: 'Utang konsinyasi baru berhasil dicatat.',
       consignmentError: 'Gagal membuat tagihan konsinyasi',
+      qtySold: 'Qty Terjual',
+      computedDebt: 'Utang Terhitung (konsinyasi terjual)',
+      noUnsettledConsignment: 'Tidak ada penjualan konsinyasi yang belum ditagih.',
     },
     sales: {
       id: 'ID',

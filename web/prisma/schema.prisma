@@ -68,6 +68,39 @@ model items {
   stock_adjustments stock_adjustments[]
   transaction_items transaction_items[]
   void_items        void_items[]
+  stock_lots        stock_lots[]
+}
+
+model stock_lots {
+  id              Int                      @id @default(autoincrement())
+  item_id         Int
+  source_type     String                   @db.VarChar(20) // 'OWNED' | 'CONSIGNMENT'
+  po_id           Int?
+  supplier_id     Int?
+  unit_cost       Decimal                  @db.Decimal(14, 2)
+  qty_received    Int
+  qty_remaining   Int
+  status          String                   @default("ACTIVE") @db.VarChar(20) // 'ACTIVE' | 'DEPLETED' | 'RETURNED'
+  received_at     DateTime                 @default(now()) @db.Timestamptz(6)
+  created_at      DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime                 @default(now()) @db.Timestamptz(6)
+  items           items                    @relation(fields: [item_id], references: [id], onDelete: Cascade)
+  purchase_orders purchase_orders?         @relation(fields: [po_id], references: [id], onDelete: SetNull)
+  suppliers       suppliers?               @relation(fields: [supplier_id], references: [id], onDelete: SetNull)
+  consumptions    stock_lot_consumptions[]
+}
+
+model stock_lot_consumptions {
+  id                  Int               @id @default(autoincrement())
+  transaction_item_id Int
+  stock_lot_id        Int
+  qty                 Int
+  unit_cost           Decimal           @db.Decimal(14, 2)
+  settled             Boolean           @default(false) // consignment: true once billed via settlement
+  created_at          DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime          @default(now()) @db.Timestamptz(6)
+  transaction_items   transaction_items @relation(fields: [transaction_item_id], references: [id], onDelete: Cascade)
+  stock_lots          stock_lots        @relation(fields: [stock_lot_id], references: [id], onDelete: Cascade)
 }
 
 model knex_migrations {
@@ -132,6 +165,7 @@ model purchase_orders {
   suppliers      suppliers? @relation(fields: [supplier_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "purchase_orders_supplier_id_foreign")
   users          users?     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "purchase_orders_user_id_foreign")
   payables       payables[]
+  stock_lots     stock_lots[]
 }
 
 model payables {
@@ -237,6 +271,7 @@ model suppliers {
   items           items[]
   purchase_orders purchase_orders[]
   payables        payables[]
+  stock_lots      stock_lots[]
 }
 
 model tax_settings {
@@ -262,6 +297,7 @@ model transaction_items {
   updated_at     DateTime      @default(now()) @db.Timestamptz(6)
   items          items?        @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "transaction_items_item_id_foreign")
   transactions   transactions? @relation(fields: [transaction_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "transaction_items_transaction_id_foreign")
+  lot_consumptions stock_lot_consumptions[]
 }
 
 model transactions {

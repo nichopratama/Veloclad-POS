@@ -8,7 +8,13 @@ import { formatIDR } from '@/components/pos/format';
 import { useLocale } from '@/lib/i18n/LocaleContext';
 import { toast } from '@/lib/toast';
 import { isAdmin } from '@/lib/roles';
-import { Supplier, FlatResponse } from './types';
+
+type ConsignmentSummaryRow = {
+  supplier_id: number;
+  supplier_name: string;
+  unsettled_qty: number;
+  unsettled_amount: number;
+};
 
 type PayableRow = {
   id: number;
@@ -30,7 +36,7 @@ interface PayablesManagerProps {
 
 export function PayablesManager({ role }: PayablesManagerProps) {
   const { data, error, isLoading, mutate } = useSWR<{ data: PayableRow[] }, FetchError>('/api/payables', fetcher);
-  const { data: supData } = useSWR<FlatResponse<Supplier>>('/api/library/suppliers', fetcher);
+  const { data: consignData, mutate: mutateConsign } = useSWR<{ data: ConsignmentSummaryRow[] }>('/api/payables/settle-consignment', fetcher);
   const { t } = useLocale();
 
   const canWrite = isAdmin(role);
@@ -43,11 +49,11 @@ export function PayablesManager({ role }: PayablesManagerProps) {
 
   const [settleModalOpen, setSettlementModalOpen] = useState(false);
   const [settleSupId, setSettleSupId] = useState('');
-  const [settleAmount, setSettleAmount] = useState('');
   const [settleDueDate, setSettleDueDate] = useState('');
 
   const payables = data?.data ?? [];
-  const suppliers = supData?.data ?? [];
+  const consignSummary = consignData?.data ?? [];
+  const selectedConsign = consignSummary.find((c) => String(c.supplier_id) === settleSupId) ?? null;
 
   const handlePaySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,17 +81,17 @@ export function PayablesManager({ role }: PayablesManagerProps) {
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      // Amount is computed server-side from unsettled consignment sales.
       await apiMutate('/api/payables/settle-consignment', 'POST', {
         supplier_id: Number(settleSupId),
-        amount: Number(settleAmount),
         due_date: settleDueDate ? new Date(settleDueDate).toISOString() : undefined,
       });
       toast.success(t.payables.consignmentSuccess);
       setSettlementModalOpen(false);
       setSettleSupId('');
-      setSettleAmount('');
       setSettleDueDate('');
       mutate();
+      mutateConsign();
     } catch (err: unknown) {
       toast.error(err instanceof FetchError ? err.message : t.payables.consignmentError);
     } finally {
@@ -218,27 +224,37 @@ export function PayablesManager({ role }: PayablesManagerProps) {
             <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', margin: 0 }}>
               {t.payables.consignmentDesc}
             </p>
-            <form onSubmit={handleSettleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-                <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{t.common.supplier}</label>
-                <select className="input" value={settleSupId} onChange={e => setSettleSupId(e.target.value)} required>
-                  <option value="">{t.payables.selectSupplier}</option>
-                  {suppliers.map((s) => <option key={s.id} value={String(s.id)}>{s.name}</option>)}
-                </select>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-                <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{t.payables.totalDebtSold}</label>
-                <input type="number" className="input" value={settleAmount} onChange={e => setSettleAmount(e.target.value)} required min={1} />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-                <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{t.payables.dueDateOptional}</label>
-                <input type="date" className="input" value={settleDueDate} onChange={e => setSettleDueDate(e.target.value)} />
-              </div>
-              <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
-                <button type="submit" className="btn" style={{ flex: 1 }} disabled={isSubmitting}>{t.payables.createBill}</button>
-                <button type="button" className="btn btn--outline" onClick={() => setSettlementModalOpen(false)}>{t.common.cancel}</button>
-              </div>
-            </form>
+            {consignSummary.length === 0 ? (
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', margin: 0 }}>{t.payables.noUnsettledConsignment}</p>
+            ) : (
+              <form onSubmit={handleSettleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+                  <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{t.common.supplier}</label>
+                  <select className="input" value={settleSupId} onChange={e => setSettleSupId(e.target.value)} required>
+                    <option value="">{t.payables.selectSupplier}</option>
+                    {consignSummary.map((c) => (
+                      <option key={c.supplier_id} value={String(c.supplier_id)}>
+                        {c.supplier_name} — {c.unsettled_qty} {t.payables.qtySold.toLowerCase()}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {selectedConsign && (
+                  <div style={{ background: 'var(--color-bg-alt)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>{t.payables.computedDebt}</span>
+                    <strong style={{ fontSize: 'var(--text-lg)' }}>{formatIDR(selectedConsign.unsettled_amount)}</strong>
+                  </div>
+                )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+                  <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{t.payables.dueDateOptional}</label>
+                  <input type="date" className="input" value={settleDueDate} onChange={e => setSettleDueDate(e.target.value)} />
+                </div>
+                <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
+                  <button type="submit" className="btn" style={{ flex: 1 }} disabled={isSubmitting || !selectedConsign}>{t.payables.createBill}</button>
+                  <button type="button" className="btn btn--outline" onClick={() => setSettlementModalOpen(false)}>{t.common.cancel}</button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

@@ -33,16 +33,32 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
         data: { status: 'received' },
       });
 
-      // 3. Increment stock for each item
+      // 3. Increment stock + create a stock lot for each item.
+      // Consignment POs create CONSIGNMENT lots (debt accrues only as they sell);
+      // cash/credit POs create OWNED lots. unit_cost is the per-PO purchase cost.
+      const lotSource = po.payment_method === 'CONSIGNMENT' ? 'CONSIGNMENT' : 'OWNED';
       for (const item of po.po_items) {
         if (!item.item_id) continue;
-        
+
         await tx.items.update({
           where: { id: item.item_id },
           data: {
             stock: {
               increment: item.qty,
             },
+          },
+        });
+
+        await tx.stock_lots.create({
+          data: {
+            item_id: item.item_id,
+            source_type: lotSource,
+            po_id: po.id,
+            supplier_id: po.supplier_id,
+            unit_cost: item.cost,
+            qty_received: item.qty,
+            qty_remaining: item.qty,
+            status: 'ACTIVE',
           },
         });
       }

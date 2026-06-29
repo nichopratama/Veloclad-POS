@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { requireAuth, requireRole, AuthError } from '@/lib/rbac';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
+import { createOwnedLot, depleteLotsOwnedFirst } from '@/lib/stock-lots';
 
 const adjustmentSchema = z.object({
   item_id: z.number().int(),
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
       // 1. Guard: item exists and the adjustment won't push stock below 0
       const item = await tx.items.findUnique({
         where: { id: parsedBody.item_id },
-        select: { stock: true },
+        select: { stock: true, hpp: true },
       });
       if (!item) throw new Error('ITEM_NOT_FOUND');
       if ((item.stock ?? 0) + parsedBody.qty_change < 0) throw new Error('NEGATIVE_STOCK');
@@ -75,6 +76,14 @@ export async function POST(req: NextRequest) {
           },
         },
       });
+
+      // 4. Keep stock lots in sync: positive → add an OWNED lot (valued at item cost),
+      // negative → deplete lots owned-first. Prevents items.stock vs Σ lots drift.
+      if (parsedBody.qty_change > 0) {
+        await createOwnedLot(tx, parsedBody.item_id, parsedBody.qty_change, item.hpp ?? 0);
+      } else {
+        await depleteLotsOwnedFirst(tx, parsedBody.item_id, -parsedBody.qty_change);
+      }
     });
 
     return NextResponse.json({ message: 'Stock adjustment created successfully' }, { status: 201 });

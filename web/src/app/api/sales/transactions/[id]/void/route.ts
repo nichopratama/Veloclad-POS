@@ -21,6 +21,47 @@ const voidSchema = z.object({
   reason: z.string().optional(),
 });
 
+/**
+ * Restore returned units back into the exact stock lots the original sale consumed
+ * (reverse of owned-first depletion, most-recent consumption first). Reduces the
+ * consumption ledger so consignment debt for returned goods is removed too, and
+ * re-activates any lot that had been fully depleted. Legacy sales (made before lot
+ * tracking) have no consumption rows → only items.stock is restored, handled by caller.
+ */
+async function restoreLots(
+  tx: Prisma.TransactionClient,
+  transactionId: string,
+  itemId: number,
+  qtyToRestore: number,
+): Promise<void> {
+  const tis = await tx.transaction_items.findMany({
+    where: { transaction_id: transactionId, item_id: itemId },
+    select: { id: true },
+  });
+  const tiIds = tis.map((t) => t.id);
+  if (tiIds.length === 0) return;
+
+  const consumptions = await tx.stock_lot_consumptions.findMany({
+    where: { transaction_item_id: { in: tiIds }, qty: { gt: 0 } },
+    orderBy: { id: 'desc' },
+  });
+
+  let remaining = qtyToRestore;
+  for (const c of consumptions) {
+    if (remaining <= 0) break;
+    const give = Math.min(remaining, c.qty);
+    await tx.stock_lots.update({
+      where: { id: c.stock_lot_id },
+      data: { qty_remaining: { increment: give }, status: 'ACTIVE' },
+    });
+    await tx.stock_lot_consumptions.update({
+      where: { id: c.id },
+      data: { qty: c.qty - give },
+    });
+    remaining -= give;
+  }
+}
+
 // POST void/refund — hanya admin (D7).
 export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   try {
@@ -52,6 +93,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
         // Kembalikan stok hanya jika barang dikembalikan.
         if (reason === 'Returned Goods') {
           await tx.items.updateMany({ where: { id: it.item_id }, data: { stock: { increment: it.qty } } });
+          await restoreLots(tx, id, it.item_id, it.qty);
         }
       }
 

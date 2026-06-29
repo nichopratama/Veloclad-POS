@@ -109,6 +109,11 @@ export function StockSummaryTab() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                         <span style={{ fontWeight: 600 }}>{row.name}</span>
                         {isLowStock && <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-danger)', fontWeight: 700 }}>{t.inventory.lowStock}</span>}
+                        {(row.consignment_stock ?? 0) > 0 && (
+                          <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'white', background: 'var(--color-accent)', borderRadius: 'var(--radius-sm)', padding: '1px var(--space-2)' }}>
+                            {t.inventory.typeConsignment}: {row.consignment_stock}
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td style={{ padding: 'var(--space-3) var(--space-4)' }}>{row.categories?.name || '-'}</td>
