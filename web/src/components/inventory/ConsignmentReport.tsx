@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import useSWR from 'swr';
-import { fetcher } from '@/lib/fetcher';
+import { fetcher, apiMutate, FetchError } from '@/lib/fetcher';
 import { SkeletonTable } from '@/components/ui/Skeleton';
 import { formatIDR } from '@/components/pos/format';
 import { useLocale } from '@/lib/i18n/LocaleContext';
@@ -15,6 +16,18 @@ type ConsignmentItem = {
   remaining: number;
 };
 
+type LotAging = {
+  lot_id: number;
+  code: string;
+  name: string;
+  unit_cost: number;
+  remaining: number;
+  received_at: string;
+  expires_at: string | null;
+  days_remaining: number | null;
+  is_overdue: boolean;
+};
+
 type SupplierGroup = {
   supplier_id: number | null;
   supplier_name: string;
@@ -22,12 +35,33 @@ type SupplierGroup = {
   total_received: number;
   total_remaining: number;
   items: ConsignmentItem[];
+  lots: LotAging[];
+  overdue_count: number;
 };
+
+const DUE_SOON_DAYS = 7;
 
 export function ConsignmentReport() {
   const { t } = useLocale();
-  const { data, error, isLoading } = useSWR<{ data: SupplierGroup[] }>('/api/inventory/consignment-stock', fetcher);
+  const { data, error, isLoading, mutate } = useSWR<{ data: SupplierGroup[] }>('/api/inventory/consignment-stock', fetcher);
   const groups = data?.data ?? [];
+
+  const [returningId, setReturningId] = useState<number | null>(null);
+  const [actionError, setActionError] = useState('');
+
+  const handleReturn = async (lotId: number) => {
+    if (!confirm(t.consignmentReport.returnConfirm)) return;
+    setReturningId(lotId);
+    setActionError('');
+    try {
+      await apiMutate(`/api/inventory/stock-lots/${lotId}/return`, 'PATCH');
+      await mutate();
+    } catch (err: unknown) {
+      setActionError(err instanceof FetchError ? err.message : t.common.unknownError);
+    } finally {
+      setReturningId(null);
+    }
+  };
 
   if (error) {
     return (
@@ -51,13 +85,40 @@ export function ConsignmentReport() {
 
   const cellNum: React.CSSProperties = { padding: 'var(--space-2) var(--space-4)', textAlign: 'right' };
   const headNum: React.CSSProperties = { ...cellNum, fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', textTransform: 'uppercase' };
+  const headLeft: React.CSSProperties = { padding: 'var(--space-2) var(--space-4)', textAlign: 'left', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', textTransform: 'uppercase' };
+
+  const formatDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+
+  const renderDaysLeft = (lot: LotAging) => {
+    if (lot.days_remaining == null) {
+      return <span style={{ color: 'var(--color-text-muted)' }}>{t.consignmentReport.openEnded}</span>;
+    }
+    const isDueSoon = !lot.is_overdue && lot.days_remaining <= DUE_SOON_DAYS;
+    const color = lot.is_overdue ? 'var(--color-danger)' : isDueSoon ? 'var(--color-warning, #b45309)' : 'var(--color-text)';
+    const label = lot.is_overdue
+      ? `${t.consignmentReport.overdue} (${Math.abs(lot.days_remaining)})`
+      : `${lot.days_remaining}`;
+    return <span style={{ fontWeight: lot.is_overdue || isDueSoon ? 700 : 400, color }}>{label}</span>;
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+      {actionError && (
+        <div style={{ padding: 'var(--space-3)', background: 'var(--color-danger)', color: 'white', borderRadius: 'var(--radius-sm)' }}>
+          {actionError}
+        </div>
+      )}
       {groups.map((g) => (
         <div key={g.supplier_id ?? 'none'} className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-4)', borderBottom: '1px solid var(--color-border)', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
-            <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 800, margin: 0 }}>{g.supplier_name}</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 800, margin: 0 }}>{g.supplier_name}</h3>
+              {g.overdue_count > 0 && (
+                <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'white', background: 'var(--color-danger)', padding: '2px var(--space-2)', borderRadius: 'var(--radius-sm)' }}>
+                  {g.overdue_count} {t.consignmentReport.overdueCount}
+                </span>
+              )}
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
               <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>{t.consignmentReport.runningDebt}</span>
               <span className="money" style={{ fontWeight: 800, color: g.running_debt > 0 ? 'var(--color-danger)' : 'var(--color-text)' }}>
@@ -65,11 +126,13 @@ export function ConsignmentReport() {
               </span>
             </div>
           </div>
+
+          {/* Overview: received / sold / remaining per item */}
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  <th style={{ padding: 'var(--space-2) var(--space-4)', textAlign: 'left', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>{t.consignmentReport.item}</th>
+                  <th style={headLeft}>{t.consignmentReport.item}</th>
                   <th style={headNum}>{t.consignmentReport.unitCost}</th>
                   <th style={headNum}>{t.consignmentReport.received}</th>
                   <th style={headNum}>{t.consignmentReport.sold}</th>
@@ -101,6 +164,50 @@ export function ConsignmentReport() {
               </tfoot>
             </table>
           </div>
+
+          {/* Aging + pull-back: active lots with their consignment period */}
+          {g.lots.length > 0 && (
+            <div style={{ overflowX: 'auto', borderTop: '1px solid var(--color-border)' }}>
+              <div style={{ padding: 'var(--space-2) var(--space-4)', fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', background: 'var(--color-surface-2, transparent)' }}>
+                {t.consignmentReport.activeLots}
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <th style={headLeft}>{t.consignmentReport.item}</th>
+                    <th style={headNum}>{t.consignmentReport.remaining}</th>
+                    <th style={headNum}>{t.consignmentReport.expiry}</th>
+                    <th style={headNum}>{t.consignmentReport.daysLeft}</th>
+                    <th style={{ ...headNum, textAlign: 'center' }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {g.lots.map((lot) => (
+                    <tr key={lot.lot_id} style={{ borderBottom: '1px solid var(--color-border)', background: lot.is_overdue ? 'var(--color-danger-soft, rgba(220,38,38,0.06))' : undefined }}>
+                      <td style={{ padding: 'var(--space-2) var(--space-4)' }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', marginRight: 'var(--space-2)' }}>{lot.code}</span>
+                        {lot.name}
+                      </td>
+                      <td style={{ ...cellNum, fontWeight: 700 }}>{lot.remaining}</td>
+                      <td style={cellNum}>{lot.expires_at ? formatDate(lot.expires_at) : <span style={{ color: 'var(--color-text-muted)' }}>—</span>}</td>
+                      <td style={cellNum}>{renderDaysLeft(lot)}</td>
+                      <td style={{ padding: 'var(--space-2) var(--space-4)', textAlign: 'center' }}>
+                        <button
+                          type="button"
+                          className="btn btn--ghost"
+                          onClick={() => handleReturn(lot.lot_id)}
+                          disabled={returningId === lot.lot_id}
+                          style={{ minHeight: '30px', padding: '0 var(--space-3)', color: 'var(--color-danger)' }}
+                        >
+                          {returningId === lot.lot_id ? t.common.saving : t.consignmentReport.returnAction}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       ))}
     </div>

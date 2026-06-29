@@ -7,6 +7,12 @@ const getQuerySchema = z.object({
   search: z.string().optional(),
 });
 
+// Empty string / null from the form means "no term"; otherwise a positive int.
+const consignmentDaysSchema = z.preprocess(
+  (v) => (v === '' || v === null || v === undefined ? null : Number(v)),
+  z.number().int().positive().nullable(),
+);
+
 const supplierSchema = z.object({
   name: z.string().min(1),
   contact: z.string().nullish(),
@@ -14,6 +20,7 @@ const supplierSchema = z.object({
   email: z.string().email().nullish().or(z.literal('')),
   address: z.string().nullish(),
   npwp: z.string().nullish(),
+  consignment_days: consignmentDaysSchema.optional(),
   is_active: z.boolean().default(true).optional(),
 });
 

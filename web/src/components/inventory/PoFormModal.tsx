@@ -18,6 +18,7 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'CREDIT' | 'CONSIGNMENT'>('CASH');
   const [dueDate, setDueDate] = useState('');
+  const [consignmentDays, setConsignmentDays] = useState('');
 
   const [items, setItems] = useState<{ id: string; item_id: string; item_name: string; qty: string; cost: string }[]>([]);
 
@@ -32,9 +33,22 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
   const notesFieldId = `${base}-notes`;
   const paymentMethodFieldId = `${base}-payment`;
   const dueDateFieldId = `${base}-due-date`;
+  const consignmentDaysFieldId = `${base}-consignment-days`;
 
   const { data: supData } = useSWR<FlatResponse<Supplier>>('/api/library/suppliers', fetcher);
   const suppliers = supData?.data || [];
+
+  // Primitive so the prefill effect only fires when the actual default changes,
+  // not on every render (suppliers is a fresh array reference each time).
+  const selectedSupplier = suppliers.find((s) => String(s.id) === supplierId);
+  const supplierDefaultDays = selectedSupplier?.consignment_days ?? null;
+
+  // Prefill the consignment term from the selected supplier's default whenever the
+  // supplier or purchase type changes. The admin can still override the value.
+  useEffect(() => {
+    if (paymentMethod !== 'CONSIGNMENT') return;
+    setConsignmentDays(supplierDefaultDays != null ? String(supplierDefaultDays) : '');
+  }, [supplierDefaultDays, paymentMethod]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(itemSearch), 300);
@@ -87,6 +101,7 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
       notes: notes || undefined,
       payment_method: paymentMethod,
       due_date: paymentMethod === 'CREDIT' ? (new Date(dueDate).toISOString()) : undefined,
+      consignment_days: paymentMethod === 'CONSIGNMENT' && consignmentDays ? Number(consignmentDays) : undefined,
       items: items.map(it => ({
         item_id: Number(it.item_id),
         qty: Number(it.qty),
@@ -157,6 +172,12 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
                   <label htmlFor={dueDateFieldId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{t.inventory.dueDate} <span style={{ color: 'var(--color-danger)' }}>*</span></label>
                   <input id={dueDateFieldId} type="date" className="input" value={dueDate} onChange={(e) => setDueDate(e.target.value)} required />
+                </div>
+              ) : paymentMethod === 'CONSIGNMENT' ? (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+                  <label htmlFor={consignmentDaysFieldId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{t.inventory.consignmentDays}</label>
+                  <input id={consignmentDaysFieldId} type="number" min="1" className="input" value={consignmentDays} onChange={(e) => setConsignmentDays(e.target.value)} placeholder={t.common.optional} />
+                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>{t.inventory.consignmentDaysHint}</span>
                 </div>
               ) : (
                 <div style={{ flex: 1 }} />

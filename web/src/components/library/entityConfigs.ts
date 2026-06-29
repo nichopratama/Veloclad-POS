@@ -71,6 +71,7 @@ export const entityConfigs: Record<string, EntityConfig> = {
       { key: 'email', label: 'Email', labelEn: 'Email', type: 'email', nullable: true, showInTable: true },
       { key: 'address', label: 'Alamat', labelEn: 'Address', type: 'textarea', nullable: true, showInTable: false },
       { key: 'npwp', label: 'NPWP', labelEn: 'NPWP', type: 'text', nullable: true, showInTable: false },
+      { key: 'consignment_days', label: 'Masa Konsinyasi (hari)', labelEn: 'Consignment Period (days)', type: 'number', nullable: true, showInTable: false },
       { key: 'is_active', label: 'Aktif', labelEn: 'Active', type: 'checkbox', defaultValue: true, showInTable: true },
     ],
   },

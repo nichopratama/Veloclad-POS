@@ -3,6 +3,12 @@ import { prisma } from '@/lib/prisma';
 import { requireRole, AuthError } from '@/lib/rbac';
 import { z } from 'zod';
 
+// Empty string / null from the form means "no term"; otherwise a positive int.
+const consignmentDaysSchema = z.preprocess(
+  (v) => (v === '' || v === null || v === undefined ? null : Number(v)),
+  z.number().int().positive().nullable(),
+);
+
 const supplierUpdateSchema = z.object({
   name: z.string().min(1).optional(),
   contact: z.string().nullish(),
@@ -10,6 +16,7 @@ const supplierUpdateSchema = z.object({
   email: z.string().email().nullish().or(z.literal('')),
   address: z.string().nullish(),
   npwp: z.string().nullish(),
+  consignment_days: consignmentDaysSchema.optional(),
   is_active: z.boolean().optional(),
 });
 

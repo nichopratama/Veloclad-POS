@@ -60,6 +60,7 @@ export interface PoLine {
 export interface Supplier {
   id: number;
   name: string;
+  consignment_days?: number | null;
 }
 
 export interface PaginatedResponse<T> {
