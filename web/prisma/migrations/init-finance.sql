@@ -1,6 +1,12 @@
 -- Migration for Finance & Payables Tables
 -- Executed manually or dynamically to ensure table exists in SaaS/pooled environment
 
+-- Add purchase-mechanism columns to purchase_orders (CASH/CREDIT/CONSIGNMENT support)
+ALTER TABLE purchase_orders
+  ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50) DEFAULT 'CASH',
+  ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50) DEFAULT 'PAID',
+  ADD COLUMN IF NOT EXISTS due_date TIMESTAMPTZ;
+
 CREATE TABLE IF NOT EXISTS payables (
   id SERIAL PRIMARY KEY,
   supplier_id INTEGER NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
