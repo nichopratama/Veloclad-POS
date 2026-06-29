@@ -1,11 +1,11 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { ExpensesTab } from './ExpensesTab';
-import { IncomeStatementTab } from './IncomeStatementTab';
-import { CashFlowTab } from './CashFlowTab';
-import { ExpenseCategoriesTab } from './ExpenseCategoriesTab';
-import { PayablesManager } from '../inventory/PayablesManager';
+import { ExpensesTab } from '@/components/finance/ExpensesTab';
+import { IncomeStatementTab } from '@/components/finance/IncomeStatementTab';
+import { CashFlowTab } from '@/components/finance/CashFlowTab';
+import { ExpenseCategoriesTab } from '@/components/finance/ExpenseCategoriesTab';
+import { PayablesManager } from '@/components/inventory/PayablesManager';
 
 interface FinanceViewProps {
   role: string;
