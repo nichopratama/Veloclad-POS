@@ -110,7 +110,7 @@ export function SettingsForm({ role }: SettingsFormProps) {
 
   if (isLoading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', maxWidth: '800px', margin: '0 auto', width: '100%' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', maxWidth: '800px', margin: '0', width: '100%' }}>
         {['sec1', 'sec2', 'sec3'].map((sk) => (
           <div key={sk} className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
             <Skeleton width={160} height={16} style={{ marginBottom: 'var(--space-2)' }} />
@@ -127,7 +127,7 @@ export function SettingsForm({ role }: SettingsFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', maxWidth: '800px', margin: '0 auto', width: '100%' }}>
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', maxWidth: '800px', margin: '0', width: '100%' }}>
       
       {successMsg && (
         <div style={{ padding: 'var(--space-4)', background: 'var(--color-success)', color: 'white', borderRadius: 'var(--radius)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

@@ -96,7 +96,7 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
   };
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+    <div style={{ maxWidth: '900px', margin: '0', width: '100%', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
       {banner && (
         <div
           style={{
