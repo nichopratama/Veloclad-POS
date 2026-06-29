@@ -25,8 +25,10 @@ const voidSchema = z.object({
  * Restore returned units back into the exact stock lots the original sale consumed
  * (reverse of owned-first depletion, most-recent consumption first). Reduces the
  * consumption ledger so consignment debt for returned goods is removed too, and
- * re-activates any lot that had been fully depleted. Legacy sales (made before lot
- * tracking) have no consumption rows → only items.stock is restored, handled by caller.
+ * re-activates any lot that had been fully depleted. Lots already RETURNED to the
+ * supplier are NOT resurrected (their stock is gone from our arrangement). Legacy
+ * sales (made before lot tracking) have no consumption rows → only items.stock is
+ * restored, handled by caller.
  */
 async function restoreLots(
   tx: Prisma.TransactionClient,
@@ -50,10 +52,24 @@ async function restoreLots(
   for (const c of consumptions) {
     if (remaining <= 0) break;
     const give = Math.min(remaining, c.qty);
-    await tx.stock_lots.update({
+
+    // Don't resurrect a consignment lot already returned to the supplier: those
+    // units are physically gone from our arrangement, so re-activating the lot
+    // would make returned stock sellable again. The customer's physical return is
+    // still reflected in items.stock by the caller. Only re-stock lots still ours.
+    const lot = await tx.stock_lots.findUnique({
       where: { id: c.stock_lot_id },
-      data: { qty_remaining: { increment: give }, status: 'ACTIVE' },
+      select: { status: true },
     });
+    if (lot && lot.status !== 'RETURNED') {
+      await tx.stock_lots.update({
+        where: { id: c.stock_lot_id },
+        data: { qty_remaining: { increment: give }, status: 'ACTIVE' },
+      });
+    }
+
+    // Always reduce the consumption so consignment debt for the refunded units is
+    // removed, consistent with how voids reverse debt for non-returned lots.
     await tx.stock_lot_consumptions.update({
       where: { id: c.id },
       data: { qty: c.qty - give },
