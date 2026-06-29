@@ -147,7 +147,7 @@ export function PayablesManager({ role }: PayablesManagerProps) {
                       <div style={{ fontWeight: 600 }}>{p.suppliers.name}</div>
                       <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>{p.type}</div>
                     </td>
-                    <td style={{ padding: 'var(--space-3) var(--space-4)' }}>{p.purchase_orders?.po_number ?? '-'}</td>
+                    <td style={{ padding: 'var(--space-3) var(--space-4)' }}>{p.purchase_orders?.po_number ?? (p.type === 'CONSIGNMENT_SETTLEMENT' ? t.payables.consignmentLabel : '-')}</td>
                     <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', fontWeight: 600 }}>{formatIDR(Number(p.total_debt))}</td>
                     <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', color: 'var(--color-success)' }}>{formatIDR(Number(p.amount_paid))}</td>
                     <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>

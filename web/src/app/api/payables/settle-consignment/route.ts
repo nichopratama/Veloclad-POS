@@ -68,8 +68,8 @@ export async function POST(req: NextRequest) {
 
     const result = await prisma.$transaction(async (tx) => {
       // Lock the unsettled consignment consumptions for this supplier.
-      const rows = await tx.$queryRaw<Array<{ id: number; amount: string }>>(Prisma.sql`
-        SELECT c.id, (c.qty * c.unit_cost) AS amount
+      const rows = await tx.$queryRaw<Array<{ id: number; amount: string; po_id: number | null }>>(Prisma.sql`
+        SELECT c.id, (c.qty * c.unit_cost) AS amount, sl.po_id
         FROM stock_lot_consumptions c
         JOIN stock_lots sl ON sl.id = c.stock_lot_id
         WHERE sl.source_type = 'CONSIGNMENT' AND sl.supplier_id = ${parsed.supplier_id}
@@ -84,9 +84,16 @@ export async function POST(req: NextRequest) {
       const totalDebt = rows.reduce((sum, r) => sum.plus(new Prisma.Decimal(r.amount)), new Prisma.Decimal(0));
       const ids = rows.map((r) => r.id);
 
+      // Attribute the settlement to a PO only when every settled unit traces back to
+      // exactly one PO. Settlements spanning multiple consignment deliveries (or lots
+      // with no PO) legitimately have no single reference and stay null.
+      const poIds = new Set(rows.map((r) => r.po_id));
+      const singlePoId = poIds.size === 1 ? [...poIds][0] : null;
+
       const payable = await tx.payables.create({
         data: {
           supplier_id: parsed.supplier_id,
+          po_id: singlePoId,
           type: 'CONSIGNMENT_SETTLEMENT',
           total_debt: totalDebt,
           amount_paid: 0,

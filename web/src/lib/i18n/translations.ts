@@ -234,6 +234,7 @@ export const translations = {
     payables: {
       calcConsignment: 'Calculate Consignment Debt',
       poReference: 'PO Reference',
+      consignmentLabel: 'Consignment',
       totalDebt: 'Total Debt',
       paid: 'Paid',
       dueDate: 'Due Date',
@@ -720,6 +721,7 @@ export const translations = {
     payables: {
       calcConsignment: 'Hitung Utang Konsinyasi',
       poReference: 'Referensi PO',
+      consignmentLabel: 'Konsinyasi',
       totalDebt: 'Total Tagihan',
       paid: 'Sudah Dibayar',
       dueDate: 'Jatuh Tempo',
