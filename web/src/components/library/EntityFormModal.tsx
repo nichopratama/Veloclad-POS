@@ -12,7 +12,10 @@ interface EntityFormModalProps {
 }
 
 export function EntityFormModal({ config, initialData, onClose, onSuccess }: EntityFormModalProps) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  const entityLabel = locale === 'en' ? (config.labelEn ?? config.label) : config.label;
+  const fieldLabel = (f: { label: string; labelEn?: string }) =>
+    locale === 'en' ? (f.labelEn ?? f.label) : f.label;
   const [formData, setFormData] = useState<Record<string, FormValue>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -115,7 +118,7 @@ export function EntityFormModal({ config, initialData, onClose, onSuccess }: Ent
       >
         <div style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 800 }}>
-            {isEdit ? t.library.edit(config.label) : t.library.addLabel(config.label)}
+            {isEdit ? t.library.edit(entityLabel) : t.library.addLabel(entityLabel)}
           </h2>
           <button type="button" className="btn btn--ghost" onClick={onClose} style={{ minHeight: '32px', padding: '0 var(--space-2)' }}>{t.common.close}</button>
         </div>
@@ -134,6 +137,7 @@ export function EntityFormModal({ config, initialData, onClose, onSuccess }: Ent
                 field={f}
                 value={formData[f.key]}
                 onChange={(val) => setFormData(prev => ({ ...prev, [f.key]: val }))}
+                displayLabel={fieldLabel(f)}
               />
             ))}
           </div>

@@ -135,8 +135,23 @@ export function Sidebar({
     return (group.sub ?? []).some((s) => pathname === parseHref(s.href).path);
   };
 
-  const toggle = (label: string, active: boolean) =>
-    setOverrides((prev) => ({ ...prev, [label]: !(prev[label] ?? active) }));
+  const toggle = (label: string, active: boolean) => {
+    setOverrides((prev) => {
+      const isOpen = prev[label] ?? active;
+      if (isOpen) {
+        // Jika sedang terbuka, maka kita tutup
+        return { [label]: false };
+      } else {
+        // Jika sedang tertutup dan mau dibuka,
+        // kita paksa tutup (false) semua grup lain agar bertindak sebagai accordion
+        const next: Record<string, boolean> = {};
+        items.forEach((g) => {
+          next[g.label] = g.label === label;
+        });
+        return next;
+      }
+    });
+  };
 
   return (
     <>

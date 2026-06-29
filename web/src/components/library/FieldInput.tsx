@@ -2,15 +2,19 @@ import { useId } from 'react';
 import useSWR from 'swr';
 import { fetcher } from '@/lib/fetcher';
 import { FieldDef, FormValue, EntityRow } from './types';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 interface FieldInputProps {
   field: FieldDef;
   value: FormValue;
   onChange: (val: FormValue) => void;
+  displayLabel?: string;
 }
 
-export function FieldInput({ field, value, onChange }: FieldInputProps) {
+export function FieldInput({ field, value, onChange, displayLabel }: FieldInputProps) {
   const fieldId = useId();
+  const { t } = useLocale();
+  const label = displayLabel ?? field.label;
   const { data: optionsData } = useSWR<{ data: EntityRow[] }>(
     field.type === 'select' && field.optionsEndpoint ? field.optionsEndpoint : null,
     fetcher
@@ -25,7 +29,7 @@ export function FieldInput({ field, value, onChange }: FieldInputProps) {
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
           <label htmlFor={fieldId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>
-            {field.label} {field.required && <span style={{ color: 'var(--color-danger)' }}>*</span>}
+            {label} {field.required && <span style={{ color: 'var(--color-danger)' }}>*</span>}
           </label>
           <input
             id={fieldId}
@@ -41,7 +45,7 @@ export function FieldInput({ field, value, onChange }: FieldInputProps) {
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
           <label htmlFor={fieldId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>
-            {field.label} {field.required && <span style={{ color: 'var(--color-danger)' }}>*</span>}
+            {label} {field.required && <span style={{ color: 'var(--color-danger)' }}>*</span>}
           </label>
           <textarea
             id={fieldId}
@@ -58,7 +62,7 @@ export function FieldInput({ field, value, onChange }: FieldInputProps) {
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
           <label htmlFor={fieldId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>
-            {field.label} {field.required && <span style={{ color: 'var(--color-danger)' }}>*</span>}
+            {label} {field.required && <span style={{ color: 'var(--color-danger)' }}>*</span>}
           </label>
           <input
             id={fieldId}
@@ -78,14 +82,14 @@ export function FieldInput({ field, value, onChange }: FieldInputProps) {
             checked={!!value}
             onChange={(e) => onChange(e.target.checked)}
           />
-          {field.label}
+          {label}
         </label>
       );
     case 'select':
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
           <label htmlFor={fieldId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>
-            {field.label} {field.required && <span style={{ color: 'var(--color-danger)' }}>*</span>}
+            {label} {field.required && <span style={{ color: 'var(--color-danger)' }}>*</span>}
           </label>
           <select
             id={fieldId}
@@ -94,8 +98,8 @@ export function FieldInput({ field, value, onChange }: FieldInputProps) {
             onChange={(e) => onChange(e.target.value)}
             required={field.required}
           >
-            {field.nullable && <option value="">- Pilih -</option>}
-            {!field.nullable && !value && <option value="" disabled>- Pilih -</option>}
+            {field.nullable && <option value="">{t.common.selectPlaceholder}</option>}
+            {!field.nullable && !value && <option value="" disabled>{t.common.selectPlaceholder}</option>}
             {options.map((opt) => (
               <option key={String(opt[field.optionValueKey!])} value={String(opt[field.optionValueKey!])}>
                 {String(opt[field.optionLabelKey!] ?? '')}

@@ -21,7 +21,10 @@ interface EntityManagerProps {
 export function EntityManager({ config, role }: EntityManagerProps) {
   const [page, setPage] = useState(1);
   const [localSearch, setLocalSearch] = useState('');
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  const entityLabel = locale === 'en' ? config.labelEn : config.label;
+  const fieldLabel = (f: { label: string; labelEn?: string }) =>
+    locale === 'en' ? (f.labelEn ?? f.label) : f.label;
   const search = useDebounce(localSearch, 300);
 
   const [formState, setFormState] = useState<{ isOpen: boolean; initialData: EntityRow | null }>({ isOpen: false, initialData: null });
@@ -92,8 +95,8 @@ export function EntityManager({ config, role }: EntityManagerProps) {
             <input
               type="text"
               className="input"
-              placeholder={t.library.search(config.label)}
-              aria-label={t.library.searchLabel(config.label)}
+              placeholder={t.library.search(entityLabel)}
+              aria-label={t.library.searchLabel(entityLabel)}
               value={localSearch}
               onChange={handleSearchChange}
             />
@@ -102,7 +105,7 @@ export function EntityManager({ config, role }: EntityManagerProps) {
         <div>
           {canMutate && (
             <button className="btn" onClick={() => setFormState({ isOpen: true, initialData: null })}>
-              {t.library.add(config.label)}
+              {t.library.add(entityLabel)}
             </button>
           )}
         </div>
@@ -120,7 +123,7 @@ export function EntityManager({ config, role }: EntityManagerProps) {
             <thead>
               <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
                 {config.fields.filter(f => f.showInTable).map(f => (
-                  <th key={f.key} style={{ padding: 'var(--space-3) var(--space-4)' }}>{f.label}</th>
+                  <th key={f.key} style={{ padding: 'var(--space-3) var(--space-4)' }}>{fieldLabel(f)}</th>
                 ))}
                 <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>{t.common.actions}</th>
               </tr>

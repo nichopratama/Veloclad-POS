@@ -34,6 +34,7 @@ export const translations = {
       clickToLogout: 'Click to sign out',
     },
     common: {
+      selectPlaceholder: '- Select -',
       save: 'Save',
       saving: 'Saving...',
       cancel: 'Cancel',
@@ -242,6 +243,22 @@ export const translations = {
       edit: (label: string) => `Edit ${label}`,
       addLabel: (label: string) => `Add ${label}`,
       cannotDelete: 'Data cannot be deleted because it is still used in transactions or other tables.',
+      tabTitles: {
+        items: 'Products',
+        categories: 'Categories',
+        customers: 'Customers',
+        suppliers: 'Suppliers',
+        paymentTypes: 'Payment Methods',
+        discounts: 'Discounts',
+      },
+      tabDescriptions: {
+        items: 'Manage all your product inventory and pricing.',
+        categories: 'Organize your products into categories.',
+        customers: 'Manage your customer database and details.',
+        suppliers: 'Manage your supplier database and contact info.',
+        paymentTypes: 'Configure accepted payment methods for transactions.',
+        discounts: 'Manage discount rules and promotional offers.',
+      },
     },
     settings: {
       storeSettings: 'Store Settings',
@@ -399,6 +416,7 @@ export const translations = {
       clickToLogout: 'Klik untuk keluar',
     },
     common: {
+      selectPlaceholder: '- Pilih -',
       save: 'Simpan',
       saving: 'Menyimpan...',
       cancel: 'Batal',
@@ -607,6 +625,22 @@ export const translations = {
       edit: (label: string) => `Edit ${label}`,
       addLabel: (label: string) => `Tambah ${label}`,
       cannotDelete: 'Data tidak dapat dihapus karena masih digunakan di transaksi atau tabel lain.',
+      tabTitles: {
+        items: 'Produk',
+        categories: 'Kategori',
+        customers: 'Pelanggan',
+        suppliers: 'Supplier',
+        paymentTypes: 'Metode Pembayaran',
+        discounts: 'Diskon',
+      },
+      tabDescriptions: {
+        items: 'Kelola semua inventaris produk dan harga jual.',
+        categories: 'Atur produk ke dalam kategori.',
+        customers: 'Kelola data dan detail pelanggan.',
+        suppliers: 'Kelola data dan info kontak supplier.',
+        paymentTypes: 'Konfigurasi metode pembayaran yang diterima.',
+        discounts: 'Kelola aturan diskon dan penawaran promosi.',
+      },
     },
     settings: {
       storeSettings: 'Pengaturan Toko',

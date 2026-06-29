@@ -3,6 +3,7 @@ export type FieldType = 'text' | 'textarea' | 'number' | 'money' | 'checkbox' | 
 export interface FieldDef {
   key: string;                 // nama field DB, mis. 'category_id'
   label: string;               // label ID, mis. 'Kategori'
+  labelEn?: string;            // label EN, mis. 'Category'
   type: FieldType;
   required?: boolean;
   defaultValue?: string | number | boolean;
@@ -17,6 +18,7 @@ export interface FieldDef {
 export interface EntityConfig {
   key: string;                 // 'items'
   label: string;               // 'Produk'
+  labelEn: string;             // 'Products'
   endpoint: string;            // '/api/library/items'
   paginated: boolean;          // items=true; lainnya=false
   searchable: boolean;         // payment-types=false; lainnya=true
