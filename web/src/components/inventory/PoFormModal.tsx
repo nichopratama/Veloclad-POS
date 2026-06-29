@@ -14,6 +14,8 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
   const { t } = useLocale();
   const [supplierId, setSupplierId] = useState('');
   const [notes, setNotes] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'CREDIT' | 'CONSIGNMENT'>('CASH');
+  const [dueDate, setDueDate] = useState('');
 
   const [items, setItems] = useState<{ id: string; item_id: string; item_name: string; qty: string; cost: string }[]>([]);
 
@@ -26,6 +28,8 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
   const base = useId();
   const supplierFieldId = `${base}-supplier`;
   const notesFieldId = `${base}-notes`;
+  const paymentMethodFieldId = `${base}-payment`;
+  const dueDateFieldId = `${base}-due-date`;
 
   const { data: supData } = useSWR<FlatResponse<Supplier>>('/api/library/suppliers', fetcher);
   const suppliers = supData?.data || [];
@@ -71,10 +75,16 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
       setErrorMsg(t.inventory.noItemAdded);
       return;
     }
+    if (paymentMethod === 'CREDIT' && !dueDate) {
+      setErrorMsg('Tanggal Jatuh Tempo wajib diisi untuk mekanisme pembayaran jatuh tempo (CREDIT).');
+      return;
+    }
 
     const payload = {
       supplier_id: Number(supplierId),
       notes: notes || undefined,
+      payment_method: paymentMethod,
+      due_date: paymentMethod === 'CREDIT' ? (new Date(dueDate).toISOString()) : undefined,
       items: items.map(it => ({
         item_id: Number(it.item_id),
         qty: Number(it.qty),
@@ -130,6 +140,25 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
                 <label htmlFor={notesFieldId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{t.inventory.additionalNotes}</label>
                 <input id={notesFieldId} type="text" className="input" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t.common.optional} />
               </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+                <label htmlFor={paymentMethodFieldId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Tipe Pembelian</label>
+                <select id={paymentMethodFieldId} className="input" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as 'CASH' | 'CREDIT' | 'CONSIGNMENT')} required>
+                  <option value="CASH">Lunas (Tunai)</option>
+                  <option value="CREDIT">Jatuh Tempo (Hutang)</option>
+                  <option value="CONSIGNMENT">Konsinyasi (Titipan)</option>
+                </select>
+              </div>
+              {paymentMethod === 'CREDIT' ? (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+                  <label htmlFor={dueDateFieldId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Jatuh Tempo <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+                  <input id={dueDateFieldId} type="date" className="input" value={dueDate} onChange={(e) => setDueDate(e.target.value)} required />
+                </div>
+              ) : (
+                <div style={{ flex: 1 }} />
+              )}
             </div>
 
             <div style={{ borderTop: '1px solid var(--color-border)', margin: 'var(--space-2) 0', paddingTop: 'var(--space-4)' }}>

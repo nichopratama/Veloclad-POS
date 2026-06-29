@@ -46,6 +46,21 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
           },
         });
       }
+
+      // 4. Create Payable if CREDIT
+      if (po.payment_method === 'CREDIT' && po.supplier_id) {
+        await tx.payables.create({
+          data: {
+            supplier_id: po.supplier_id,
+            po_id: po.id,
+            type: 'CREDIT_INVOICE',
+            total_debt: po.total_amount ?? 0,
+            amount_paid: 0,
+            status: 'OPEN',
+            due_date: po.due_date,
+          }
+        });
+      }
     });
 
     return NextResponse.json({ message: 'Purchase order received successfully' });

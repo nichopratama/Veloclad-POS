@@ -14,6 +14,8 @@ const poItemSchema = z.object({
 const purchaseOrderSchema = z.object({
   supplier_id: z.number().int(),
   notes: z.string().optional().nullable(),
+  payment_method: z.enum(['CASH', 'CREDIT', 'CONSIGNMENT']).default('CASH'),
+  due_date: z.string().optional().nullable(), // ISO date string
   items: z.array(poItemSchema).min(1),
 });
 
@@ -65,6 +67,9 @@ export async function POST(req: NextRequest) {
           supplier_id: parsedBody.supplier_id,
           user_id: session.user.staffId,
           status: 'pending',
+          payment_method: parsedBody.payment_method,
+          payment_status: parsedBody.payment_method === 'CASH' ? 'PAID' : 'UNPAID',
+          due_date: parsedBody.due_date ? new Date(parsedBody.due_date) : null,
           total_amount: totalAmount,
           notes: parsedBody.notes,
           po_items: {

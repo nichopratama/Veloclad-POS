@@ -42,6 +42,7 @@ function buildNav(t: TranslationKeys): NavGroup[] {
       adminOnly: true,
       sub: [
         { label: n.purchaseOrdersList, href: '/inventory?tab=po' },
+        { label: 'Accounts Payable', href: '/inventory?tab=payables' },
         { label: n.suppliersList, href: '/library?tab=suppliers' },
       ],
     },
