@@ -16,8 +16,9 @@ export async function GET(request: Request) {
     const startDate = searchParams.get('start');
     const endDate = searchParams.get('end');
 
-    let dateFilter = {};
-    let rawDateWhere = Prisma.empty;
+    // Reports only count completed transactions (voided sales are excluded everywhere).
+    let dateFilter: Prisma.transactionsWhereInput = { status: 'completed' };
+    let rawDateWhere = Prisma.sql`WHERE t.status = 'completed'`;
     let labelDate = 'All Time';
 
     if (startDate && endDate) {
@@ -26,13 +27,14 @@ export async function GET(request: Request) {
       const endObj = new Date(`${endDate}T23:59:59.999Z`);
 
       dateFilter = {
+        status: 'completed',
         created_at: {
           gte: startObj,
           lte: endObj
         }
       };
 
-      rawDateWhere = Prisma.sql`WHERE t.created_at >= ${startObj} AND t.created_at <= ${endObj}`;
+      rawDateWhere = Prisma.sql`WHERE t.status = 'completed' AND t.created_at >= ${startObj} AND t.created_at <= ${endObj}`;
       labelDate = `${startDate} - ${endDate}`;
     }
 
@@ -72,11 +74,11 @@ export async function GET(request: Request) {
           amount: Number(c.gross_sales || 0)
         }));
 
-        // Get COGS
+        // Get COGS — use the per-line cost_price snapshot (consistent with the
+        // Finance income statement), not the live items.hpp which drifts over time.
         const cogsResult = await prisma.$queryRaw<any[]>`
-          SELECT SUM(ti.qty * COALESCE(i.hpp, 0)) as total_cogs
+          SELECT SUM(ti.qty * ti.cost_price) as total_cogs
           FROM transaction_items ti
-          LEFT JOIN items i ON ti.item_id = i.id
           LEFT JOIN transactions t ON ti.transaction_id = t.id
           ${rawDateWhere}
         `;
@@ -134,12 +136,11 @@ export async function GET(request: Request) {
 
       case 'gross-profit': {
         const rawResult = await prisma.$queryRaw<any[]>`
-          SELECT 
+          SELECT
             TO_CHAR(t.created_at AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD') as trx_date,
-            SUM(ti.qty * COALESCE(i.hpp, 0)) as total_cogs,
+            SUM(ti.qty * ti.cost_price) as total_cogs,
             SUM(ti.subtotal) as total_sales
           FROM transaction_items ti
-          LEFT JOIN items i ON ti.item_id = i.id
           LEFT JOIN transactions t ON ti.transaction_id = t.id
           ${rawDateWhere}
           GROUP BY TO_CHAR(t.created_at AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD')
