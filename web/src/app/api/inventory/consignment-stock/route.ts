@@ -18,6 +18,7 @@ export async function GET() {
       code: string;
       item_name: string;
       unit_cost: string;
+      received_at_date: string | Date;
       received: number | string;
       remaining: number | string;
     }>>(Prisma.sql`
@@ -26,14 +27,15 @@ export async function GET() {
              i.code,
              i.name AS item_name,
              sl.unit_cost,
+             DATE(sl.received_at) AS received_at_date,
              SUM(sl.qty_received) AS received,
              SUM(sl.qty_remaining) AS remaining
       FROM stock_lots sl
       JOIN items i ON i.id = sl.item_id
       LEFT JOIN suppliers s ON s.id = sl.supplier_id
       WHERE sl.source_type = 'CONSIGNMENT'
-      GROUP BY sl.supplier_id, s.name, i.code, i.name, sl.unit_cost
-      ORDER BY s.name, i.name
+      GROUP BY sl.supplier_id, s.name, i.code, i.name, sl.unit_cost, DATE(sl.received_at)
+      ORDER BY s.name, DATE(sl.received_at) DESC, i.name
     `);
 
     const debts = await prisma.$queryRaw<Array<{ supplier_id: number | null; debt: string }>>(Prisma.sql`
@@ -114,7 +116,7 @@ export async function GET() {
       running_debt: number;
       total_received: number;
       total_remaining: number;
-      items: Array<{ code: string; name: string; unit_cost: number; received: number; sold: number; remaining: number }>;
+      items: Array<{ date: string; code: string; name: string; unit_cost: number; received: number; sold: number; remaining: number }>;
       lots: LotAging[];
       overdue_count: number;
     }>();
@@ -137,6 +139,7 @@ export async function GET() {
       }
       const group = bySupplier.get(key)!;
       group.items.push({
+        date: new Date(r.received_at_date).toISOString(),
         code: r.code,
         name: r.item_name,
         unit_cost: Number(r.unit_cost),

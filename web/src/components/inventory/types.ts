@@ -22,6 +22,8 @@ export interface PurchaseOrder {
   total_amount: string;
   notes: string | null;
   created_at: string;
+  supplier_id: number;
+  consignment_days: number | null;
   suppliers: { name: string } | null;
   users: { name: string } | null;
   po_items?: {

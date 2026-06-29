@@ -17,6 +17,8 @@ import { useLocale } from "@/lib/i18n/LocaleContext";
 import { fetcher } from "@/lib/fetcher";
 import { DateRangePicker } from "@/components/ui/DateRangePicker";
 import { Activity, CreditCard, TrendingUp, AlertTriangle, X } from "lucide-react";
+import { useSession } from "@/lib/auth-client";
+import { isAdmin } from "@/lib/roles";
 
 // ── Utils ──────────────────────────────────────────────────────────────────────
 
@@ -104,6 +106,8 @@ function SummaryCards({ startDate, endDate }: { startDate: string, endDate: stri
   const { data, error, isLoading } = useSWR<SummaryResponse>(`/api/dashboard/summary?start=${startDate}&end=${endDate}`, fetcher, { refreshInterval: 60000 });
   const { data: lowStockData, isLoading: isLowStockLoading } = useSWR<LowStockResponse>('/api/dashboard/low-stock', fetcher, { refreshInterval: 60000 });
   const { t } = useLocale();
+  const { data: session } = useSession();
+  const role = (session?.user as any)?.role ?? 'kasir';
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -121,7 +125,7 @@ function SummaryCards({ startDate, endDate }: { startDate: string, endDate: stri
       icon: <CreditCard size={24} color="#03396c" style={{ opacity: 0.6 }} />,
       textColor: "#2d7cfa",
     },
-    {
+    ...(isAdmin(role) ? [{
       label: t.dashboard.grossProfitCard,
       value: isLoading ? <Skeleton width="140px" height="2.5rem" /> : (
         <span className="money">
@@ -130,7 +134,7 @@ function SummaryCards({ startDate, endDate }: { startDate: string, endDate: stri
       ),
       icon: <TrendingUp size={24} color="#03396c" style={{ opacity: 0.6 }} />,
       textColor: "#2d7cfa",
-    },
+    }] : []),
     {
       label: t.dashboard.lowStockCard,
       value: isLowStockLoading ? <Skeleton width="60px" height="2.5rem" /> : (

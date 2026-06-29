@@ -23,7 +23,7 @@ import { useLocale } from '@/lib/i18n/LocaleContext';
 import type { TranslationKeys } from '@/lib/i18n/translations';
 import styles from './Sidebar.module.css';
 
-type SubItem = { label: string; href: string };
+type SubItem = { label: string; href: string; adminOnly?: boolean };
 type NavGroup = {
   label: string;
   icon: LucideIcon;
@@ -40,32 +40,28 @@ function buildNav(t: TranslationKeys): NavGroup[] {
     {
       label: n.purchaseOrder,
       icon: Truck,
-      adminOnly: true,
       sub: [
         { label: n.purchaseOrdersList, href: '/inventory?tab=po' },
-        { label: 'Accounts Payable', href: '/inventory?tab=payables' },
-        { label: n.consignmentStock, href: '/inventory?tab=consignment' },
-        { label: n.suppliersList, href: '/library?tab=suppliers' },
+        { label: n.consignmentStock, href: '/inventory?tab=consignment', adminOnly: true },
+        { label: n.suppliersList, href: '/library?tab=suppliers', adminOnly: true },
       ],
     },
     {
       label: n.inventory,
       icon: Package,
-      adminOnly: true,
       sub: [
-        { label: n.productManagement, href: '/library?tab=items' },
+        { label: n.productManagement, href: '/library?tab=items', adminOnly: true },
         { label: n.stockDetails, href: '/inventory?tab=stock' },
-        { label: n.stockAdjustments, href: '/inventory?tab=adjustments' },
-        { label: n.categories, href: '/library?tab=categories' },
-        { label: n.bundlePackages, href: '/inventory?tab=bundles' },
+        { label: n.stockAdjustments, href: '/inventory?tab=adjustments', adminOnly: true },
+        { label: n.categories, href: '/library?tab=categories', adminOnly: true },
+        { label: n.bundlePackages, href: '/inventory?tab=bundles', adminOnly: true },
       ],
     },
     {
       label: n.reports,
       icon: BarChart,
-      adminOnly: true,
       sub: [
-        { label: n.salesDynamic, href: '/reports?tab=summary' },
+        { label: n.salesDynamic, href: '/reports?tab=summary', adminOnly: true },
         { label: n.transactions, href: '/sales' },
       ],
     },
@@ -76,6 +72,7 @@ function buildNav(t: TranslationKeys): NavGroup[] {
       sub: [
         { label: 'Expenses', href: '/finance?tab=expenses' },
         { label: 'Expense Categories', href: '/finance?tab=categories' },
+        { label: 'Accounts Payable', href: '/finance?tab=payables' },
         { label: 'Income Statement', href: '/finance?tab=income' },
         { label: 'Cash Flow', href: '/finance?tab=cashflow' },
       ],
@@ -83,10 +80,9 @@ function buildNav(t: TranslationKeys): NavGroup[] {
     {
       label: n.customers,
       icon: Users,
-      adminOnly: true,
       sub: [
         { label: n.customersList, href: '/library?tab=customers' },
-        { label: n.loyaltyPrograms, href: '/customers?tab=loyalty' },
+        { label: n.loyaltyPrograms, href: '/customers?tab=loyalty', adminOnly: true },
       ],
     },
     {
@@ -96,7 +92,6 @@ function buildNav(t: TranslationKeys): NavGroup[] {
       sub: [
         { label: n.generalSettings, href: '/settings' },
         { label: n.paymentTypes, href: '/library?tab=payment-types' },
-        { label: 'Expense Categories', href: '/library?tab=expense-categories' },
         { label: n.discounts, href: '/library?tab=discounts' },
         { label: n.receipts, href: '/settings?tab=receipts' },
         { label: n.userManagement, href: '/settings/users' },
@@ -232,7 +227,7 @@ export function Sidebar({
                   style={{ gridTemplateRows: open ? '1fr' : '0fr' }}
                 >
                   <ul className={styles.submenu}>
-                    {(group.sub ?? []).map((s) => (
+                    {(group.sub ?? []).filter(s => !s.adminOnly || isAdmin(role)).map((s) => (
                       <li key={s.href}>
                         <Link
                           href={s.href}

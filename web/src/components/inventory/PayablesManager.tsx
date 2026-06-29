@@ -58,10 +58,19 @@ export function PayablesManager({ role }: PayablesManagerProps) {
   const handlePaySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!paymentModal) return;
+    
+    const numAmount = Number(payAmount);
+    const maxAmount = Number(paymentModal.total_debt) - Number(paymentModal.amount_paid);
+    
+    if (numAmount < 1 || numAmount > maxAmount) {
+      toast.error(`Jumlah harus antara Rp 1 hingga ${formatIDR(maxAmount)}`);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await apiMutate(`/api/payables/${paymentModal.id}/pay`, 'POST', {
-        amount: Number(payAmount),
+        amount: numAmount,
         payment_method: payMethod,
         notes: payNotes || undefined,
       });
@@ -190,7 +199,10 @@ export function PayablesManager({ role }: PayablesManagerProps) {
       {paymentModal && (
         <div role="dialog" aria-modal="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'grid', placeItems: 'center', zIndex: 50 }}>
           <div className="card" style={{ width: '400px', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-            <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>{t.payables.payBill}</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, margin: 0 }}>{t.payables.payBill}</h3>
+              <button onClick={() => setPaymentModal(null)} style={{ background: 'transparent', border: 'none', fontSize: 'var(--text-lg)', cursor: 'pointer', color: 'var(--color-text-muted)', padding: 0 }}>✕</button>
+            </div>
             <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
               {t.common.supplier}: <strong>{paymentModal.suppliers.name}</strong><br/>
               {t.payables.remainingDebt}: <strong>{formatIDR(Number(paymentModal.total_debt) - Number(paymentModal.amount_paid))}</strong>
@@ -198,7 +210,17 @@ export function PayablesManager({ role }: PayablesManagerProps) {
             <form onSubmit={handlePaySubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
                 <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{t.payables.payAmount}</label>
-                <input type="number" className="input" value={payAmount} onChange={e => setPayAmount(e.target.value)} required min={1} max={Number(paymentModal.total_debt) - Number(paymentModal.amount_paid)} />
+                <input
+                  type="text"
+                  className="input"
+                  value={payAmount ? Number(payAmount).toLocaleString('id-ID') : ''}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\D/g, '');
+                    setPayAmount(raw);
+                  }}
+                  required
+                  placeholder="0"
+                />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
                 <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{t.payables.paymentMethod}</label>
@@ -220,7 +242,10 @@ export function PayablesManager({ role }: PayablesManagerProps) {
       {settleModalOpen && (
         <div role="dialog" aria-modal="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'grid', placeItems: 'center', zIndex: 50 }}>
           <div className="card" style={{ width: '400px', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-            <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>{t.payables.recordConsignment}</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, margin: 0 }}>{t.payables.recordConsignment}</h3>
+              <button onClick={() => setSettlementModalOpen(false)} style={{ background: 'transparent', border: 'none', fontSize: 'var(--text-lg)', cursor: 'pointer', color: 'var(--color-text-muted)', padding: 0 }}>✕</button>
+            </div>
             <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', margin: 0 }}>
               {t.payables.consignmentDesc}
             </p>

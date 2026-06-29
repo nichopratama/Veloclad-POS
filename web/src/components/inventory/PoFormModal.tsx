@@ -3,24 +3,35 @@
 import { useState, useEffect, useId } from 'react';
 import useSWR from 'swr';
 import { fetcher, apiMutate, FetchError } from '@/lib/fetcher';
-import { Supplier, PickItem, PaginatedResponse, FlatResponse } from './types';
+import { Supplier, PickItem, PaginatedResponse, FlatResponse, PurchaseOrder } from './types';
 import { formatIDRFromString } from '@/components/pos/format';
 import { useLocale } from '@/lib/i18n/LocaleContext';
+import { isAdmin } from '@/lib/roles';
 
 interface PoFormModalProps {
+  role: string;
+  initialData?: PurchaseOrder;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
+export function PoFormModal({ role, initialData, onClose, onSuccess }: PoFormModalProps) {
   const { t } = useLocale();
-  const [supplierId, setSupplierId] = useState('');
-  const [notes, setNotes] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'CREDIT' | 'CONSIGNMENT'>('CASH');
-  const [dueDate, setDueDate] = useState('');
-  const [consignmentDays, setConsignmentDays] = useState('');
+  const [supplierId, setSupplierId] = useState(initialData?.suppliers ? String(initialData.supplier_id ?? '') : '');
+  const [notes, setNotes] = useState(initialData?.notes || '');
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'CREDIT' | 'CONSIGNMENT'>((initialData?.payment_method as any) || 'CASH');
+  const [dueDate, setDueDate] = useState(initialData?.due_date ? new Date(initialData.due_date).toISOString().split('T')[0] : '');
+  const [consignmentDays, setConsignmentDays] = useState(initialData?.consignment_days ? String(initialData.consignment_days) : '');
 
-  const [items, setItems] = useState<{ id: string; item_id: string; item_name: string; qty: string; cost: string }[]>([]);
+  const [items, setItems] = useState<{ id: string; item_id: string; item_name: string; qty: string; cost: string }[]>(
+    initialData?.po_items ? initialData.po_items.map(pi => ({
+      id: Math.random().toString(),
+      item_id: String(pi.item_id),
+      item_name: pi.items?.name || '',
+      qty: String(pi.qty),
+      cost: String(pi.cost),
+    })) : []
+  );
 
   const [itemSearch, setItemSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -62,7 +73,7 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
   const handleAddItem = (pickItem: PickItem) => {
     setItems(prev => [
       ...prev,
-      { id: Math.random().toString(), item_id: String(pickItem.id), item_name: pickItem.name, qty: '1', cost: '0' },
+      { id: Math.random().toString(), item_id: String(pickItem.id), item_name: pickItem.name, qty: '1', cost: isAdmin(role) ? '0' : '0' },
     ]);
     setItemSearch('');
   };
@@ -113,7 +124,11 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
     setErrorMsg('');
 
     try {
-      await apiMutate('/api/inventory/purchase-orders', 'POST', payload);
+      if (initialData) {
+        await apiMutate(`/api/inventory/purchase-orders/${initialData.id}`, 'PATCH', payload);
+      } else {
+        await apiMutate('/api/inventory/purchase-orders', 'POST', payload);
+      }
       onSuccess();
     } catch (err: unknown) {
       if (err instanceof FetchError) {
@@ -133,7 +148,7 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
     <div role="dialog" aria-modal="true" style={{ position: 'fixed', inset: 0, background: 'oklch(20% 0.02 262 / 0.45)', display: 'grid', placeItems: 'center', padding: 'var(--space-4)', zIndex: 50 }}>
       <div className="card" style={{ width: 'min(100%, 700px)', maxHeight: '90vh', display: 'flex', flexDirection: 'column', padding: 0, boxShadow: 'var(--shadow)' }}>
         <div style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 800 }}>{t.inventory.createPurchaseOrder}</h2>
+          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 800 }}>{initialData ? 'Ubah Purchase Order' : t.inventory.createPurchaseOrder}</h2>
           <button type="button" className="btn btn--ghost" onClick={onClose} style={{ minHeight: '32px', padding: '0 var(--space-2)' }}>{t.common.close}</button>
         </div>
 
@@ -235,6 +250,7 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
                             updateItem(it.id, 'cost', raw);
                           }}
                           required
+                          disabled={!isAdmin(role)}
                           aria-label={`${t.inventory.unitPrice} ${it.item_name}`}
                           style={{ padding: 'var(--space-1) var(--space-2)' }}
                         />

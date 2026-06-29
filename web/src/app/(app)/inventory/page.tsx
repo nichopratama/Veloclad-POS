@@ -1,9 +1,11 @@
-import { requireAdminPage } from '@/lib/rbac';
+import { getSession } from '@/lib/rbac';
+import { redirect } from 'next/navigation';
 import { InventoryView } from '@/components/inventory/InventoryView';
 
 export default async function InventoryPage() {
-  // Guard server: non-admin (kasir) yang membuka /inventory via URL → ditendang ke beranda.
-  const session = await requireAdminPage();
+  const session = await getSession();
+  if (!session) redirect('/login');
+  
   const role = session.user.role ?? 'kasir';
 
   return <InventoryView role={role} />;

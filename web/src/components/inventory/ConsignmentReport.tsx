@@ -8,6 +8,7 @@ import { formatIDR } from '@/components/pos/format';
 import { useLocale } from '@/lib/i18n/LocaleContext';
 
 type ConsignmentItem = {
+  date: string;
   code: string;
   name: string;
   unit_cost: number;
@@ -132,6 +133,7 @@ export function ConsignmentReport() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+                  <th style={headLeft}>{t.common.date}</th>
                   <th style={headLeft}>{t.consignmentReport.item}</th>
                   <th style={headNum}>{t.consignmentReport.unitCost}</th>
                   <th style={headNum}>{t.consignmentReport.received}</th>
@@ -141,7 +143,10 @@ export function ConsignmentReport() {
               </thead>
               <tbody>
                 {g.items.map((it) => (
-                  <tr key={`${it.code}-${it.unit_cost}`} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                  <tr key={`${it.code}-${it.unit_cost}-${it.date}`} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <td style={{ padding: 'var(--space-2) var(--space-4)', whiteSpace: 'nowrap' }}>
+                      {formatDate(it.date)}
+                    </td>
                     <td style={{ padding: 'var(--space-2) var(--space-4)' }}>
                       <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', marginRight: 'var(--space-2)' }}>{it.code}</span>
                       {it.name}
@@ -155,7 +160,7 @@ export function ConsignmentReport() {
               </tbody>
               <tfoot>
                 <tr style={{ borderTop: '2px solid var(--color-border)', fontWeight: 700 }}>
-                  <td style={{ padding: 'var(--space-2) var(--space-4)' }}>{t.common.total}</td>
+                  <td colSpan={2} style={{ padding: 'var(--space-2) var(--space-4)' }}>{t.common.total}</td>
                   <td style={cellNum}></td>
                   <td style={cellNum}>{g.total_received}</td>
                   <td style={cellNum}>{g.total_received - g.total_remaining}</td>
@@ -174,6 +179,7 @@ export function ConsignmentReport() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <th style={headLeft}>{t.common.date}</th>
                     <th style={headLeft}>{t.consignmentReport.item}</th>
                     <th style={headNum}>{t.consignmentReport.remaining}</th>
                     <th style={headNum}>{t.consignmentReport.expiry}</th>
@@ -184,6 +190,9 @@ export function ConsignmentReport() {
                 <tbody>
                   {g.lots.map((lot) => (
                     <tr key={lot.lot_id} style={{ borderBottom: '1px solid var(--color-border)', background: lot.is_overdue ? 'var(--color-danger-soft, rgba(220,38,38,0.06))' : undefined }}>
+                      <td style={{ padding: 'var(--space-2) var(--space-4)', whiteSpace: 'nowrap' }}>
+                        {formatDate(lot.received_at)}
+                      </td>
                       <td style={{ padding: 'var(--space-2) var(--space-4)' }}>
                         <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', marginRight: 'var(--space-2)' }}>{lot.code}</span>
                         {lot.name}

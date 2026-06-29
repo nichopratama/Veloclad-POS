@@ -22,15 +22,24 @@ const purchaseOrderSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
-    await requireAuth();
+    const session = await requireAuth();
+    const whereClause = session.user.role === 'admin' ? {} : { user_id: session.user.staffId };
 
     const data = await prisma.purchase_orders.findMany({
+      where: whereClause,
       include: {
         suppliers: {
           select: { name: true },
         },
         users: {
           select: { name: true },
+        },
+        po_items: {
+          include: {
+            items: {
+              select: { name: true, code: true },
+            },
+          },
         },
       },
       orderBy: { created_at: 'desc' }, // Order by creation date descending
@@ -48,7 +57,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await requireRole('admin');
+    const session = await requireAuth();
 
     const body = await req.json();
     const parsedBody = purchaseOrderSchema.parse(body);
@@ -82,7 +91,7 @@ export async function POST(req: NextRequest) {
           po_number: poNumber,
           supplier_id: parsedBody.supplier_id,
           user_id: session.user.staffId,
-          status: 'pending',
+          status: session.user.role === 'admin' ? 'pending' : 'needs_approval',
           payment_method: parsedBody.payment_method,
           payment_status: parsedBody.payment_method === 'CASH' ? 'PAID' : 'UNPAID',
           due_date: parsedBody.due_date ? new Date(parsedBody.due_date) : null,
