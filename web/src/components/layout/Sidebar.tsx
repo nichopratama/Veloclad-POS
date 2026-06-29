@@ -44,6 +44,7 @@ function buildNav(t: TranslationKeys): NavGroup[] {
       sub: [
         { label: n.purchaseOrdersList, href: '/inventory?tab=po' },
         { label: 'Accounts Payable', href: '/inventory?tab=payables' },
+        { label: n.consignmentStock, href: '/inventory?tab=consignment' },
         { label: n.suppliersList, href: '/library?tab=suppliers' },
       ],
     },

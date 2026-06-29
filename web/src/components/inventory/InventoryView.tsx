@@ -6,6 +6,7 @@ import { StockSummaryTab } from './StockSummaryTab';
 import { PurchaseOrdersTab } from './PurchaseOrdersTab';
 import { AdjustmentsTab } from './AdjustmentsTab';
 import { PayablesManager } from './PayablesManager';
+import { ConsignmentReport } from './ConsignmentReport';
 import { UnderConstruction } from '../ui/UnderConstruction';
 
 interface InventoryViewProps {
@@ -17,7 +18,7 @@ export function InventoryView({ role }: InventoryViewProps) {
   const { t } = useLocale();
   const rawTab = searchParams.get('tab');
 
-  const validTabs = ['stock', 'po', 'adjustments', 'bundles', 'payables'];
+  const validTabs = ['stock', 'po', 'adjustments', 'bundles', 'payables', 'consignment'];
   const activeTab = rawTab && validTabs.includes(rawTab) ? rawTab : 'stock';
 
   // Judul selaras label submenu sidebar.
@@ -27,6 +28,7 @@ export function InventoryView({ role }: InventoryViewProps) {
     payables: t.inventoryMenu.payablesTitle,
     adjustments: t.inventoryMenu.adjustmentsTitle,
     bundles: t.inventoryMenu.bundlesTitle,
+    consignment: t.inventoryMenu.consignmentTitle,
   };
 
   const descriptions: Record<string, string> = {
@@ -35,6 +37,7 @@ export function InventoryView({ role }: InventoryViewProps) {
     payables: t.inventoryMenu.payablesDesc,
     adjustments: t.inventoryMenu.adjustmentsDesc,
     bundles: t.inventoryMenu.bundlesDesc,
+    consignment: t.inventoryMenu.consignmentDesc,
   };
 
   return (
@@ -52,6 +55,7 @@ export function InventoryView({ role }: InventoryViewProps) {
       {activeTab === 'po' && <PurchaseOrdersTab role={role} />}
       {activeTab === 'payables' && <PayablesManager role={role} />}
       {activeTab === 'adjustments' && <AdjustmentsTab role={role} />}
+      {activeTab === 'consignment' && <ConsignmentReport />}
       {activeTab === 'bundles' && <UnderConstruction />}
     </div>
   );

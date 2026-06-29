@@ -121,14 +121,21 @@ export function StockSummaryTab() {
                         {isLowStock && <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-danger)', fontWeight: 700 }}>{t.inventory.lowStock}</span>}
                         {(row.consignment_stock ?? 0) > 0 && (
                           <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'white', background: 'var(--color-accent)', borderRadius: 'var(--radius-sm)', padding: '1px var(--space-2)' }}>
-                            {t.inventory.typeConsignment}: {row.consignment_stock}
+                            {t.inventory.typeConsignment}
                           </span>
                         )}
                       </div>
                     </td>
                     <td style={{ padding: 'var(--space-3) var(--space-4)' }}>{row.categories?.name || '-'}</td>
-                    <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', fontWeight: isLowStock ? 700 : 400, color: isLowStock ? 'var(--color-danger)' : 'inherit' }}>
-                      {row.stock} {row.unit}
+                    <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>
+                      <div style={{ fontWeight: isLowStock ? 700 : 400, color: isLowStock ? 'var(--color-danger)' : 'inherit' }}>
+                        {row.stock} {row.unit}
+                      </div>
+                      {(row.consignment_stock ?? 0) > 0 && (
+                        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                          {row.stock - (row.consignment_stock ?? 0)} {t.inventory.owned} · {row.consignment_stock} {t.inventory.typeConsignment}
+                        </div>
+                      )}
                     </td>
                     <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>{row.min_stock} {row.unit}</td>
                     <td className="money" style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>{formatIDRFromString(row.price)}</td>
