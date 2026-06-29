@@ -15,6 +15,7 @@ import {
   Truck,
   BarChart,
   Users,
+  Banknote,
   type LucideIcon,
 } from 'lucide-react';
 import { isAdmin } from '@/lib/roles';
@@ -68,6 +69,17 @@ function buildNav(t: TranslationKeys): NavGroup[] {
       ],
     },
     {
+      label: 'Finance',
+      icon: Banknote,
+      adminOnly: true,
+      sub: [
+        { label: 'Expenses', href: '/finance?tab=expenses' },
+        { label: 'Expense Categories', href: '/finance?tab=categories' },
+        { label: 'Income Statement', href: '/finance?tab=income' },
+        { label: 'Cash Flow', href: '/finance?tab=cashflow' },
+      ],
+    },
+    {
       label: n.customers,
       icon: Users,
       adminOnly: true,
@@ -83,6 +95,7 @@ function buildNav(t: TranslationKeys): NavGroup[] {
       sub: [
         { label: n.generalSettings, href: '/settings' },
         { label: n.paymentTypes, href: '/library?tab=payment-types' },
+        { label: 'Expense Categories', href: '/library?tab=expense-categories' },
         { label: n.discounts, href: '/library?tab=discounts' },
         { label: n.receipts, href: '/settings?tab=receipts' },
         { label: n.userManagement, href: '/settings/users' },

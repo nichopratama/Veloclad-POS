@@ -104,4 +104,19 @@ export const entityConfigs: Record<string, EntityConfig> = {
       { key: 'is_active', label: 'Aktif', labelEn: 'Active', type: 'checkbox', defaultValue: true, showInTable: true },
     ],
   },
+  'expense-categories': {
+    key: 'expense-categories',
+    label: 'Kategori Biaya',
+    labelEn: 'Expense Categories',
+    endpoint: '/api/finance/expense-categories',
+    paginated: false,
+    searchable: true,
+    mutateRoles: 'admin',
+    fields: [
+      { key: 'name', label: 'Nama Kategori', labelEn: 'Category Name', type: 'text', required: true, showInTable: true },
+      { key: 'account_code', label: 'Kode Akun', labelEn: 'Account Code', type: 'text', nullable: true, showInTable: true },
+      { key: 'description', label: 'Keterangan', labelEn: 'Description', type: 'textarea', nullable: true, showInTable: true },
+      { key: 'is_active', label: 'Aktif', labelEn: 'Active', type: 'checkbox', defaultValue: true, showInTable: true },
+    ],
+  },
 };

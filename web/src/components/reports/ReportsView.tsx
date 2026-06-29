@@ -77,6 +77,41 @@ export function ReportsView() {
     router.push(`/reports?${params.toString()}`);
   };
 
+  const exportSummaryToExcel = () => {
+    if (!reportData || Array.isArray(reportData)) return;
+    
+    const grossSales = reportData.gross_sales_categories?.reduce((acc: number, c: any) => acc + c.amount, 0) || 0;
+    const grossProfit = reportData.net_sales - (reportData.cogs || 0);
+    const margin = reportData.net_sales > 0 ? (grossProfit / reportData.net_sales) * 100 : 0;
+
+    const wsData = [
+      ['LAPORAN LABA RUGI (INCOME STATEMENT)'],
+      ['Periode:', reportData.date],
+      [],
+      ['PENDAPATAN (REVENUE)'],
+      ['Penjualan Kotor (Gross Sales)', grossSales],
+      ['Diskon Penjualan', -reportData.discounts],
+      ['Retur / Refund', -reportData.refunds],
+      ['Penjualan Bersih (Net Sales)', reportData.net_sales],
+      [],
+      ['BEBAN POKOK PENJUALAN (COGS)'],
+      ['Harga Pokok Penjualan (HPP)', -(reportData.cogs || 0)],
+      [],
+      ['LABA KOTOR (GROSS PROFIT)', grossProfit],
+      ['Margin Laba Kotor', `${margin.toFixed(2)}%`],
+      [],
+      ['ARUS KAS & PAJAK'],
+      ['Pajak Dipungut (Tax)', reportData.tax],
+      ['Total Kas Diterima', reportData.total_collected]
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!cols'] = [{ wch: 35 }, { wch: 20 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Summary');
+    XLSX.writeFile(wb, `Laporan_Keuangan_${reportData.date}.xlsx`);
+  };
+
   return (
     <div className="flex flex-col h-full gap-4">
       <div className="flex flex-col gap-4 print:hidden">
@@ -120,7 +155,25 @@ export function ReportsView() {
               setEndDate(range.end);
             }}
           />
-          <div className="flex-1" />
+          {activeTab === 'summary' && !isLoading && !error && (
+            <div className="flex gap-1.5 print:hidden items-center bg-[var(--color-surface)] border border-[var(--color-border)] p-1 shadow-sm">
+              <button
+                onClick={exportSummaryToExcel}
+                className="hover:bg-[var(--color-accent-soft)] transition-colors flex items-center justify-center p-1.5"
+                title={t.reports.exportExcel}
+              >
+                <img src="/icons/excel.svg" alt={t.reports.exportExcel} className="w-5 h-5" />
+              </button>
+              <div className="w-[1px] h-5 bg-[var(--color-border)] opacity-50"></div>
+              <button
+                onClick={() => window.print()}
+                className="hover:bg-[var(--color-accent-soft)] transition-colors flex items-center justify-center p-1.5"
+                title={t.reports.printPdf}
+              >
+                <img src="/icons/pdf.svg" alt={t.reports.printPdf} className="w-5 h-5" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -169,120 +222,78 @@ function SummaryReport({ data }: { data: any }) {
   const grossProfit = data.net_sales - (data.cogs || 0);
   const margin = data.net_sales > 0 ? (grossProfit / data.net_sales) * 100 : 0;
 
-  const exportToExcel = () => {
-    const wsData = [
-      ['LAPORAN LABA RUGI (INCOME STATEMENT)'],
-      ['Periode:', data.date],
-      [],
-      ['PENDAPATAN (REVENUE)'],
-      ['Penjualan Kotor (Gross Sales)', grossSales],
-      ['Diskon Penjualan', -data.discounts],
-      ['Retur / Refund', -data.refunds],
-      ['Penjualan Bersih (Net Sales)', data.net_sales],
-      [],
-      ['BEBAN POKOK PENJUALAN (COGS)'],
-      ['Harga Pokok Penjualan (HPP)', -(data.cogs || 0)],
-      [],
-      ['LABA KOTOR (GROSS PROFIT)', grossProfit],
-      ['Margin Laba Kotor', `${margin.toFixed(2)}%`],
-      [],
-      ['ARUS KAS & PAJAK'],
-      ['Pajak Dipungut (Tax)', data.tax],
-      ['Total Kas Diterima', data.total_collected]
-    ];
-
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-    // Auto-size columns for better layout
-    ws['!cols'] = [{ wch: 35 }, { wch: 20 }];
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Summary');
-
-    XLSX.writeFile(wb, `Laporan_Keuangan_${data.date}.xlsx`);
+  const formatAcc = (val: number, forceNegative = false) => {
+    if (val < 0 || forceNegative) return `(${formatCurrency(Math.abs(val))})`;
+    return formatCurrency(val);
   };
 
   return (
-    <div className="w-full flex flex-col gap-6 p-2">
-      <div className="flex justify-between items-center bg-[var(--color-surface)] p-4 rounded-lg shadow-sm border border-[var(--color-border)]">
-        <div>
-          <h2 className="text-xl font-bold">{t.reports.financialReport}</h2>
-          <div className="text-sm text-[var(--color-text-muted)]">{t.reports.period} {data.date}</div>
-        </div>
-        <div className="flex gap-4 print:hidden items-center">
-          <button
-            onClick={exportToExcel}
-            className="hover:scale-110 transition-transform flex items-center justify-center p-1"
-            title={t.reports.exportExcel}
-          >
-            <img src="/icons/excel.svg" alt={t.reports.exportExcel} className="w-8 h-8" />
-          </button>
-          <button
-            onClick={() => window.print()}
-            className="hover:scale-110 transition-transform flex items-center justify-center p-1"
-            title={t.reports.printPdf}
-          >
-            <img src="/icons/pdf.svg" alt={t.reports.printPdf} className="w-8 h-8" />
-          </button>
-        </div>
-      </div>
-
+    <div className="w-full flex flex-col p-2">
       <div className="bg-[var(--color-surface)] p-6 rounded-lg shadow-sm border border-[var(--color-border)] w-full overflow-x-auto print:shadow-none print:border-none print:p-0">
-        <table className="w-full text-left border-collapse text-sm">
+        <div style={{ textAlign: 'center', marginBottom: 'var(--space-4)' }}>
+          <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 800, margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>SALES SUMMARY</h2>
+          <div style={{ color: 'var(--color-text-muted)' }}>{t.reports.period} {data.date}</div>
+        </div>
+
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono), monospace', fontSize: '0.875rem' }}>
           <tbody>
+            {/* REVENUE */}
             <tr>
-              <td colSpan={2} className="font-bold pb-2 pt-2 text-[var(--color-text-muted)] border-b border-[var(--color-border)]">{t.reports.revenue}</td>
+              <td colSpan={2} style={{ fontWeight: 700, paddingTop: 'var(--space-2)' }}>{t.reports.revenue}</td>
             </tr>
-            <tr className="hover:bg-[var(--color-accent-soft)] transition-colors">
-              <td className="py-2 pl-4 flex items-center gap-2">↳ {t.reports.grossSales} <em className="text-xs text-[var(--color-text-muted)]">(Gross Sales)</em></td>
-              <td className="py-2 pr-4 text-right money">{formatCurrency(grossSales)}</td>
-            </tr>
-            <tr className="hover:bg-[var(--color-accent-soft)] transition-colors">
-              <td className="py-2 pl-4 flex items-center gap-2 text-red-600">↳ {t.reports.salesDiscount}</td>
-              <td className="py-2 pr-4 text-right money text-red-600">({formatCurrency(data.discounts)})</td>
-            </tr>
-            <tr className="hover:bg-[var(--color-accent-soft)] transition-colors">
-              <td className="py-2 pl-4 flex items-center gap-2 text-red-600">↳ {t.reports.returnsRefunds}</td>
-              <td className="py-2 pr-4 text-right money text-red-600">({formatCurrency(data.refunds)})</td>
-            </tr>
-            <tr className="font-semibold bg-[var(--color-accent-soft)]">
-              <td className="py-3 pl-2 border-t border-[var(--color-border)]">{t.reports.netSales} <em className="font-normal text-xs text-[var(--color-text-muted)]">(Net Sales)</em></td>
-              <td className="py-3 pr-4 text-right border-t border-[var(--color-border)] money">{formatCurrency(data.net_sales)}</td>
-            </tr>
-
-            <tr><td colSpan={2} className="py-4"></td></tr>
-
             <tr>
-              <td colSpan={2} className="font-bold pb-2 pt-2 text-[var(--color-text-muted)] border-b border-[var(--color-border)]">{t.reports.cogs}</td>
+              <td style={{ paddingLeft: 'var(--space-4)', paddingBottom: 'var(--space-1)' }}>{t.reports.grossSales} <span style={{ opacity: 0.6, fontSize: '0.75rem' }}>(Gross Sales)</span></td>
+              <td style={{ textAlign: 'right', paddingBottom: 'var(--space-1)' }}>{formatAcc(grossSales)}</td>
             </tr>
-            <tr className="hover:bg-[var(--color-accent-soft)] transition-colors text-red-600">
-              <td className="py-2 pl-4 flex items-center gap-2">↳ {t.reports.costOfGoods} <em className="text-xs opacity-70">(Total HPP)</em></td>
-              <td className="py-2 pr-4 text-right money">({formatCurrency(data.cogs || 0)})</td>
-            </tr>
-
-            <tr><td colSpan={2} className="py-2"></td></tr>
-
-            <tr className="font-bold text-base bg-[var(--color-surface-2)] shadow-sm">
-              <td className="py-3 pl-2 border-y border-[var(--color-border)]">{t.reports.grossProfit} <em className="font-normal text-xs text-[var(--color-text-muted)]">(GROSS PROFIT)</em></td>
-              <td className="py-3 pr-4 text-right border-y border-[var(--color-border)] money">{formatCurrency(grossProfit)}</td>
-            </tr>
-            <tr className="hover:bg-[var(--color-accent-soft)] transition-colors">
-              <td className="py-2 pl-2 text-[var(--color-text-muted)]">{t.reports.grossMargin} <em className="text-xs text-[var(--color-text-muted)]">(Gross Margin)</em></td>
-              <td className="py-2 pr-4 text-right money">{margin.toFixed(2)}%</td>
-            </tr>
-
-            <tr><td colSpan={2} className="py-4"></td></tr>
-
             <tr>
-              <td colSpan={2} className="font-bold pb-2 pt-2 text-[var(--color-text-muted)] border-b border-[var(--color-border)]">{t.reports.cashAndTax}</td>
+              <td style={{ paddingLeft: 'var(--space-4)', paddingBottom: 'var(--space-1)' }}>{t.reports.salesDiscount}</td>
+              <td style={{ textAlign: 'right', paddingBottom: 'var(--space-1)' }}>{formatAcc(data.discounts, true)}</td>
             </tr>
-            <tr className="hover:bg-[var(--color-accent-soft)] transition-colors">
-              <td className="py-2 pl-4 flex items-center gap-2">↳ {t.reports.taxCollected} <em className="text-xs text-[var(--color-text-muted)]">(Tax)</em></td>
-              <td className="py-2 pr-4 text-right money">{formatCurrency(data.tax)}</td>
+            <tr>
+              <td style={{ paddingLeft: 'var(--space-4)', paddingBottom: 'var(--space-1)' }}>{t.reports.returnsRefunds}</td>
+              <td style={{ textAlign: 'right', paddingBottom: 'var(--space-1)', borderBottom: '1px solid var(--color-border)' }}>{formatAcc(data.refunds, true)}</td>
             </tr>
-            <tr className="font-bold text-base bg-[var(--color-surface-2)] shadow-sm">
-              <td className="py-3 pl-2 border-y border-[var(--color-border)] text-[var(--color-success)]">{t.reports.totalCashReceived} <em className="font-normal text-xs opacity-80">(Total Collected)</em></td>
-              <td className="py-3 pr-4 text-right border-y border-[var(--color-border)] money text-[var(--color-success)]">{formatCurrency(data.total_collected)}</td>
+            <tr>
+              <td style={{ paddingLeft: 'var(--space-4)', fontWeight: 600, paddingTop: 'var(--space-2)', paddingBottom: 'var(--space-4)' }}>{t.reports.netSales} <span style={{ opacity: 0.6, fontSize: '0.75rem', fontWeight: 400 }}>(Net Sales)</span></td>
+              <td style={{ textAlign: 'right', fontWeight: 600, paddingTop: 'var(--space-2)', paddingBottom: 'var(--space-4)' }}>{formatAcc(data.net_sales)}</td>
+            </tr>
+
+            {/* COGS */}
+            <tr>
+              <td colSpan={2} style={{ fontWeight: 700, paddingTop: 'var(--space-2)' }}>{t.reports.cogs}</td>
+            </tr>
+            <tr>
+              <td style={{ paddingLeft: 'var(--space-4)', paddingBottom: 'var(--space-1)' }}>{t.reports.costOfGoods} <span style={{ opacity: 0.6, fontSize: '0.75rem' }}>(Total HPP)</span></td>
+              <td style={{ textAlign: 'right', paddingBottom: 'var(--space-1)', borderBottom: '1px solid var(--color-border)' }}>{formatAcc(data.cogs || 0, true)}</td>
+            </tr>
+
+            {/* GROSS PROFIT */}
+            <tr>
+              <td style={{ fontWeight: 800, fontSize: '1rem', paddingTop: 'var(--space-4)' }}>{t.reports.grossProfit} <span style={{ opacity: 0.6, fontSize: '0.75rem', fontWeight: 400 }}>(GROSS PROFIT)</span></td>
+              <td style={{ 
+                textAlign: 'right', 
+                fontWeight: 800, 
+                fontSize: '1rem', 
+                paddingTop: 'var(--space-4)',
+                borderBottom: '3px double var(--color-border)'
+              }}>{formatAcc(grossProfit)}</td>
+            </tr>
+            <tr>
+              <td style={{ paddingBottom: 'var(--space-4)', paddingTop: 'var(--space-1)', color: 'var(--color-text-muted)' }}>{t.reports.grossMargin} <span style={{ opacity: 0.6, fontSize: '0.75rem' }}>(Gross Margin)</span></td>
+              <td style={{ textAlign: 'right', paddingBottom: 'var(--space-4)', paddingTop: 'var(--space-1)' }}>{margin.toFixed(2)}%</td>
+            </tr>
+
+            {/* CASH AND TAX */}
+            <tr>
+              <td colSpan={2} style={{ fontWeight: 700, paddingTop: 'var(--space-4)' }}>{t.reports.cashAndTax}</td>
+            </tr>
+            <tr>
+              <td style={{ paddingLeft: 'var(--space-4)', paddingBottom: 'var(--space-1)' }}>{t.reports.taxCollected} <span style={{ opacity: 0.6, fontSize: '0.75rem' }}>(Tax)</span></td>
+              <td style={{ textAlign: 'right', paddingBottom: 'var(--space-1)' }}>{formatAcc(data.tax)}</td>
+            </tr>
+            <tr>
+              <td style={{ paddingLeft: 'var(--space-4)', fontWeight: 600, paddingTop: 'var(--space-2)', paddingBottom: 'var(--space-4)' }}>{t.reports.totalCashReceived} <span style={{ opacity: 0.6, fontSize: '0.75rem', fontWeight: 400 }}>(Total Collected)</span></td>
+              <td style={{ textAlign: 'right', fontWeight: 600, paddingTop: 'var(--space-2)', paddingBottom: 'var(--space-4)', borderBottom: '1px solid var(--color-border)' }}>{formatAcc(data.total_collected)}</td>
             </tr>
           </tbody>
         </table>
@@ -291,9 +302,9 @@ function SummaryReport({ data }: { data: any }) {
           <h3 className="font-bold mb-3 text-[var(--color-text-muted)] text-xs uppercase tracking-wider">{t.reports.paymentBreakdown}</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {data.payment_methods?.map((p: any, i: number) => (
-              <div key={i} className="flex justify-between items-center p-3 border border-[var(--color-border)] rounded-md bg-[var(--color-accent-soft)]">
+              <div key={i} className="flex justify-between items-center p-3 border border-[var(--color-border)] rounded-md bg-[var(--color-accent-soft)]" style={{ fontFamily: 'var(--font-mono), monospace' }}>
                 <span className="font-medium text-[var(--color-text)]">{p.method}</span>
-                <span className="money font-semibold text-[var(--color-text)]">{formatCurrency(p.amount)}</span>
+                <span className="font-semibold text-[var(--color-text)]">{formatAcc(p.amount)}</span>
               </div>
             ))}
           </div>

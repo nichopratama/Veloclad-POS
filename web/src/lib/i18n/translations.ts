@@ -250,6 +250,7 @@ export const translations = {
         suppliers: 'Suppliers',
         paymentTypes: 'Payment Methods',
         discounts: 'Discounts',
+        expenseCategories: 'Expense Categories',
       },
       tabDescriptions: {
         items: 'Manage all your product inventory and pricing.',
@@ -258,6 +259,7 @@ export const translations = {
         suppliers: 'Manage your supplier database and contact info.',
         paymentTypes: 'Configure accepted payment methods for transactions.',
         discounts: 'Manage discount rules and promotional offers.',
+        expenseCategories: 'Manage operational expense categories and account codes.',
       },
     },
     settings: {
@@ -650,6 +652,7 @@ export const translations = {
         suppliers: 'Supplier',
         paymentTypes: 'Metode Pembayaran',
         discounts: 'Diskon',
+        expenseCategories: 'Kategori Pengeluaran',
       },
       tabDescriptions: {
         items: 'Kelola semua inventaris produk dan harga jual.',
@@ -658,6 +661,7 @@ export const translations = {
         suppliers: 'Kelola data dan info kontak supplier.',
         paymentTypes: 'Konfigurasi metode pembayaran yang diterima.',
         discounts: 'Kelola aturan diskon dan penawaran promosi.',
+        expenseCategories: 'Kelola kategori pengeluaran dan kode akun (CoA).',
       },
     },
     settings: {
