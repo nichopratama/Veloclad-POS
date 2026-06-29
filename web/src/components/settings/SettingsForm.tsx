@@ -7,6 +7,7 @@ import { isAdmin } from '@/lib/roles';
 import { StoreSettings } from './types';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useLocale } from '@/lib/i18n/LocaleContext';
+import { toast } from '@/lib/toast';
 
 interface SettingsFormProps {
   role: string;
@@ -27,8 +28,6 @@ export function SettingsForm({ role }: SettingsFormProps) {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMsg, setSuccessMsg] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
 
   const canWrite = isAdmin(role);
 
@@ -57,11 +56,8 @@ export function SettingsForm({ role }: SettingsFormProps) {
     e.preventDefault();
     if (!canWrite) return;
 
-    setErrorMsg('');
-    setSuccessMsg('');
-
     if (formData.tax_rate < 0 || formData.tax_rate > 100) {
-      setErrorMsg(t.settings.taxRateError);
+      toast.error(t.settings.taxRateError);
       return;
     }
 
@@ -79,17 +75,17 @@ export function SettingsForm({ role }: SettingsFormProps) {
 
     try {
       await apiMutate('/api/settings/store', 'PUT', payload);
-      setSuccessMsg(t.settings.saveSuccess);
+      toast.success(t.settings.saveSuccess);
       mutate();
     } catch (err: unknown) {
       if (err instanceof FetchError) {
         if (err.status === 401 || err.status === 403) {
-          setErrorMsg(t.common.sessionInvalid);
+          toast.error(t.common.sessionInvalid);
         } else {
-          setErrorMsg(err.message);
+          toast.error(err.message);
         }
       } else {
-        setErrorMsg(t.common.unknownError);
+        toast.error(t.common.unknownError);
       }
     } finally {
       setIsSubmitting(false);
@@ -128,20 +124,6 @@ export function SettingsForm({ role }: SettingsFormProps) {
 
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', maxWidth: '800px', margin: '0', width: '100%' }}>
-      
-      {successMsg && (
-        <div style={{ padding: 'var(--space-4)', background: 'var(--color-success)', color: 'white', borderRadius: 'var(--radius)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontWeight: 600 }}>{successMsg}</span>
-          <button type="button" onClick={() => setSuccessMsg('')} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', padding: '0 var(--space-2)', fontSize: 'var(--text-lg)' }}>✕</button>
-        </div>
-      )}
-
-      {errorMsg && (
-        <div style={{ padding: 'var(--space-4)', background: 'var(--color-danger)', color: 'white', borderRadius: 'var(--radius)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontWeight: 600 }}>{errorMsg}</span>
-          <button type="button" onClick={() => setErrorMsg('')} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', padding: '0 var(--space-2)', fontSize: 'var(--text-lg)' }}>✕</button>
-        </div>
-      )}
 
       <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
         <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-2)' }}>{t.settings.storeIdentity}</h2>

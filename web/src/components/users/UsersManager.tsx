@@ -7,6 +7,7 @@ import { fetcher, apiMutate, FetchError } from '@/lib/fetcher';
 import { ROLE_VALUES, ROLE_LABELS, roleLabel, isAdmin, type Role } from '@/lib/roles';
 import { SkeletonTable } from '@/components/ui/Skeleton';
 import { useLocale } from '@/lib/i18n/LocaleContext';
+import { toast } from '@/lib/toast';
 
 type UserRow = {
   id: string;
@@ -32,7 +33,6 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
   const [modal, setModal] = useState<ModalState | null>(null);
   const [formData, setFormData] = useState<FormData>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
-  const [banner, setBanner] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const nameId = useId();
   const emailId = useId();
@@ -59,12 +59,11 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!modal) return;
-    setBanner(null);
     setSubmitting(true);
     try {
       if (modal.mode === 'create') {
         await apiMutate('/api/users', 'POST', formData);
-        setBanner({ type: 'success', text: t.users.createSuccess(formData.email) });
+        toast.success(t.users.createSuccess(formData.email));
       } else {
         const payload: { name: string; role: Role; password?: string } = {
           name: formData.name,
@@ -72,12 +71,12 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
         };
         if (formData.password) payload.password = formData.password;
         await apiMutate(`/api/users/${modal.id}`, 'PATCH', payload);
-        setBanner({ type: 'success', text: t.users.updateSuccess });
+        toast.success(t.users.updateSuccess);
       }
       closeModal();
       mutate();
     } catch (err: unknown) {
-      setBanner({ type: 'error', text: err instanceof FetchError ? err.message : t.users.unknownError });
+      toast.error(err instanceof FetchError ? err.message : t.users.unknownError);
     } finally {
       setSubmitting(false);
     }
@@ -85,42 +84,17 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
 
   const handleDelete = async (u: UserRow) => {
     if (!confirm(t.users.revokeConfirm(u.name, u.email))) return;
-    setBanner(null);
     try {
       await apiMutate(`/api/users/${u.id}`, 'DELETE');
-      setBanner({ type: 'success', text: t.users.revokeSuccess(u.email) });
+      toast.success(t.users.revokeSuccess(u.email));
       mutate();
     } catch (err: unknown) {
-      setBanner({ type: 'error', text: err instanceof FetchError ? err.message : t.users.revokeFailed });
+      toast.error(err instanceof FetchError ? err.message : t.users.revokeFailed);
     }
   };
 
   return (
     <div style={{ maxWidth: '900px', margin: '0', width: '100%', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-      {banner && (
-        <div
-          style={{
-            padding: 'var(--space-4)',
-            background: banner.type === 'success' ? 'var(--color-success)' : 'var(--color-danger)',
-            color: 'white',
-            borderRadius: 'var(--radius)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <span style={{ fontWeight: 600 }}>{banner.text}</span>
-          <button
-            type="button"
-            onClick={() => setBanner(null)}
-            aria-label={t.users.closeNotif}
-            style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', padding: '0 var(--space-2)', fontSize: 'var(--text-lg)' }}
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <button type="button" className="btn" onClick={openCreate} style={{ padding: 'var(--space-2) var(--space-4)' }}>
           {t.users.addUser}

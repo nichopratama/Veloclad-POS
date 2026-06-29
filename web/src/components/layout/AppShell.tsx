@@ -4,6 +4,7 @@ import { useState, useEffect, type ReactNode } from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { LocaleProvider } from '@/lib/i18n/LocaleContext';
+import { ToastContainer } from '@/components/ui/ToastContainer';
 import styles from './AppShell.module.css';
 
 export function AppShell({
@@ -57,6 +58,7 @@ export function AppShell({
             {children}
           </main>
         </div>
+        <ToastContainer />
       </div>
     </LocaleProvider>
   );
