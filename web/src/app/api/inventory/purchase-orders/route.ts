@@ -16,6 +16,7 @@ const purchaseOrderSchema = z.object({
   notes: z.string().optional().nullable(),
   payment_method: z.enum(['CASH', 'CREDIT', 'CONSIGNMENT']).default('CASH'),
   due_date: z.string().optional().nullable(), // ISO date string
+  consignment_days: z.number().int().positive().optional().nullable(), // masa konsinyasi (hari)
   items: z.array(poItemSchema).min(1),
 });
 
@@ -55,6 +56,21 @@ export async function POST(req: NextRequest) {
     // Calculate total amount
     const totalAmount = parsedBody.items.reduce((sum, item) => sum + (item.cost * item.qty), 0);
 
+    // Resolve consignment term: explicit PO value wins, else fall back to the
+    // supplier's default. Only meaningful for CONSIGNMENT POs.
+    let consignmentDays: number | null = null;
+    if (parsedBody.payment_method === 'CONSIGNMENT') {
+      if (parsedBody.consignment_days != null) {
+        consignmentDays = parsedBody.consignment_days;
+      } else {
+        const supplier = await prisma.suppliers.findUnique({
+          where: { id: parsedBody.supplier_id },
+          select: { consignment_days: true },
+        });
+        consignmentDays = supplier?.consignment_days ?? null;
+      }
+    }
+
     // Generate PO number: PO-YYYYMMDD-XXXX (XXXX acak — hindari race condition counter)
     const dateString = new Date().toISOString().split('T')[0].replace(/-/g, ''); // YYYYMMDD
     const poNumber = `PO-${dateString}-${randomBytes(2).toString('hex').toUpperCase()}`;
@@ -70,6 +86,7 @@ export async function POST(req: NextRequest) {
           payment_method: parsedBody.payment_method,
           payment_status: parsedBody.payment_method === 'CASH' ? 'PAID' : 'UNPAID',
           due_date: parsedBody.due_date ? new Date(parsedBody.due_date) : null,
+          consignment_days: consignmentDays,
           total_amount: totalAmount,
           notes: parsedBody.notes,
           po_items: {

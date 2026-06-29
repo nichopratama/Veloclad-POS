@@ -37,6 +37,15 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       // Consignment POs create CONSIGNMENT lots (debt accrues only as they sell);
       // cash/credit POs create OWNED lots. unit_cost is the per-PO purchase cost.
       const lotSource = po.payment_method === 'CONSIGNMENT' ? 'CONSIGNMENT' : 'OWNED';
+
+      // Consignment period: lot expires `consignment_days` after receipt. Null term
+      // (supplier never set a default and PO left it blank) => open-ended, no expiry.
+      const receivedAt = new Date();
+      const expiresAt =
+        lotSource === 'CONSIGNMENT' && po.consignment_days != null
+          ? new Date(receivedAt.getTime() + po.consignment_days * 24 * 60 * 60 * 1000)
+          : null;
+
       for (const item of po.po_items) {
         if (!item.item_id) continue;
 
@@ -59,6 +68,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
             qty_received: item.qty,
             qty_remaining: item.qty,
             status: 'ACTIVE',
+            received_at: receivedAt,
+            expires_at: expiresAt,
           },
         });
       }

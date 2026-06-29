@@ -45,6 +45,68 @@ export async function GET() {
     `);
     const debtMap = new Map(debts.map((d) => [d.supplier_id ?? -1, Number(d.debt)]));
 
+    // Per-lot rows for aging + pull-back: only ACTIVE consignment lots that still
+    // hold unsold stock. expires_at drives the period; null = open-ended.
+    const lotRows = await prisma.$queryRaw<Array<{
+      lot_id: number;
+      supplier_id: number | null;
+      code: string;
+      item_name: string;
+      unit_cost: string;
+      qty_remaining: number | string;
+      received_at: Date;
+      expires_at: Date | null;
+    }>>(Prisma.sql`
+      SELECT sl.id AS lot_id,
+             sl.supplier_id,
+             i.code,
+             i.name AS item_name,
+             sl.unit_cost,
+             sl.qty_remaining,
+             sl.received_at,
+             sl.expires_at
+      FROM stock_lots sl
+      JOIN items i ON i.id = sl.item_id
+      WHERE sl.source_type = 'CONSIGNMENT' AND sl.status = 'ACTIVE' AND sl.qty_remaining > 0
+      ORDER BY sl.expires_at ASC NULLS LAST, sl.received_at ASC
+    `);
+
+    const now = Date.now();
+    const MS_PER_DAY = 24 * 60 * 60 * 1000;
+    type LotAging = {
+      lot_id: number;
+      code: string;
+      name: string;
+      unit_cost: number;
+      remaining: number;
+      received_at: string;
+      expires_at: string | null;
+      days_remaining: number | null;
+      is_overdue: boolean;
+    };
+    const lotsBySupplier = new Map<number, LotAging[]>();
+    for (const r of lotRows) {
+      const key = r.supplier_id ?? -1;
+      const daysRemaining =
+        r.expires_at != null
+          ? Math.ceil((new Date(r.expires_at).getTime() - now) / MS_PER_DAY)
+          : null;
+      const lot: LotAging = {
+        lot_id: r.lot_id,
+        code: r.code,
+        name: r.item_name,
+        unit_cost: Number(r.unit_cost),
+        remaining: Number(r.qty_remaining),
+        received_at: new Date(r.received_at).toISOString(),
+        expires_at: r.expires_at != null ? new Date(r.expires_at).toISOString() : null,
+        days_remaining: daysRemaining,
+        is_overdue: daysRemaining != null && daysRemaining < 0,
+      };
+      const list = lotsBySupplier.get(key);
+      if (list) list.push(lot);
+      else lotsBySupplier.set(key, [lot]);
+    }
+
     // Group lot rows by supplier.
     const bySupplier = new Map<number, {
       supplier_id: number | null;
@@ -53,6 +115,8 @@ export async function GET() {
       total_received: number;
       total_remaining: number;
       items: Array<{ code: string; name: string; unit_cost: number; received: number; sold: number; remaining: number }>;
+      lots: LotAging[];
+      overdue_count: number;
     }>();
 
     for (const r of lots) {
@@ -67,6 +131,8 @@ export async function GET() {
           total_received: 0,
           total_remaining: 0,
           items: [],
+          lots: [],
+          overdue_count: 0,
         });
       }
       const group = bySupplier.get(key)!;
@@ -80,6 +146,29 @@ export async function GET() {
       });
       group.total_received += received;
       group.total_remaining += remaining;
+    }
+
+    // Attach per-lot aging. A supplier may have active lots even when the aggregated
+    // query already created its group; ensure a group exists either way.
+    for (const [key, lots] of lotsBySupplier) {
+      let group = bySupplier.get(key);
+      if (!group) {
+        // Defensive: aggregated query already covers every consignment supplier,
+        // so this branch is normally unreachable.
+        group = {
+          supplier_id: key === -1 ? null : key,
+          supplier_name: 'Unknown',
+          running_debt: debtMap.get(key) ?? 0,
+          total_received: 0,
+          total_remaining: 0,
+          items: [],
+          lots: [],
+          overdue_count: 0,
+        };
+        bySupplier.set(key, group);
+      }
+      group.lots = lots;
+      group.overdue_count = lots.filter((l) => l.is_overdue).length;
     }
 
     return NextResponse.json({ data: Array.from(bySupplier.values()) });
