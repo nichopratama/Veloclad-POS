@@ -9,6 +9,8 @@ const getQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).default(30),
   search: z.string().optional(),
+  sortBy: z.enum(['name', 'category_id']).optional(),
+  sortDir: z.enum(['asc', 'desc']).default('asc'),
 });
 
 const itemSchema = z.object({
@@ -49,6 +51,13 @@ export async function GET(req: NextRequest) {
       };
     }
 
+    let orderByClause: Prisma.itemsOrderByWithRelationInput = { created_at: 'desc' };
+    if (query.sortBy === 'name') {
+      orderByClause = { name: query.sortDir };
+    } else if (query.sortBy === 'category_id') {
+      orderByClause = { categories: { name: query.sortDir } };
+    }
+
     const [total, data] = await Promise.all([
       prisma.items.count({ where: whereClause }),
       prisma.items.findMany({
@@ -59,7 +68,7 @@ export async function GET(req: NextRequest) {
         },
         skip,
         take: query.limit,
-        orderBy: { created_at: 'desc' },
+        orderBy: orderByClause,
       }),
     ]);
 

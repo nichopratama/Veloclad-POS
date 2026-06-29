@@ -9,6 +9,7 @@ export interface FieldDef {
   defaultValue?: string | number | boolean;
   nullable?: boolean;          // kosong → kirim null
   showInTable?: boolean;       // tampil sebagai kolom tabel
+  sortable?: boolean;
   // khusus type 'select' (foreign key):
   optionsEndpoint?: string;    // mis. '/api/library/categories'
   optionLabelKey?: string;     // 'name'

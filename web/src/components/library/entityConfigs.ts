@@ -10,9 +10,9 @@ export const entityConfigs: Record<string, EntityConfig> = {
     searchable: true,
     mutateRoles: 'admin',
     fields: [
-      { key: 'code', label: 'Kode', labelEn: 'Code', type: 'text', required: true, showInTable: true },
-      { key: 'name', label: 'Nama', labelEn: 'Name', type: 'text', required: true, showInTable: true },
-      { key: 'category_id', label: 'Kategori', labelEn: 'Category', type: 'select', nullable: true, showInTable: true, optionsEndpoint: '/api/library/categories', optionLabelKey: 'name', optionValueKey: 'id' },
+      { key: 'code', label: 'SKU', labelEn: 'SKU', type: 'text', required: true, showInTable: true },
+      { key: 'name', label: 'Nama', labelEn: 'Name', type: 'text', required: true, showInTable: true, sortable: true },
+      { key: 'category_id', label: 'Kategori', labelEn: 'Category', type: 'select', nullable: true, showInTable: true, optionsEndpoint: '/api/library/categories', optionLabelKey: 'name', optionValueKey: 'id', sortable: true },
       { key: 'supplier_id', label: 'Supplier', labelEn: 'Supplier', type: 'select', nullable: true, showInTable: false, optionsEndpoint: '/api/library/suppliers', optionLabelKey: 'name', optionValueKey: 'id' },
       { key: 'unit', label: 'Satuan', labelEn: 'Unit', type: 'text', defaultValue: 'pcs', showInTable: false },
       { key: 'price', label: 'Harga Jual', labelEn: 'Selling Price', type: 'money', required: true, showInTable: true },

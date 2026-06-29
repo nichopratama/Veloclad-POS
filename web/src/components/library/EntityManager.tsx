@@ -21,6 +21,8 @@ interface EntityManagerProps {
 export function EntityManager({ config, role }: EntityManagerProps) {
   const [page, setPage] = useState(1);
   const [localSearch, setLocalSearch] = useState('');
+  const [sortBy, setSortBy] = useState<string>('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const { t, locale } = useLocale();
   const entityLabel = locale === 'en' ? config.labelEn : config.label;
   const fieldLabel = (f: { label: string; labelEn?: string }) =>
@@ -38,6 +40,10 @@ export function EntityManager({ config, role }: EntityManagerProps) {
     qs.set('page', page.toString());
     qs.set('limit', limit.toString());
     if (config.searchable && search) qs.set('search', search);
+    if (sortBy) {
+      qs.set('sortBy', sortBy);
+      qs.set('sortDir', sortDir);
+    }
     cacheKey = `${config.endpoint}?${qs.toString()}`;
   } else {
     cacheKey = config.endpoint;
@@ -75,6 +81,16 @@ export function EntityManager({ config, role }: EntityManagerProps) {
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLocalSearch(e.target.value);
+    setPage(1);
+  };
+
+  const handleSort = (key: string) => {
+    if (sortBy === key) {
+      setSortDir(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(key);
+      setSortDir('asc');
+    }
     setPage(1);
   };
 
@@ -123,7 +139,18 @@ export function EntityManager({ config, role }: EntityManagerProps) {
             <thead>
               <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
                 {config.fields.filter(f => f.showInTable).map(f => (
-                  <th key={f.key} style={{ padding: 'var(--space-3) var(--space-4)' }}>{fieldLabel(f)}</th>
+                  <th
+                    key={f.key}
+                    style={{ padding: 'var(--space-3) var(--space-4)', cursor: f.sortable ? 'pointer' : 'default' }}
+                    onClick={f.sortable ? () => handleSort(f.key) : undefined}
+                  >
+                    {fieldLabel(f)}
+                    {f.sortable && (
+                      <span style={{ marginLeft: 'var(--space-1)', color: sortBy === f.key ? 'var(--color-accent)' : 'var(--color-border)' }}>
+                        {sortBy === f.key ? (sortDir === 'desc' ? '↓' : '↑') : '↕'}
+                      </span>
+                    )}
+                  </th>
                 ))}
                 <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>{t.common.actions}</th>
               </tr>
