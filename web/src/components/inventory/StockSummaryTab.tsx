@@ -9,9 +9,14 @@ import { formatIDRFromString } from '@/components/pos/format';
 import { SkeletonRows } from '@/components/ui/Skeleton';
 import { useLocale } from '@/lib/i18n/LocaleContext';
 
+type CategoryOption = { id: number; name: string };
+
 export function StockSummaryTab() {
   const [page, setPage] = useState(1);
   const [localSearch, setLocalSearch] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [sortBy, setSortBy] = useState<'name'|'category'|'stock'>('name');
+  const [sortDir, setSortDir] = useState<'asc'|'desc'>('asc');
   const { t } = useLocale();
   const search = useDebounce(localSearch, 300);
   const limit = 30;
@@ -20,14 +25,29 @@ export function StockSummaryTab() {
   qs.set('page', page.toString());
   qs.set('limit', limit.toString());
   if (search) qs.set('search', search);
+  if (categoryId) qs.set('categoryId', categoryId);
+  qs.set('sortBy', sortBy);
+  qs.set('sortDir', sortDir);
 
   const { data, error, isLoading } = useSWR<PaginatedResponse<StockItem>>(`/api/inventory/stock-summary?${qs.toString()}`, fetcher);
+  const { data: catRes } = useSWR<{ data: CategoryOption[] }>('/api/library/categories', fetcher);
+  const categories = catRes?.data || [];
 
   const items = data?.data || [];
   const pagination = data?.pagination;
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLocalSearch(e.target.value);
+    setPage(1);
+  };
+
+  const handleSort = (field: 'name'|'category'|'stock') => {
+    if (sortBy === field) {
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortDir('asc');
+    }
     setPage(1);
   };
 
@@ -44,6 +64,14 @@ export function StockSummaryTab() {
             onChange={handleSearchChange}
           />
         </div>
+        <div style={{ flex: '1 1 200px' }}>
+          <select className="input" value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setPage(1); }}>
+            <option value="">{t.common.allCategories || 'Semua Kategori'}</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
@@ -56,11 +84,17 @@ export function StockSummaryTab() {
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+              <tr style={{ borderBottom: '1px solid var(--color-border)', userSelect: 'none' }}>
                 <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.stock.code}</th>
-                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.stock.itemName}</th>
-                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.stock.category}</th>
-                <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>{t.stock.stock}</th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)', cursor: 'pointer' }} onClick={() => handleSort('name')}>
+                  {t.stock.itemName} <span style={{ marginLeft: 'var(--space-1)', color: sortBy === 'name' ? 'var(--color-accent)' : 'var(--color-border)' }}>{sortBy === 'name' ? (sortDir === 'desc' ? '↓' : '↑') : '↕'}</span>
+                </th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)', cursor: 'pointer' }} onClick={() => handleSort('category')}>
+                  {t.stock.category} <span style={{ marginLeft: 'var(--space-1)', color: sortBy === 'category' ? 'var(--color-accent)' : 'var(--color-border)' }}>{sortBy === 'category' ? (sortDir === 'desc' ? '↓' : '↑') : '↕'}</span>
+                </th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', cursor: 'pointer' }} onClick={() => handleSort('stock')}>
+                  {t.stock.stock} <span style={{ marginLeft: 'var(--space-1)', color: sortBy === 'stock' ? 'var(--color-accent)' : 'var(--color-border)' }}>{sortBy === 'stock' ? (sortDir === 'desc' ? '↓' : '↑') : '↕'}</span>
+                </th>
                 <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>{t.stock.minStock}</th>
                 <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>{t.stock.price}</th>
               </tr>
@@ -69,11 +103,13 @@ export function StockSummaryTab() {
               {items.map((row) => {
                 const isLowStock = row.stock <= row.min_stock;
                 return (
-                  <tr key={row.id} style={{ borderBottom: '1px solid var(--color-border)', background: isLowStock ? 'var(--color-warning)' : 'inherit' }}>
+                  <tr key={row.id} style={{ borderBottom: '1px solid var(--color-border)', background: isLowStock ? '#f3f4f6' : 'inherit' }}>
                     <td style={{ padding: 'var(--space-3) var(--space-4)', fontFamily: 'var(--font-mono)' }}>{row.code}</td>
                     <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
-                      <div style={{ fontWeight: 600 }}>{row.name}</div>
-                      {isLowStock && <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-danger)', fontWeight: 700 }}>{t.inventory.lowStock}</div>}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                        <span style={{ fontWeight: 600 }}>{row.name}</span>
+                        {isLowStock && <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-danger)', fontWeight: 700 }}>{t.inventory.lowStock}</span>}
+                      </div>
                     </td>
                     <td style={{ padding: 'var(--space-3) var(--space-4)' }}>{row.categories?.name || '-'}</td>
                     <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', fontWeight: isLowStock ? 700 : 400, color: isLowStock ? 'var(--color-danger)' : 'inherit' }}>

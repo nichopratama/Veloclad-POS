@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect, useId } from 'react';
 import useSWR from 'swr';
 import { fetcher, apiMutate, FetchError } from '@/lib/fetcher';

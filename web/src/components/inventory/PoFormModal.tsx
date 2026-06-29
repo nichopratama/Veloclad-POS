@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect, useId } from 'react';
 import useSWR from 'swr';
 import { fetcher, apiMutate, FetchError } from '@/lib/fetcher';
@@ -68,7 +70,7 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!supplierId) {
-      setErrorMsg(t.common.supplier + ' ' + t.common.optional);
+      setErrorMsg(t.inventory.supplierRequired);
       return;
     }
     if (items.length === 0) {
@@ -76,7 +78,7 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
       return;
     }
     if (paymentMethod === 'CREDIT' && !dueDate) {
-      setErrorMsg('Tanggal Jatuh Tempo wajib diisi untuk mekanisme pembayaran jatuh tempo (CREDIT).');
+      setErrorMsg(t.inventory.dueDateRequired);
       return;
     }
 
@@ -144,16 +146,16 @@ export function PoFormModal({ onClose, onSuccess }: PoFormModalProps) {
 
             <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-                <label htmlFor={paymentMethodFieldId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Tipe Pembelian</label>
+                <label htmlFor={paymentMethodFieldId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{t.inventory.purchaseType}</label>
                 <select id={paymentMethodFieldId} className="input" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as 'CASH' | 'CREDIT' | 'CONSIGNMENT')} required>
-                  <option value="CASH">Lunas (Tunai)</option>
-                  <option value="CREDIT">Jatuh Tempo (Hutang)</option>
-                  <option value="CONSIGNMENT">Konsinyasi (Titipan)</option>
+                  <option value="CASH">{t.inventory.paymentCash}</option>
+                  <option value="CREDIT">{t.inventory.paymentCredit}</option>
+                  <option value="CONSIGNMENT">{t.inventory.paymentConsignment}</option>
                 </select>
               </div>
               {paymentMethod === 'CREDIT' ? (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-                  <label htmlFor={dueDateFieldId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Jatuh Tempo <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+                  <label htmlFor={dueDateFieldId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{t.inventory.dueDate} <span style={{ color: 'var(--color-danger)' }}>*</span></label>
                   <input id={dueDateFieldId} type="date" className="input" value={dueDate} onChange={(e) => setDueDate(e.target.value)} required />
                 </div>
               ) : (

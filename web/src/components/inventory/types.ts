@@ -11,15 +11,18 @@ export interface StockItem {
   suppliers: { name: string } | null; 
 }
 
-export interface PurchaseOrder { 
-  id: number; 
-  po_number: string; 
-  status: string; 
-  total_amount: string; 
-  notes: string | null; 
-  created_at: string; 
-  suppliers: { name: string } | null; 
-  users: { name: string } | null; 
+export interface PurchaseOrder {
+  id: number;
+  po_number: string;
+  status: string;
+  payment_method: string | null;
+  payment_status: string | null;
+  due_date: string | null;
+  total_amount: string;
+  notes: string | null;
+  created_at: string;
+  suppliers: { name: string } | null;
+  users: { name: string } | null;
 }
 
 export interface Adjustment { 

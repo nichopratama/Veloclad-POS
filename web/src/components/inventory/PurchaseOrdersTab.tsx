@@ -25,6 +25,20 @@ export function PurchaseOrdersTab({ role }: PurchaseOrdersTabProps) {
 
   const canWrite = isAdmin(role);
 
+  const methodLabel = (m: string | null) => {
+    if (m === 'CASH') return t.inventory.typeCash;
+    if (m === 'CREDIT') return t.inventory.typeCredit;
+    if (m === 'CONSIGNMENT') return t.inventory.typeConsignment;
+    return '-';
+  };
+  const payStatusLabel = (s: string | null) => {
+    if (s === 'PAID') return t.inventory.payStatusPaid;
+    if (s === 'PARTIAL') return t.inventory.payStatusPartial;
+    return t.inventory.payStatusUnpaid;
+  };
+  const payStatusColor = (s: string | null) =>
+    s === 'PAID' ? 'var(--color-success)' : s === 'PARTIAL' ? '#f59e0b' : 'var(--color-danger)';
+
   const handleReceive = async (poId: number) => {
     if (!confirm(t.inventory.confirmReceivePo)) return;
     setErrorMsg('');
@@ -97,6 +111,7 @@ export function PurchaseOrdersTab({ role }: PurchaseOrdersTabProps) {
                 <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.common.supplier}</th>
                 <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.inventory.createdBy}</th>
                 <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>{t.common.total}</th>
+                <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>{t.inventory.payment}</th>
                 <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>{t.common.status}</th>
                 <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.common.date}</th>
                 <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>{t.common.actions}</th>
@@ -109,6 +124,12 @@ export function PurchaseOrdersTab({ role }: PurchaseOrdersTabProps) {
                   <td style={{ padding: 'var(--space-3) var(--space-4)' }}>{row.suppliers?.name || '-'}</td>
                   <td style={{ padding: 'var(--space-3) var(--space-4)' }}>{row.users?.name || '-'}</td>
                   <td className="money" style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>{formatIDRFromString(row.total_amount)}</td>
+                  <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', alignItems: 'center' }}>
+                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontWeight: 600 }}>{methodLabel(row.payment_method)}</span>
+                      <span style={{ padding: '2px var(--space-2)', background: payStatusColor(row.payment_status), color: 'white', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-xs)', fontWeight: 600 }}>{payStatusLabel(row.payment_status)}</span>
+                    </div>
+                  </td>
                   <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>
                     {row.status === 'pending' ? (
                       <span style={{ padding: 'var(--space-1) var(--space-2)', background: 'var(--color-warning)', color: 'white', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-xs)', fontWeight: 600 }}>{t.inventory.pending}</span>
@@ -133,7 +154,7 @@ export function PurchaseOrdersTab({ role }: PurchaseOrdersTabProps) {
               ))}
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={7} style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                  <td colSpan={8} style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--color-text-muted)' }}>
                     {t.inventory.noDataPo}
                   </td>
                 </tr>

@@ -47,7 +47,15 @@ export async function POST(req: NextRequest) {
     const parsedBody = adjustmentSchema.parse(body);
 
     await prisma.$transaction(async (tx) => {
-      // 1. Insert adjustment record
+      // 1. Guard: item exists and the adjustment won't push stock below 0
+      const item = await tx.items.findUnique({
+        where: { id: parsedBody.item_id },
+        select: { stock: true },
+      });
+      if (!item) throw new Error('ITEM_NOT_FOUND');
+      if ((item.stock ?? 0) + parsedBody.qty_change < 0) throw new Error('NEGATIVE_STOCK');
+
+      // 2. Insert adjustment record
       await tx.stock_adjustments.create({
         data: {
           item_id: parsedBody.item_id,
@@ -58,7 +66,7 @@ export async function POST(req: NextRequest) {
         } satisfies Prisma.stock_adjustmentsUncheckedCreateInput,
       });
 
-      // 2. Update item stock
+      // 3. Update item stock
       await tx.items.update({
         where: { id: parsedBody.item_id },
         data: {
@@ -77,8 +85,14 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid input data', details: error.issues }, { status: 400 });
     }
+    if (error instanceof Error && error.message === 'NEGATIVE_STOCK') {
+      return NextResponse.json({ error: 'Stock cannot go below 0 with this adjustment' }, { status: 400 });
+    }
     // Handle case where item doesn't exist
-    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2025') {
+    if (
+      (error instanceof Error && error.message === 'ITEM_NOT_FOUND') ||
+      (typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2025')
+    ) {
        return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
     console.error('POST /api/inventory/adjustments error:', error);

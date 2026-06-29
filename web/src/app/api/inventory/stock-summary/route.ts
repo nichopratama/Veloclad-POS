@@ -2,11 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth, AuthError } from '@/lib/rbac';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 
 const getQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).default(30),
   search: z.string().optional(),
+  categoryId: z.coerce.number().int().optional(),
+  sortBy: z.enum(['name', 'category', 'stock']).optional(),
+  sortDir: z.enum(['asc', 'desc']).default('asc'),
 });
 
 export async function GET(req: NextRequest) {
@@ -20,14 +24,25 @@ export async function GET(req: NextRequest) {
     const skip = (query.page - 1) * query.limit;
 
     // Build the where clause
-    let whereClause = {};
+    const whereClause: Prisma.itemsWhereInput = {};
     if (query.search) {
-      whereClause = {
-        OR: [
-          { name: { contains: query.search, mode: 'insensitive' } },
-          { code: { contains: query.search, mode: 'insensitive' } },
-        ],
-      };
+      whereClause.OR = [
+        { name: { contains: query.search, mode: 'insensitive' } },
+        { code: { contains: query.search, mode: 'insensitive' } },
+      ];
+    }
+    if (query.categoryId) {
+      whereClause.category_id = query.categoryId;
+    }
+
+    // Build the orderBy clause
+    let orderByClause: Prisma.itemsOrderByWithRelationInput = { name: 'asc' };
+    if (query.sortBy === 'name') {
+      orderByClause = { name: query.sortDir };
+    } else if (query.sortBy === 'category') {
+      orderByClause = { categories: { name: query.sortDir } };
+    } else if (query.sortBy === 'stock') {
+      orderByClause = { stock: query.sortDir };
     }
 
     // Execute count and query in parallel
@@ -41,7 +56,7 @@ export async function GET(req: NextRequest) {
         },
         skip,
         take: query.limit,
-        orderBy: { name: 'asc' }, // Lesson 3: picklists use name asc
+        orderBy: orderByClause,
       }),
     ]);
 
