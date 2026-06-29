@@ -164,7 +164,7 @@ export function Sidebar({
       )}
       <aside className={`${styles.sidebar} ${!isOpen ? styles.sidebarHidden : ''} ${!isOpen ? styles.sidebarCollapsed : ''}`}>
         <div className={styles.header}>
-        <div className={styles.brand}>AntiGravity POS</div>
+        <div className={styles.brand}>VeloPOS</div>
         <div
           className={styles.tenant}
           style={{ ['--tenant-initials' as string]: `"${tenantInitials}"` }}

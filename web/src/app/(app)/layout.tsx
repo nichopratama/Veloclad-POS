@@ -4,6 +4,7 @@ import { headers } from 'next/headers';
 import { auth } from '@/lib/auth';
 import { env } from '@/lib/env';
 import { AppShell } from '@/components/layout/AppShell';
+import prisma from '@/lib/prisma';
 
 /**
  * Shell terproteksi (Server Component). Validasi session sebenarnya di sini
@@ -14,9 +15,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (!session) redirect('/login');
 
   const role = session.user.role ?? 'kasir';
+  
+  const storeSettings = await prisma.store_settings.findFirst();
+  const tenantName = storeSettings?.store_name || env.TENANT_NAME;
 
   return (
-    <AppShell userName={session.user.name} role={role} tenantName={env.TENANT_NAME}>
+    <AppShell userName={session.user.name} role={role} tenantName={tenantName}>
       {children}
     </AppShell>
   );
