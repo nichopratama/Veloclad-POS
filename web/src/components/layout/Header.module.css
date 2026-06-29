@@ -1,8 +1,7 @@
 .header {
   height: var(--header-h);
-  /* Tanpa backdrop-filter: header sticky → re-blur tiap scroll. Pakai surface opaque. */
-  background-color: var(--color-surface-2);
-  border-bottom: 1px solid var(--color-border);
+  background-color: #03396c;
+  border-bottom: 1px solid #03396c;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -24,7 +23,7 @@
 }
 
 .iconBtn {
-  color: var(--color-text-muted);
+  color: gold;
   position: relative;
   display: flex;
   align-items: center;
@@ -37,7 +36,7 @@
 }
 
 .iconBtn:hover {
-  color: var(--color-accent);
+  color: #fff;
 }
 
 .langText {
@@ -53,7 +52,7 @@
   height: 8px;
   background-color: var(--color-danger);
   border-radius: 50%;
-  border: 2px solid var(--color-surface);
+  border: 2px solid #03396c;
 }
 
 .userBlock {
@@ -62,7 +61,7 @@
   gap: var(--space-2);
   padding: 0 0 0 var(--space-6);
   border: none;
-  border-left: 1px solid var(--color-border);
+  border-left: 1px solid rgba(255, 215, 0, 0.2);
   background: none;
   font: inherit;
   text-align: left;
@@ -77,8 +76,8 @@
 .userAvatar {
   width: 36px;
   height: 36px;
-  background-color: var(--color-bg);
-  color: var(--color-text-muted);
+  background-color: rgba(255, 215, 0, 0.1);
+  color: gold;
   border-radius: 9999px;
   display: flex;
   align-items: center;
@@ -93,14 +92,14 @@
 .userName {
   font-size: 13px;
   font-weight: 500;
-  color: var(--color-text);
+  color: gold;
   line-height: 1.2;
 }
 
 .userRole {
   font-size: 11px;
   font-weight: 300;
-  color: var(--color-text-muted);
+  color: gold;
   line-height: 1.2;
   text-transform: capitalize;
 }
