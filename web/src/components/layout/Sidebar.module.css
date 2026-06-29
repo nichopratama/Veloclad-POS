@@ -21,25 +21,26 @@
 
 .header {
   padding: 22px 24px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  background-color: #03396c;
+  border-bottom: 1px solid #03396c;
 }
 
 .tenant {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: var(--color-text);
+  color: gold;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
+  text-transform: uppercase; /* Force uppercase if the store name should look like VAPESCREW */
 }
 
 .brand {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: var(--color-accent);
-  text-transform: uppercase;
+  color: gold;
   margin-bottom: 10px;
 }
 
