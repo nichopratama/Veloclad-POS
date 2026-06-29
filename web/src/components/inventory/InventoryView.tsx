@@ -1,6 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 import { StockSummaryTab } from './StockSummaryTab';
 import { PurchaseOrdersTab } from './PurchaseOrdersTab';
 import { AdjustmentsTab } from './AdjustmentsTab';
@@ -13,26 +14,27 @@ interface InventoryViewProps {
 
 export function InventoryView({ role }: InventoryViewProps) {
   const searchParams = useSearchParams();
+  const { t } = useLocale();
   const rawTab = searchParams.get('tab');
-  
+
   const validTabs = ['stock', 'po', 'adjustments', 'bundles', 'payables'];
   const activeTab = rawTab && validTabs.includes(rawTab) ? rawTab : 'stock';
 
   // Judul selaras label submenu sidebar.
   const titles: Record<string, string> = {
-    stock: 'Stock Summary',
-    po: 'Purchase Order',
-    payables: 'Accounts Payable',
-    adjustments: 'Stock Adjustment',
-    bundles: 'Bundle Packages',
+    stock: t.inventoryMenu.stockTitle,
+    po: t.inventoryMenu.poTitle,
+    payables: t.inventoryMenu.payablesTitle,
+    adjustments: t.inventoryMenu.adjustmentsTitle,
+    bundles: t.inventoryMenu.bundlesTitle,
   };
 
   const descriptions: Record<string, string> = {
-    stock: 'Monitor and manage the real-time availability of your products.',
-    po: 'Create and track purchase orders to restock your items.',
-    payables: 'Manage supplier debts from credit terms and consignment settlements.',
-    adjustments: 'Adjust stock levels for missing, damaged, or returned items.',
-    bundles: 'Combine multiple items into bundle packages for special deals.',
+    stock: t.inventoryMenu.stockDesc,
+    po: t.inventoryMenu.poDesc,
+    payables: t.inventoryMenu.payablesDesc,
+    adjustments: t.inventoryMenu.adjustmentsDesc,
+    bundles: t.inventoryMenu.bundlesDesc,
   };
 
   return (
