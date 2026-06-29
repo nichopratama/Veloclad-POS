@@ -4,7 +4,7 @@ import { headers } from 'next/headers';
 import { auth } from '@/lib/auth';
 import { env } from '@/lib/env';
 import { AppShell } from '@/components/layout/AppShell';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 /**
  * Shell terproteksi (Server Component). Validasi session sebenarnya di sini
