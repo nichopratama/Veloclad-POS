@@ -21,7 +21,8 @@ export async function GET(req: NextRequest) {
       created_at: {
         gte: startObj,
         lte: endObj,
-      }
+      },
+      status: 'completed'
     };
 
     // 1. Net Sales from transactions
@@ -34,11 +35,10 @@ export async function GET(req: NextRequest) {
     const netSales = Number(salesAgg._sum.net_sales || 0);
 
     // 2. COGS from transactions
-    const rawDateWhere = Prisma.sql`WHERE t.created_at >= ${startObj} AND t.created_at <= ${endObj}`;
+    const rawDateWhere = Prisma.sql`WHERE t.created_at >= ${startObj} AND t.created_at <= ${endObj} AND t.status = 'completed'`;
     const cogsResult = await prisma.$queryRaw<any[]>`
-      SELECT SUM(ti.qty * COALESCE(i.hpp, 0)) as total_cogs
+      SELECT SUM(ti.qty * COALESCE(ti.cost_price, 0)) as total_cogs
       FROM transaction_items ti
-      LEFT JOIN items i ON ti.item_id = i.id
       LEFT JOIN transactions t ON ti.transaction_id = t.id
       ${rawDateWhere}
     `;

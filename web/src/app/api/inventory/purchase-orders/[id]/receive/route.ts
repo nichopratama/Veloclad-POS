@@ -47,19 +47,41 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
         });
       }
 
-      // 4. Create Payable if CREDIT
-      if (po.payment_method === 'CREDIT' && po.supplier_id) {
-        await tx.payables.create({
-          data: {
-            supplier_id: po.supplier_id,
-            po_id: po.id,
-            type: 'CREDIT_INVOICE',
-            total_debt: po.total_amount ?? 0,
-            amount_paid: 0,
-            status: 'OPEN',
-            due_date: po.due_date,
-          }
-        });
+      // 4. Create Payable logic
+      if (po.supplier_id) {
+        if (po.payment_method === 'CREDIT') {
+          await tx.payables.create({
+            data: {
+              supplier_id: po.supplier_id,
+              po_id: po.id,
+              type: 'CREDIT_INVOICE',
+              total_debt: po.total_amount ?? 0,
+              amount_paid: 0,
+              status: 'OPEN',
+              due_date: po.due_date,
+            }
+          });
+        } else if (po.payment_method === 'CASH') {
+          // Buat Payable berstatus PAID langsung lunas beserta log pembayarannya
+          await tx.payables.create({
+            data: {
+              supplier_id: po.supplier_id,
+              po_id: po.id,
+              type: 'CASH_INVOICE',
+              total_debt: po.total_amount ?? 0,
+              amount_paid: po.total_amount ?? 0,
+              status: 'PAID',
+              due_date: new Date(), // Lunas hari ini
+              payable_payments: {
+                create: {
+                  amount: po.total_amount ?? 0,
+                  payment_method: 'CASH',
+                  notes: 'Direct cash payment from PO',
+                }
+              }
+            }
+          });
+        }
       }
     });
 

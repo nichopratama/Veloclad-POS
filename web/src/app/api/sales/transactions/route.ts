@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
     const itemIds = [...new Set(input.items.map((it) => it.id))];
     const dbItems = await prisma.items.findMany({
       where: { id: { in: itemIds } },
-      select: { id: true, price: true, is_active: true },
+      select: { id: true, price: true, hpp: true, is_active: true },
     });
     const itemById = new Map(dbItems.map((r) => [r.id, r]));
 

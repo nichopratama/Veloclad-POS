@@ -69,6 +69,7 @@ export async function persistSale(client: SaleDbClient, p: PersistSaleParams): P
           qty: line.qty,
           subtotal: line.lineGross,
           discount: line.discount,
+          cost_price: line.costPrice,
         } satisfies Prisma.transaction_itemsUncheckedCreateInput,
       });
     }

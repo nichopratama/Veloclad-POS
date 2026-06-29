@@ -24,6 +24,7 @@ export interface SaleItemInput {
 export interface DbItemRow {
   id: number;
   price: DecimalLike;
+  hpp: DecimalLike | null;
   is_active: boolean | null;
 }
 
@@ -32,6 +33,7 @@ export interface SaleLine {
   qty: number;
   price: Decimal;
   discount: Decimal;
+  costPrice: Decimal;
   lineGross: Decimal;
 }
 
@@ -69,6 +71,7 @@ export function computeSale(params: ComputeSaleParams): SaleTotals {
     if (row.is_active === false) throw new ApiError(400, `Item ${it.id} tidak aktif`);
 
     const unitPrice = new D(row.price);
+    const unitHpp = new D(row.hpp ?? 0);
     const lineGross = unitPrice.times(it.qty);
     const lineDiscount = new D(it.discount);
     // Clamp diskon ≤ subtotal baris (cegah total negatif via diskon dibuat-buat).
@@ -78,7 +81,7 @@ export function computeSale(params: ComputeSaleParams): SaleTotals {
 
     subtotal = subtotal.plus(lineGross);
     discountTotal = discountTotal.plus(lineDiscount);
-    return { id: it.id, qty: it.qty, price: unitPrice, discount: lineDiscount, lineGross };
+    return { id: it.id, qty: it.qty, price: unitPrice, discount: lineDiscount, costPrice: unitHpp, lineGross };
   });
 
   const taxable = subtotal.minus(discountTotal);

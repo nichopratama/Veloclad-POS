@@ -21,8 +21,8 @@ export async function GET(req: NextRequest) {
     if (start && end) {
       where = {
         expense_date: {
-          gte: new Date(start),
-          lte: new Date(end),
+          gte: new Date(`${start}T00:00:00.000Z`),
+          lte: new Date(`${end}T23:59:59.999Z`),
         }
       };
     }

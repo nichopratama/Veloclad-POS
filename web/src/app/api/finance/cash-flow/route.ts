@@ -20,15 +20,19 @@ export async function GET(req: NextRequest) {
       created_at: {
         gte: startObj,
         lte: endObj,
-      }
+      },
+      status: 'completed'
     };
 
-    // 1. Cash In (dari transactions, anggap semua total adalah kas riil yg diterima)
+    // 1. Cash In (dari transactions, kurangi refund)
     const salesAgg = await prisma.transactions.aggregate({
       where: dateFilter,
-      _sum: { total: true }
+      _sum: { 
+        total: true,
+        refunds: true 
+      }
     });
-    const cashInSales = Number(salesAgg._sum.total || 0);
+    const cashInSales = Number(salesAgg._sum.total || 0) - Number(salesAgg._sum.refunds || 0);
 
     // 2. Cash Out: Accounts Payable Payments
     const apAgg = await prisma.payable_payments.aggregate({

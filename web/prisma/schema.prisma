@@ -207,7 +207,7 @@ model expenses {
   created_at         DateTime           @default(now()) @db.Timestamptz(6)
   updated_at         DateTime           @default(now()) @db.Timestamptz(6)
   expense_categories expense_categories @relation(fields: [category_id], references: [id], onDelete: Restrict)
-  users              users              @relation(fields: [created_by], references: [id], onDelete: SetNull)
+  users              users              @relation(fields: [created_by], references: [id], onDelete: Restrict)
 }
 
 model store_settings {
@@ -257,6 +257,7 @@ model transaction_items {
   qty            Int
   subtotal       Decimal       @db.Decimal(14, 2)
   discount       Decimal       @default(0) @db.Decimal(14, 2)
+  cost_price     Decimal       @default(0) @db.Decimal(14, 2)
   created_at     DateTime      @default(now()) @db.Timestamptz(6)
   updated_at     DateTime      @default(now()) @db.Timestamptz(6)
   items          items?        @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "transaction_items_item_id_foreign")
