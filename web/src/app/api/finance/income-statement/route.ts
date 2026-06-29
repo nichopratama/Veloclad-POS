@@ -29,10 +29,13 @@ export async function GET(req: NextRequest) {
     const salesAgg = await prisma.transactions.aggregate({
       where: dateFilter,
       _sum: {
-        net_sales: true, // Net Sales (gross - discount - refund) without tax
+        net_sales: true,  // stored net_sales is tax-INCLUSIVE (= total − refunds)
+        tax_amount: true, // strip tax to get true net sales (revenue excludes VAT)
       }
     });
-    const netSales = Number(salesAgg._sum.net_sales || 0);
+    // Revenue = net sales excluding tax (gross − discount − refund). VAT is a
+    // liability to remit, not revenue, so it must not inflate gross/net profit.
+    const netSales = Number(salesAgg._sum.net_sales || 0) - Number(salesAgg._sum.tax_amount || 0);
 
     // 2. COGS from transactions
     const rawDateWhere = Prisma.sql`WHERE t.created_at >= ${startObj} AND t.created_at <= ${endObj} AND t.status = 'completed'`;

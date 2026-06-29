@@ -125,7 +125,10 @@ export async function GET(request: Request) {
           gross_sales_categories: categories,
           discounts: Number(sumResult._sum.discount_amount || 0),
           refunds: Number(sumResult._sum.refunds || 0),
-          net_sales: Number(sumResult._sum.net_sales || 0),
+          // Stored net_sales is tax-INCLUSIVE (= total − refunds). For the revenue
+          // waterfall (Gross − Discount − Refunds) we need it tax-EXCLUSIVE, so strip
+          // the tax that was baked in. Tax is reported separately below.
+          net_sales: Number(sumResult._sum.net_sales || 0) - Number(sumResult._sum.tax_amount || 0),
           cogs: total_cogs,
           tax: Number(sumResult._sum.tax_amount || 0),
           total_collected: total,
