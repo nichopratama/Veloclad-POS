@@ -132,7 +132,7 @@ export function Sidebar({
 
   const isGroupActive = (group: NavGroup): boolean => {
     if (group.href) return pathname === group.href;
-    return (group.sub ?? []).some((s) => pathname === parseHref(s.href).path);
+    return (group.sub ?? []).some((s) => isSubActive(s.href));
   };
 
   const toggle = (label: string, active: boolean) => {
