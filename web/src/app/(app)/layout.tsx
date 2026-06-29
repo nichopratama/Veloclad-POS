@@ -17,7 +17,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const role = session.user.role ?? 'kasir';
   
   const storeSettings = await prisma.store_settings.findFirst();
-  const tenantName = storeSettings?.store_name || env.TENANT_NAME;
+  const tenantName = storeSettings?.name || env.TENANT_NAME;
 
   return (
     <AppShell userName={session.user.name} role={role} tenantName={tenantName}>
