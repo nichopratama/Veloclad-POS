@@ -7,6 +7,7 @@ import { requireAuth } from '@/lib/rbac';
 import { handleApiError } from '@/lib/api';
 import { computeSale, computeChange } from '@/lib/sales-pricing';
 import { persistSale } from '@/lib/sales-persist';
+import { broadcastNotification } from '@/lib/notifications';
 
 const D = Prisma.Decimal;
 
@@ -160,6 +161,31 @@ export async function POST(req: NextRequest) {
       paymentAmount,
       change,
       lines,
+    });
+
+    // Cek apakah ada item yang stoknya menjadi 0 setelah transaksi ini
+    const soldItemIds = [...new Set(input.items.map(i => i.id))];
+    const itemsAfterSale = await prisma.items.findMany({
+      where: { id: { in: soldItemIds } },
+      select: { id: true, name: true, stock: true }
+    });
+
+    const outOfStockItems = itemsAfterSale.filter(i => i.stock !== null && i.stock <= 0);
+    for (const item of outOfStockItems) {
+      await broadcastNotification(null, {
+        title: 'Stok Habis (Kosong)',
+        message: `Stok produk '${item.name}' telah habis setelah transaksi ${created}.`,
+        category: 'INVENTORY',
+        type: 'ALERT'
+      });
+    }
+
+    // Notifikasi untuk setiap transaksi yang berhasil (dikirim ke Admin)
+    await broadcastNotification(['admin'], {
+      title: 'Transaksi Berhasil',
+      message: `Transaksi ${created} berhasil senilai Rp ${total.toNumber().toLocaleString('id-ID')}.`,
+      category: 'SALES',
+      type: 'INFO'
     });
 
     return NextResponse.json(

@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'node:crypto';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/rbac';
@@ -21,7 +24,29 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     await requireRole('admin');
     const { id } = await ctx.params;
 
-    const parsed = updateUserSchema.parse(await req.json());
+    const contentType = req.headers.get('content-type') || '';
+    let rawData: any;
+    let imageUrl: string | undefined = undefined;
+
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await req.formData();
+      rawData = Object.fromEntries(formData);
+      
+      const file = formData.get('image') as File | null;
+      if (file && file.size > 0) {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const ext = file.name.split('.').pop() || 'jpg';
+        const filename = `profile_${Date.now()}_${randomUUID().split('-')[0]}.${ext}`;
+        const dir = path.join(process.cwd(), 'public', 'uploads', 'profiles');
+        await fs.mkdir(dir, { recursive: true });
+        await fs.writeFile(path.join(dir, filename), buffer);
+        imageUrl = `/uploads/profiles/${filename}`;
+      }
+    } else {
+      rawData = await req.json();
+    }
+
+    const parsed = updateUserSchema.parse(rawData);
 
     const target = await prisma.user.findUnique({ where: { id } });
     if (!target) throw new ApiError(404, 'User tidak ditemukan');
@@ -36,15 +61,18 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     await prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: { id },
-        data: { name: parsed.name, role: parsed.role, updatedAt: new Date() },
+        data: { name: parsed.name, role: parsed.role, image: imageUrl || target.image, updatedAt: new Date() },
       });
 
       // Sinkronkan staf `users` (sumber FK transaksi) bila tertaut.
       if (target.staffId !== null && target.staffId !== undefined) {
-        await tx.users.update({
-          where: { id: target.staffId },
-          data: { name: parsed.name, role: parsed.role, password_hash: passwordHash },
-        });
+        const staff = await tx.users.findUnique({ where: { id: target.staffId } });
+        if (staff) {
+          await tx.users.update({
+            where: { id: target.staffId },
+            data: { name: parsed.name, role: parsed.role, password_hash: passwordHash, avatar: imageUrl || staff.avatar },
+          });
+        }
       }
 
       if (passwordHash) {

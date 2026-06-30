@@ -1,8 +1,5 @@
-
 generator client {
   provider      = "prisma-client-js"
-  // native = dev host (Windows); linux-musl-openssl-3.0.x = runtime container node:20-alpine.
-  // Tanpa target musl, Prisma engine gagal init saat runtime di image Alpine (M4 cutover).
   binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
@@ -66,29 +63,29 @@ model items {
   suppliers         suppliers?          @relation(fields: [supplier_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "items_supplier_id_foreign")
   po_items          po_items[]
   stock_adjustments stock_adjustments[]
+  stock_lots        stock_lots[]
   transaction_items transaction_items[]
   void_items        void_items[]
-  stock_lots        stock_lots[]
 }
 
 model stock_lots {
   id              Int                      @id @default(autoincrement())
   item_id         Int
-  source_type     String                   @db.VarChar(20) // 'OWNED' | 'CONSIGNMENT'
+  source_type     String                   @db.VarChar(20)
   po_id           Int?
   supplier_id     Int?
   unit_cost       Decimal                  @db.Decimal(14, 2)
   qty_received    Int
   qty_remaining   Int
-  status          String                   @default("ACTIVE") @db.VarChar(20) // 'ACTIVE' | 'DEPLETED' | 'RETURNED'
-  expires_at      DateTime?                @db.Timestamptz(6) // konsinyasi: batas akhir periode (received_at + term)
+  status          String                   @default("ACTIVE") @db.VarChar(20)
   received_at     DateTime                 @default(now()) @db.Timestamptz(6)
   created_at      DateTime                 @default(now()) @db.Timestamptz(6)
   updated_at      DateTime                 @default(now()) @db.Timestamptz(6)
-  items           items                    @relation(fields: [item_id], references: [id], onDelete: Cascade)
-  purchase_orders purchase_orders?         @relation(fields: [po_id], references: [id], onDelete: SetNull)
-  suppliers       suppliers?               @relation(fields: [supplier_id], references: [id], onDelete: SetNull)
+  expires_at      DateTime?                @db.Timestamptz(6)
   consumptions    stock_lot_consumptions[]
+  items           items                    @relation(fields: [item_id], references: [id], onDelete: Cascade)
+  purchase_orders purchase_orders?         @relation(fields: [po_id], references: [id])
+  suppliers       suppliers?               @relation(fields: [supplier_id], references: [id])
 }
 
 model stock_lot_consumptions {
@@ -97,11 +94,11 @@ model stock_lot_consumptions {
   stock_lot_id        Int
   qty                 Int
   unit_cost           Decimal           @db.Decimal(14, 2)
-  settled             Boolean           @default(false) // consignment: true once billed via settlement
+  settled             Boolean           @default(false)
   created_at          DateTime          @default(now()) @db.Timestamptz(6)
   updated_at          DateTime          @default(now()) @db.Timestamptz(6)
-  transaction_items   transaction_items @relation(fields: [transaction_item_id], references: [id], onDelete: Cascade)
   stock_lots          stock_lots        @relation(fields: [stock_lot_id], references: [id], onDelete: Cascade)
+  transaction_items   transaction_items @relation(fields: [transaction_item_id], references: [id], onDelete: Cascade)
 }
 
 model knex_migrations {
@@ -150,40 +147,40 @@ model promos {
 }
 
 model purchase_orders {
-  id           Int        @id @default(autoincrement())
-  po_number    String     @unique(map: "purchase_orders_po_number_unique") @db.VarChar(255)
-  supplier_id  Int?
-  user_id      Int?
-  status         String?    @default("pending") @db.VarChar(255)
-  payment_method String?    @default("CASH") @db.VarChar(50)
-  payment_status String?    @default("PAID") @db.VarChar(50)
-  due_date       DateTime?  @db.Timestamptz(6)
-  consignment_days Int?     // masa konsinyasi (hari) untuk PO ini; turun ke expires_at lot saat receive
-  total_amount   Decimal?   @default(0) @db.Decimal(14, 2)
-  notes          String?
-  created_at     DateTime   @default(now()) @db.Timestamptz(6)
-  updated_at     DateTime   @default(now()) @db.Timestamptz(6)
-  po_items       po_items[]
-  suppliers      suppliers? @relation(fields: [supplier_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "purchase_orders_supplier_id_foreign")
-  users          users?     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "purchase_orders_user_id_foreign")
-  payables       payables[]
-  stock_lots     stock_lots[]
+  id               Int          @id @default(autoincrement())
+  po_number        String       @unique(map: "purchase_orders_po_number_unique") @db.VarChar(255)
+  supplier_id      Int?
+  user_id          Int?
+  status           String?      @default("pending") @db.VarChar(255)
+  total_amount     Decimal?     @default(0) @db.Decimal(14, 2)
+  notes            String?
+  created_at       DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime     @default(now()) @db.Timestamptz(6)
+  due_date         DateTime?    @db.Timestamptz(6)
+  payment_method   String?      @default("CASH") @db.VarChar(50)
+  payment_status   String?      @default("PAID") @db.VarChar(50)
+  consignment_days Int?
+  payables         payables[]
+  po_items         po_items[]
+  suppliers        suppliers?   @relation(fields: [supplier_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "purchase_orders_supplier_id_foreign")
+  users            users?       @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "purchase_orders_user_id_foreign")
+  stock_lots       stock_lots[]
 }
 
 model payables {
   id               Int                @id @default(autoincrement())
   supplier_id      Int
   po_id            Int?
-  type             String             @db.VarChar(50) // 'CREDIT_INVOICE', 'CONSIGNMENT_SETTLEMENT'
+  type             String             @db.VarChar(50)
   total_debt       Decimal            @db.Decimal(14, 2)
   amount_paid      Decimal            @default(0) @db.Decimal(14, 2)
-  status           String             @default("OPEN") @db.VarChar(50) // 'OPEN', 'PARTIAL', 'PAID'
+  status           String             @default("OPEN") @db.VarChar(50)
   due_date         DateTime?          @db.Timestamptz(6)
   created_at       DateTime           @default(now()) @db.Timestamptz(6)
   updated_at       DateTime           @default(now()) @db.Timestamptz(6)
-  suppliers        suppliers          @relation(fields: [supplier_id], references: [id], onDelete: Cascade)
-  purchase_orders  purchase_orders?   @relation(fields: [po_id], references: [id], onDelete: Cascade)
   payable_payments payable_payments[]
+  purchase_orders  purchase_orders?   @relation(fields: [po_id], references: [id], onDelete: Cascade)
+  suppliers        suppliers          @relation(fields: [supplier_id], references: [id], onDelete: Cascade)
 }
 
 model payable_payments {
@@ -191,7 +188,7 @@ model payable_payments {
   payable_id     Int
   payment_date   DateTime @default(now()) @db.Timestamptz(6)
   amount         Decimal  @db.Decimal(14, 2)
-  payment_method String?  @db.VarChar(50) // 'CASH', 'TRANSFER', dll
+  payment_method String?  @db.VarChar(50)
   reference_no   String?  @db.VarChar(255)
   notes          String?
   created_at     DateTime @default(now()) @db.Timestamptz(6)
@@ -226,10 +223,10 @@ model expense_categories {
   id           Int        @id @default(autoincrement())
   name         String     @db.VarChar(255)
   account_code String?    @db.VarChar(50)
-  description  String?    @db.Text
   is_active    Boolean    @default(true)
   created_at   DateTime   @default(now()) @db.Timestamptz(6)
   updated_at   DateTime   @default(now()) @db.Timestamptz(6)
+  description  String?
   expenses     expenses[]
 }
 
@@ -242,8 +239,8 @@ model expenses {
   created_by         Int
   created_at         DateTime           @default(now()) @db.Timestamptz(6)
   updated_at         DateTime           @default(now()) @db.Timestamptz(6)
-  expense_categories expense_categories @relation(fields: [category_id], references: [id], onDelete: Restrict)
-  users              users              @relation(fields: [created_by], references: [id], onDelete: Restrict)
+  expense_categories expense_categories @relation(fields: [category_id], references: [id])
+  users              users              @relation(fields: [created_by], references: [id])
 }
 
 model store_settings {
@@ -260,21 +257,21 @@ model store_settings {
 }
 
 model suppliers {
-  id              Int               @id @default(autoincrement())
-  name            String            @db.VarChar(255)
-  contact         String?           @db.VarChar(255)
-  phone           String?           @db.VarChar(255)
-  email           String?           @db.VarChar(255)
-  address         String?
-  npwp            String?           @db.VarChar(255)
-  is_active       Boolean?          @default(true)
-  consignment_days Int?             // default masa konsinyasi (hari); bisa di-override per PO
-  created_at      DateTime          @default(now()) @db.Timestamptz(6)
-  updated_at      DateTime          @default(now()) @db.Timestamptz(6)
-  items           items[]
-  purchase_orders purchase_orders[]
-  payables        payables[]
-  stock_lots      stock_lots[]
+  id               Int               @id @default(autoincrement())
+  name             String            @db.VarChar(255)
+  contact          String?           @db.VarChar(255)
+  phone            String?           @db.VarChar(255)
+  email            String?           @db.VarChar(255)
+  address          String?
+  npwp             String?           @db.VarChar(255)
+  is_active        Boolean?          @default(true)
+  created_at       DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime          @default(now()) @db.Timestamptz(6)
+  consignment_days Int?
+  items            items[]
+  payables         payables[]
+  purchase_orders  purchase_orders[]
+  stock_lots       stock_lots[]
 }
 
 model tax_settings {
@@ -288,19 +285,19 @@ model tax_settings {
 }
 
 model transaction_items {
-  id             Int           @id @default(autoincrement())
-  transaction_id String?       @db.VarChar(255)
-  item_id        Int?
-  price          Decimal       @db.Decimal(14, 2)
-  qty            Int
-  subtotal       Decimal       @db.Decimal(14, 2)
-  discount       Decimal       @default(0) @db.Decimal(14, 2)
-  cost_price     Decimal       @default(0) @db.Decimal(14, 2)
-  created_at     DateTime      @default(now()) @db.Timestamptz(6)
-  updated_at     DateTime      @default(now()) @db.Timestamptz(6)
-  items          items?        @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "transaction_items_item_id_foreign")
-  transactions   transactions? @relation(fields: [transaction_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "transaction_items_transaction_id_foreign")
+  id               Int                      @id @default(autoincrement())
+  transaction_id   String?                  @db.VarChar(255)
+  item_id          Int?
+  price            Decimal                  @db.Decimal(14, 2)
+  qty              Int
+  subtotal         Decimal                  @db.Decimal(14, 2)
+  created_at       DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime                 @default(now()) @db.Timestamptz(6)
+  discount         Decimal                  @default(0) @db.Decimal(14, 2)
+  cost_price       Decimal                  @default(0) @db.Decimal(14, 2)
   lot_consumptions stock_lot_consumptions[]
+  items            items?                   @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "transaction_items_item_id_foreign")
+  transactions     transactions?            @relation(fields: [transaction_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "transaction_items_transaction_id_foreign")
 }
 
 model transactions {
@@ -315,7 +312,6 @@ model transactions {
   payment_amount      Decimal             @db.Decimal(14, 2)
   change_amount       Decimal?            @default(0) @db.Decimal(14, 2)
   status              String?             @default("completed") @db.VarChar(255)
-  idempotency_key     String?             @unique(map: "transactions_idempotency_key_unique") @db.VarChar(255)
   created_at          DateTime            @default(now()) @db.Timestamptz(6)
   updated_at          DateTime            @default(now()) @db.Timestamptz(6)
   outlet              String?             @db.VarChar(255)
@@ -329,6 +325,7 @@ model transactions {
   payment_method_name String?             @db.VarChar(255)
   event_type          String?             @db.VarChar(255)
   reason_of_refund    String?
+  idempotency_key     String?             @unique(map: "transactions_idempotency_key_unique") @db.VarChar(255)
   transaction_items   transaction_items[]
   customers           customers?          @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "transactions_customer_id_foreign")
   payment_types       payment_types?      @relation(fields: [payment_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "transactions_payment_type_id_foreign")
@@ -346,11 +343,11 @@ model users {
   avatar            String?             @db.VarChar(255)
   created_at        DateTime            @default(now()) @db.Timestamptz(6)
   updated_at        DateTime            @default(now()) @db.Timestamptz(6)
+  expenses          expenses[]
   purchase_orders   purchase_orders[]
   stock_adjustments stock_adjustments[]
   transactions      transactions[]
   void_items        void_items[]
-  expenses          expenses[]
 }
 
 model void_items {
@@ -369,26 +366,26 @@ model void_items {
 }
 
 model User {
-  id            String    @id
+  id            String          @id
   name          String
-  email         String
-  emailVerified Boolean   @default(false)
+  email         String          @unique
+  emailVerified Boolean         @default(false)
   image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  role          String?   @default("kasir")
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  role          String?         @default("kasir")
   staffId       Int?
-  sessions      Session[]
   accounts      Account[]
+  notifications notifications[]
+  sessions      Session[]
 
-  @@unique([email])
   @@map("user")
 }
 
 model Session {
   id        String   @id
   expiresAt DateTime
-  token     String
+  token     String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   ipAddress String?
@@ -396,7 +393,6 @@ model Session {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([token])
   @@index([userId])
   @@map("session")
 }
@@ -406,7 +402,6 @@ model Account {
   accountId             String
   providerId            String
   userId                String
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   accessToken           String?
   refreshToken          String?
   idToken               String?
@@ -416,6 +411,7 @@ model Account {
   password              String?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("account")
@@ -431,4 +427,19 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+model notifications {
+  id           Int       @id @default(autoincrement())
+  auth_user_id String
+  title        String    @db.VarChar(255)
+  message      String
+  is_read      Boolean?  @default(false)
+  category     String    @db.VarChar(50)
+  type         String    @db.VarChar(50)
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  user         User      @relation(fields: [auth_user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([auth_user_id])
+  @@index([is_read])
 }

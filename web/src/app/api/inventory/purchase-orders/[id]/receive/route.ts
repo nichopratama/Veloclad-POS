@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireRole, AuthError } from '@/lib/rbac';
+import { broadcastNotification } from '@/lib/notifications';
 
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   try {
@@ -13,7 +14,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     }
 
     // Use transaction to ensure PO status update and stock increments are atomic
-    await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       // 1. Guard PO exists and is pending
       const po = await tx.purchase_orders.findUnique({
         where: { id },
@@ -110,6 +111,19 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
           });
         }
       }
+
+      // Return values needed for notification
+      const itemCount = po.po_items.length;
+      const totalQty = po.po_items.reduce((sum, item) => sum + item.qty, 0);
+      return { poNumber: po.po_number, itemCount, totalQty };
+    });
+
+    // 5. Create notification for Cashiers outside transaction so it doesn't fail the PO process
+    await broadcastNotification(['kasir'], {
+      title: 'Stok Baru Masuk',
+      message: `PO #${result.poNumber} telah diterima (${result.itemCount} jenis barang, total ${result.totalQty} qty). Stok diperbarui dan siap dijual.`,
+      category: 'INVENTORY',
+      type: 'INFO'
     });
 
     return NextResponse.json({ message: 'Purchase order received successfully' });

@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/rbac';
 import { handleApiError } from '@/lib/api';
+import { broadcastNotification } from '@/lib/notifications';
 import { z } from 'zod';
 
 const itemUpdateSchema = z.object({
@@ -36,10 +37,24 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
     const body = await req.json();
     const parsedBody = itemUpdateSchema.parse(body);
 
-    await prisma.items.update({
+    const existingItem = await prisma.items.findUnique({ where: { id } });
+    if (!existingItem) {
+      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+    }
+
+    const updatedItem = await prisma.items.update({
       where: { id },
       data: parsedBody satisfies Prisma.itemsUncheckedUpdateInput,
     });
+
+    if (parsedBody.price !== undefined && parsedBody.price !== Number(existingItem.price)) {
+      await broadcastNotification(['kasir'], {
+        title: 'Perubahan Harga',
+        message: `Harga produk '${updatedItem.name}' telah diubah menjadi Rp ${parsedBody.price.toLocaleString('id-ID')}.`,
+        category: 'SYSTEM',
+        type: 'INFO'
+      });
+    }
 
     return NextResponse.json({ message: 'Item updated successfully' });
   } catch (error) {

@@ -16,6 +16,14 @@ const nextConfig = {
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },
+  async rewrites() {
+    return [
+      {
+        source: '/uploads/profiles/:path*',
+        destination: '/api/uploads/profiles/:path*',
+      },
+    ];
+  },
 };
 
 export default nextConfig;

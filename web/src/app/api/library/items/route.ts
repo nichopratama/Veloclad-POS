@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { requireAuth, requireRole } from '@/lib/rbac';
 import { handleApiError } from '@/lib/api';
+import { broadcastNotification } from '@/lib/notifications';
 import { z } from 'zod';
 
 const getQuerySchema = z.object({
@@ -95,6 +96,14 @@ export async function POST(req: NextRequest) {
 
     const newItem = await prisma.items.create({
       data: parsedBody satisfies Prisma.itemsUncheckedCreateInput,
+    });
+
+    // Create notification for Kasir
+    await broadcastNotification(['kasir'], {
+      title: 'Produk Baru',
+      message: `Produk baru '${newItem.name}' telah ditambahkan ke sistem.`,
+      category: 'SYSTEM',
+      type: 'INFO'
     });
 
     return NextResponse.json({

@@ -33,6 +33,11 @@ export const translations = {
       logoutConfirm: 'Sign out of your account?',
       loggingOut: 'Signing out…',
       clickToLogout: 'Click to sign out',
+      notifications: 'Notifications',
+      noNotifications: 'No notifications yet',
+      profileSettings: 'Profile Settings',
+      myActivity: 'My Activity',
+      comingSoon: (feature: string) => `${feature} will be available soon.`,
     },
     common: {
       selectPlaceholder: '- Select -',
@@ -520,6 +525,11 @@ export const translations = {
       logoutConfirm: 'Keluar dari akun?',
       loggingOut: 'Keluar…',
       clickToLogout: 'Klik untuk keluar',
+      notifications: 'Notifikasi',
+      noNotifications: 'Belum ada notifikasi',
+      profileSettings: 'Pengaturan Profil',
+      myActivity: 'Aktivitas Saya',
+      comingSoon: (feature: string) => `Fitur ${feature} akan segera hadir.`,
     },
     common: {
       selectPlaceholder: '- Pilih -',

@@ -10,12 +10,14 @@ import styles from './AppShell.module.css';
 export function AppShell({
   userName,
   role,
+  image,
   tenantName,
   storePhone,
   children,
 }: {
   userName: string;
   role: string;
+  image?: string | null;
   tenantName: string;
   storePhone?: string | null;
   children: ReactNode;
@@ -54,6 +56,7 @@ export function AppShell({
             <Header
               userName={userName}
               role={role}
+              image={image}
               toggleSidebar={toggleSidebar}
             />
           </div>
