@@ -78,10 +78,11 @@ async function restoreLots(
   }
 }
 
-// POST void/refund — hanya admin (D7).
+// POST void/refund — admin & kasir. Kasir perlu void saat customer batal/ganti
+// item setelah transaksi diinput; stok & lot dikembalikan oleh logika di bawah.
 export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   try {
-    const session = await requireRole('admin');
+    const session = await requireRole('admin', 'kasir');
     const { id } = await props.params;
     const input = voidSchema.parse(await req.json());
     const reason = input.reason || 'Returned Goods';
