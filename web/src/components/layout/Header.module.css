@@ -1,7 +1,7 @@
 .header {
   height: var(--header-h);
-  background-color: #03396c;
-  border-bottom: 1px solid #03396c;
+  background-color: var(--color-accent);
+  border-bottom: 1px solid var(--color-accent);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -52,7 +52,7 @@
   height: 8px;
   background-color: var(--color-danger);
   border-radius: 50%;
-  border: 2px solid #03396c;
+  border: 2px solid var(--color-accent);
 }
 
 .userBlock {

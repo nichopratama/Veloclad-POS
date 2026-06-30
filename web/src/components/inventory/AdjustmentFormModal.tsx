@@ -96,7 +96,7 @@ export function AdjustmentFormModal({ onClose, onSuccess }: AdjustmentFormModalP
     <div role="dialog" aria-modal="true" style={{ position: 'fixed', inset: 0, background: 'oklch(20% 0.02 262 / 0.45)', display: 'grid', placeItems: 'center', padding: 'var(--space-4)', zIndex: 50 }}>
       <div className="card" style={{ width: 'min(100%, 500px)', maxHeight: '90vh', display: 'flex', flexDirection: 'column', padding: 0, boxShadow: 'var(--shadow)' }}>
         <div style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: '#03396c', margin: 0 }}>{t.inventory.stockAdjustment}</h2>
+          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: 'var(--color-accent)', margin: 0 }}>{t.inventory.stockAdjustment}</h2>
           <button type="button" className="btn btn--outline" onClick={onClose}>{t.common.close}</button>
         </div>
 

@@ -120,14 +120,14 @@ function SummaryCards({ startDate, endDate }: { startDate: string, endDate: stri
     {
       label: t.dashboard.salesCard,
       value: isLoading ? <Skeleton width="140px" height="2.5rem" /> : <span className="money">{formatIDR(data?.totalSales ?? 0)}</span>,
-      icon: <Activity size={24} color="#03396c" style={{ opacity: 0.6 }} />,
+      icon: <Activity size={24} color="var(--color-accent)" style={{ opacity: 0.6 }} />,
       accent: true,
       textColor: "#2d7cfa",
     },
     {
       label: t.dashboard.transactionsCard,
       value: isLoading ? <Skeleton width="60px" height="2.5rem" /> : <span className="money">{data?.transactionCount ?? 0}</span>,
-      icon: <CreditCard size={24} color="#03396c" style={{ opacity: 0.6 }} />,
+      icon: <CreditCard size={24} color="var(--color-accent)" style={{ opacity: 0.6 }} />,
       textColor: "#2d7cfa",
     },
     ...(isAdmin(role) ? [{
@@ -137,7 +137,7 @@ function SummaryCards({ startDate, endDate }: { startDate: string, endDate: stri
           {formatIDR(data?.netProfit ?? 0)}
         </span>
       ),
-      icon: <TrendingUp size={24} color="#03396c" style={{ opacity: 0.6 }} />,
+      icon: <TrendingUp size={24} color="var(--color-accent)" style={{ opacity: 0.6 }} />,
       textColor: "#2d7cfa",
     }] : []),
     {
@@ -145,7 +145,7 @@ function SummaryCards({ startDate, endDate }: { startDate: string, endDate: stri
       value: isLowStockLoading ? <Skeleton width="60px" height="2.5rem" /> : (
         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
           <span className="money">{lowStockData?.total ?? 0}</span>
-          <button onClick={() => setIsModalOpen(true)} style={{ fontSize: "12px", textDecoration: "underline", color: "#03396c", cursor: "pointer", background: "none", border: "none", padding: 0, textAlign: "left" }}>{t.dashboard.viewAll}</button>
+          <button onClick={() => setIsModalOpen(true)} style={{ fontSize: "12px", textDecoration: "underline", color: "var(--color-accent)", cursor: "pointer", background: "none", border: "none", padding: 0, textAlign: "left" }}>{t.dashboard.viewAll}</button>
         </div>
       ),
       icon: <AlertTriangle size={24} color="#E00000" style={{ opacity: 0.8 }} />,
@@ -184,7 +184,7 @@ function SummaryCards({ startDate, endDate }: { startDate: string, endDate: stri
                   left: 0,
                   width: "4px",
                   height: "100%",
-                  background: "#03396c",
+                  background: "var(--color-accent)",
                   borderRadius: "var(--radius) 0 0 var(--radius)",
                 }}
               />
@@ -197,7 +197,7 @@ function SummaryCards({ startDate, endDate }: { startDate: string, endDate: stri
                   fontWeight: 700,
                   letterSpacing: "0.06em",
                   textTransform: "uppercase",
-                  color: "#03396c",
+                  color: "var(--color-accent)",
                 }}
               >
                 {card.label}
@@ -240,7 +240,7 @@ function SummaryCards({ startDate, endDate }: { startDate: string, endDate: stri
                 {lowStockData?.data.map((item) => (
                   <li key={item.id} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--color-border)", paddingBottom: "8px" }}>
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: "14px", color: "#03396c" }}>{item.name}</div>
+                      <div style={{ fontWeight: 600, fontSize: "14px", color: "var(--color-accent)" }}>{item.name}</div>
                       <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>{item.code}</div>
                     </div>
                     <div style={{ textAlign: "right" }}>
@@ -274,7 +274,7 @@ function ChartTooltip({ active, payload, label }: any) {
       <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-xs)", color: "var(--color-text-muted)" }}>
         {label}
       </p>
-      <p style={{ margin: 0, fontWeight: 700, fontSize: "var(--text-sm)", color: "#03396c" }}>
+      <p style={{ margin: 0, fontWeight: 700, fontSize: "var(--text-sm)", color: "var(--color-accent)" }}>
         <span className="money">{payload[0]?.name === "Transaksi" ? value : formatIDR(value)}</span>
       </p>
     </div>
@@ -291,7 +291,7 @@ function SalesChartCard({ startDate, endDate }: { startDate: string, endDate: st
         style={{
           fontSize: "var(--text-base)",
           fontWeight: 700,
-          color: "#03396c",
+          color: "var(--color-accent)",
           marginBottom: "var(--space-4)",
         }}
       >
@@ -305,7 +305,7 @@ function SalesChartCard({ startDate, endDate }: { startDate: string, endDate: st
             <XAxis dataKey="date" tick={{ fontSize: 11, fill: "oklch(52% 0.02 262)" }} axisLine={false} tickLine={false} tickFormatter={(v) => v?.length === 10 ? `${v.substring(8, 10)}-${v.substring(5, 7)}` : v} />
             <YAxis tick={{ fontSize: 11, fill: "oklch(52% 0.02 262)" }} axisLine={false} tickLine={false} width={48} tickFormatter={(v) => v >= 1000000 ? `${(v/1000000).toFixed(0)}jt` : v >= 1000 ? `${(v/1000).toFixed(0)}rb` : String(v)} />
             <Tooltip content={<ChartTooltip />} cursor={{ fill: "oklch(95% 0.03 264)" }} />
-            <Bar dataKey="sales" fill="#03396c" radius={[4, 4, 0, 0]} name={t.dashboard.chartSales} />
+            <Bar dataKey="sales" fill="var(--color-accent)" radius={[4, 4, 0, 0]} name={t.dashboard.chartSales} />
           </BarChart>
         </ResponsiveContainer>
       )}
@@ -323,7 +323,7 @@ function HourlyHeatmapCard({ startDate, endDate }: { startDate: string, endDate:
         style={{
           fontSize: "var(--text-base)",
           fontWeight: 700,
-          color: "#03396c",
+          color: "var(--color-accent)",
           marginBottom: "var(--space-4)",
         }}
       >
@@ -355,7 +355,7 @@ function TopItemsCard({ startDate, endDate }: { startDate: string, endDate: stri
         style={{
           fontSize: "var(--text-base)",
           fontWeight: 700,
-          color: "#03396c",
+          color: "var(--color-accent)",
           marginBottom: "var(--space-4)",
         }}
       >
@@ -376,14 +376,14 @@ function TopItemsCard({ startDate, endDate }: { startDate: string, endDate: stri
               <span
                 style={{
                   display: "inline-flex", alignItems: "center", justifyContent: "center", width: "28px", height: "28px",
-                  borderRadius: "50%", background: index === 0 ? "#03396c" : "var(--color-surface-2)",
+                  borderRadius: "50%", background: index === 0 ? "var(--color-accent)" : "var(--color-surface-2)",
                   color: index === 0 ? "white" : "var(--color-text-muted)", fontSize: "var(--text-xs)", fontWeight: 700, flexShrink: 0,
                 }}
               >
                 {index + 1}
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: 0, fontSize: "13px", fontWeight: 600, color: "#03396c", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <p style={{ margin: 0, fontSize: "13px", fontWeight: 600, color: "var(--color-accent)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {item.name ?? item.code ?? `#${item.id}`}
                 </p>
                 <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-text-muted)" }}>
@@ -426,7 +426,7 @@ export default function DashboardPage() {
             style={{
               fontSize: "var(--text-xl)",
               fontWeight: 800,
-              color: "#03396c",
+              color: "var(--color-accent)",
               marginBottom: "var(--space-1)",
             }}
           >

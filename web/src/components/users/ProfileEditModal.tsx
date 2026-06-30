@@ -120,7 +120,7 @@ export function ProfileEditModal({
         style={{ width: '100%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: '#03396c', margin: 0 }}>
+          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: 'var(--color-accent)', margin: 0 }}>
             {isSelfEdit ? 'Profile Settings' : (mode === 'create' ? t.users.addUserTitle : t.users.editUser)}
           </h2>
           <button className="btn btn--outline" onClick={onClose} type="button">Close</button>

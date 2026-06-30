@@ -591,7 +591,7 @@ function PaymentMethodsGrid({ data, startDate, endDate }: { data: any[]; startDa
     else if (lower.includes('qris')) Icon = QrCode;
     else if (lower.includes('transfer')) Icon = ArrowRightLeft;
     
-    return { icon: Icon, bgColor: 'bg-[#03396c]', color: 'text-[#03396c]', bgSoft: 'bg-[#03396c]/10' };
+    return { icon: Icon, bgColor: 'bg-[var(--color-accent)]', color: 'text-[var(--color-accent)]', bgSoft: 'bg-[var(--color-accent)]/10' };
   };
 
   return (
@@ -667,7 +667,7 @@ function CategorySalesGrid({ data, startDate, endDate }: { data: any[]; startDat
     else if (lower.includes('potong') || lower.includes('salon')) Icon = Scissors;
     else if (lower.includes('elektronik') || lower.includes('electronic') || lower.includes('hp') || lower.includes('komputer')) Icon = Monitor;
     
-    return { bgColor: 'bg-[#03396c]', color: 'text-[#03396c]', bgSoft: 'bg-[#03396c]/10', icon: Icon };
+    return { bgColor: 'bg-[var(--color-accent)]', color: 'text-[var(--color-accent)]', bgSoft: 'bg-[var(--color-accent)]/10', icon: Icon };
   };
 
   return (
@@ -842,7 +842,7 @@ function StaffSalesGrid({ data }: { data: any[] }) {
             
             <div className="p-5 flex-1 flex flex-col pt-6">
               <div className="flex items-center gap-4 mb-4">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-[#03396c] text-white shadow-sm flex-shrink-0`}>
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-[var(--color-accent)] text-white shadow-sm flex-shrink-0`}>
                   <Users size={24} />
                 </div>
                 <div className="min-w-0">

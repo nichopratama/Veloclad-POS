@@ -66,7 +66,7 @@ export function TransactionDetailModal({ transaction, onClose }: TransactionDeta
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-3)' }}>
-          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: '#03396c', margin: 0 }}>{t.sales.transactionDetail}</h2>
+          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: 'var(--color-accent)', margin: 0 }}>{t.sales.transactionDetail}</h2>
           <button className="btn btn--outline" onClick={onClose} type="button">{t.common.close}</button>
         </div>
 
