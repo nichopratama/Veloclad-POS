@@ -42,9 +42,16 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    # Avatar/profile upload ditulis ke /app/public/uploads (lihat api/users + api/uploads).
+    # Tanpa volume ini, file hilang setiap rebuild/redeploy (layer container ephemeral).
+    volumes:
+      - pos-uploads:/app/public/uploads
 
 networks:
   postgres-shared:
     external: true          # dikelola /opt/shared-postgres
   traefik-public:
     external: true
+
+volumes:
+  pos-uploads:
