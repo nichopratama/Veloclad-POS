@@ -71,7 +71,7 @@ export function SalesHistoryView({ role }: { role: string }) {
             {formatIDR(data?.summary.total_collected ?? 0)}
           </div>
         </div>
-        <div className="card">
+        <div className="card hidden sm:block">
           <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', marginBottom: 'var(--space-1)' }}>{t.sales.netSales}</div>
           <div className="money" style={{ fontSize: 'var(--text-xl)', fontWeight: 700 }}>
             {formatIDR(data?.summary.net_sales ?? 0)}

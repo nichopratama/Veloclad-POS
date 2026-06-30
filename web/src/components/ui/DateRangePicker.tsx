@@ -220,7 +220,7 @@ export function DateRangePicker({ value, onChange, className = '' }: DateRangePi
 
       {/* Popover */}
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 shadow-xl rounded-lg flex p-4 z-50 animate-in fade-in zoom-in-95 duration-200 origin-top-left scale-[0.85] md:scale-100">
+        <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 shadow-xl rounded-lg flex p-4 z-50 animate-in fade-in zoom-in-95 duration-200 origin-top-left scale-[0.8] md:scale-100">
           
           {/* Left Sidebar (Presets) */}
           <div className="flex flex-col gap-2 pr-4 border-r border-gray-100 min-w-[130px]">

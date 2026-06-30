@@ -44,7 +44,7 @@ export function TransactionTable({
       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-            <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.sales.id}</th>
+            <th className="hidden sm:table-cell" style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.sales.id}</th>
             <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.sales.date}</th>
             <th className="hidden sm:table-cell" style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.sales.cashier}</th>
             <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.sales.method}</th>
@@ -56,7 +56,7 @@ export function TransactionTable({
         <tbody>
           {transactions.map((tx) => (
             <tr key={tx.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-              <td style={{ padding: 'var(--space-3) var(--space-4)', fontFamily: 'var(--font-mono)' }}>{tx.id}</td>
+              <td className="hidden sm:table-cell" style={{ padding: 'var(--space-3) var(--space-4)', fontFamily: 'var(--font-mono)' }}>{tx.id}</td>
               <td style={{ padding: 'var(--space-3) var(--space-4)' }}>{new Date(tx.created_at).toLocaleString('id-ID')}</td>
               <td className="hidden sm:table-cell" style={{ padding: 'var(--space-3) var(--space-4)' }}>{tx.cashier_name}</td>
               <td style={{ padding: 'var(--space-3) var(--space-4)' }}>{tx.payment_method || '-'}</td>

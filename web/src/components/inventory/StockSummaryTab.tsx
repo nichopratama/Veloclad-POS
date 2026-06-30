@@ -105,7 +105,7 @@ export function StockSummaryTab() {
                 <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', cursor: 'pointer' }} onClick={() => handleSort('stock')}>
                   {t.stock.stock} <span style={{ marginLeft: 'var(--space-1)', color: sortBy === 'stock' ? 'var(--color-accent)' : 'var(--color-border)' }}>{sortBy === 'stock' ? (sortDir === 'desc' ? '↓' : '↑') : '↕'}</span>
                 </th>
-                <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>{t.stock.minStock}</th>
+                <th className="hidden sm:table-cell" style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>{t.stock.minStock}</th>
                 <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>{t.stock.price}</th>
               </tr>
             </thead>
@@ -137,7 +137,7 @@ export function StockSummaryTab() {
                         </div>
                       )}
                     </td>
-                    <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>{row.min_stock} {row.unit}</td>
+                    <td className="hidden sm:table-cell" style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>{row.min_stock} {row.unit}</td>
                     <td className="money" style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>{formatIDRFromString(row.price)}</td>
                   </tr>
                 );
