@@ -20,7 +20,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const tenantName = storeSettings?.name || env.TENANT_NAME;
 
   return (
-    <AppShell userName={session.user.name} role={role} image={session.user.image} tenantName={tenantName} storePhone={storeSettings?.phone}>
+    <AppShell userId={session.user.id} email={session.user.email} userName={session.user.name} role={role} image={session.user.image} tenantName={tenantName} storePhone={storeSettings?.phone}>
       {children}
     </AppShell>
   );

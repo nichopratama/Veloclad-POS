@@ -26,13 +26,25 @@ const listQuerySchema = z.object({
 export async function GET(req: NextRequest) {
   try {
     await requireAuth();
-    const q = listQuerySchema.parse(Object.fromEntries(req.nextUrl.searchParams));
+    const rawParams = Object.fromEntries(req.nextUrl.searchParams);
+    for (const key in rawParams) {
+      if (rawParams[key] === '') delete rawParams[key];
+    }
+    const q = listQuerySchema.parse(rawParams);
 
     const where: Prisma.transactionsWhereInput = {};
     if (q.status) where.status = q.status === 'success' ? 'completed' : q.status;
-    if (q.cashier) where.user_id = q.cashier;
-    if (q.paymentMethod) where.payment_type_id = q.paymentMethod;
-    if (q.search) where.id = { contains: q.search, mode: 'insensitive' };
+    if (q.cashier !== undefined) where.user_id = q.cashier;
+    if (q.paymentMethod !== undefined) where.payment_type_id = q.paymentMethod;
+    
+    if (q.search) {
+      where.OR = [
+        { id: { contains: q.search, mode: 'insensitive' } },
+        { payment_method_name: { contains: q.search, mode: 'insensitive' } },
+        { transaction_items: { some: { items: { name: { contains: q.search, mode: 'insensitive' } } } } },
+      ];
+    }
+
     if (q.startDate || q.endDate) {
       where.created_at = {};
       if (q.startDate) where.created_at.gte = new Date(q.startDate);

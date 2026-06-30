@@ -6,6 +6,8 @@ import { Menu, Globe, Bell, User, LogOut, Settings, CreditCard } from 'lucide-re
 import { signOut } from '@/lib/auth-client';
 import { useLocale } from '@/lib/i18n/LocaleContext';
 import useSWR from 'swr';
+import { ProfileEditModal } from '@/components/users/ProfileEditModal';
+import { type Role } from '@/lib/roles';
 import styles from './Header.module.css';
 
 type NotificationCategory = 'SALES' | 'INVENTORY' | 'FINANCE' | 'SYSTEM';
@@ -25,11 +27,15 @@ interface NotificationRow {
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export function Header({
+  userId,
+  email,
   userName,
   role,
   image,
   toggleSidebar,
 }: {
+  userId: string;
+  email: string;
   userName: string;
   role: string;
   image?: string | null;
@@ -39,6 +45,7 @@ export function Header({
   const [busy, setBusy] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [showProfileEdit, setShowProfileEdit] = useState(false);
   const { locale, t, toggleLocale } = useLocale();
 
   const { data: notifRes, mutate: mutateNotif } = useSWR<{ success: boolean; data: NotificationRow[] }>('/api/notifications', fetcher, { refreshInterval: 30000 });
@@ -153,7 +160,7 @@ export function Header({
                 </div>
               </div>
               <div className={styles.profileMenuList}>
-                <button className={styles.profileMenuItem} onClick={() => { setProfileOpen(false); alert(t.header.comingSoon(t.header.profileSettings)); }}>
+                <button className={styles.profileMenuItem} onClick={() => { setProfileOpen(false); setShowProfileEdit(true); }}>
                   <Settings size={16} />
                   <span>{t.header.profileSettings}</span>
                 </button>
@@ -174,6 +181,25 @@ export function Header({
           )}
         </div>
       </div>
+
+      {showProfileEdit && (
+        <ProfileEditModal
+          mode="edit"
+          userId={userId}
+          initialData={{
+            name: userName,
+            email: email,
+            role: role as Role,
+            image: image,
+          }}
+          isSelfEdit={true}
+          onClose={() => setShowProfileEdit(false)}
+          onSuccess={() => {
+            // Kita bisa refresh router agar layout memuat session yang baru (termasuk foto/nama)
+            router.refresh();
+          }}
+        />
+      )}
     </header>
   );
 }

@@ -4,13 +4,13 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-import { requireRole } from '@/lib/rbac';
+import { requireAuth, requireRole } from '@/lib/rbac';
 import { ApiError, handleApiError } from '@/lib/api';
-import { wouldRemoveLastAdmin } from '@/lib/roles';
+import { isAdmin, wouldRemoveLastAdmin } from '@/lib/roles';
 import { updateUserSchema } from '@/lib/users-schema';
 
 /**
- * Operasi per-user (admin-only): PATCH (ubah nama/role/reset password) & DELETE (cabut login).
+ * Operasi per-user (admin-only / self-edit): PATCH (ubah nama/role/foto/reset password) & DELETE (cabut login).
  * Pengaman anti-lockout: admin terakhir tak boleh dihapus / diturunkan role-nya.
  */
 
@@ -21,8 +21,13 @@ function countAdmins() {
 
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
-    await requireRole('admin');
+    const session = await requireAuth();
     const { id } = await ctx.params;
+    
+    const isSelf = session.user.id === id;
+    if (!isAdmin(session.user.role) && !isSelf) {
+      throw new ApiError(403, 'Akses ditolak');
+    }
 
     const contentType = req.headers.get('content-type') || '';
     let rawData: any;
@@ -44,6 +49,11 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       }
     } else {
       rawData = await req.json();
+    }
+
+    if (!isAdmin(session.user.role)) {
+      delete rawData.role;
+      delete rawData.email; // Also forbid changing email for self-edit (already disabled in UI but need to be safe)
     }
 
     const parsed = updateUserSchema.parse(rawData);

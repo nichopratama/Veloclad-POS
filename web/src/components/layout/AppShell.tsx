@@ -8,6 +8,8 @@ import { ToastContainer } from '@/components/ui/ToastContainer';
 import styles from './AppShell.module.css';
 
 export function AppShell({
+  userId,
+  email,
   userName,
   role,
   image,
@@ -15,6 +17,8 @@ export function AppShell({
   storePhone,
   children,
 }: {
+  userId: string;
+  email: string;
   userName: string;
   role: string;
   image?: string | null;
@@ -54,6 +58,8 @@ export function AppShell({
         <div className={`${styles.mainContent} ${!isSidebarOpen ? styles.mainContentCollapsed : ''}`}>
           <div className="print:hidden">
             <Header
+              userId={userId}
+              email={email}
               userName={userName}
               role={role}
               image={image}

@@ -4,6 +4,7 @@ import { fetcher } from '@/lib/fetcher';
 import { useDebounce } from '@/components/pos/useDebounce';
 import { PaymentTypesResponse } from './types';
 import { useLocale } from '@/lib/i18n/LocaleContext';
+import { DateRangePicker } from '@/components/ui/DateRangePicker';
 
 interface FilterBarProps {
   filters: {
@@ -35,28 +36,20 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
         <input
           type="text"
           className="input"
-          placeholder={t.sales.searchId}
+          placeholder={`${t.sales.searchId} / Name / Method`}
           aria-label={t.sales.searchIdLabel}
           value={localSearch}
           onChange={(e) => setLocalSearch(e.target.value)}
         />
       </div>
-      <div style={{ flex: '0 1 150px' }}>
-        <input
-          type="date"
-          className="input"
-          aria-label={t.sales.startDateLabel}
-          value={filters.startDate}
-          onChange={(e) => onChange('startDate', e.target.value)}
-        />
-      </div>
-      <div style={{ flex: '0 1 150px' }}>
-        <input
-          type="date"
-          className="input"
-          aria-label={t.sales.endDateLabel}
-          value={filters.endDate}
-          onChange={(e) => onChange('endDate', e.target.value)}
+      <div style={{ flex: '0 1 260px' }}>
+        <DateRangePicker
+          value={{ start: filters.startDate, end: filters.endDate }}
+          onChange={(range) => {
+            onChange('startDate', range.start);
+            onChange('endDate', range.end);
+          }}
+          className="w-full"
         />
       </div>
       <div style={{ flex: '0 1 150px' }}>
