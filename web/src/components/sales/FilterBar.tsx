@@ -31,52 +31,59 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
   }, [debouncedSearch, filters.search, onChange]);
 
   return (
-    <div style={{ display: 'flex', gap: 'var(--space-4)', flexWrap: 'wrap', marginBottom: 'var(--space-6)' }}>
-      <div style={{ flex: '1 1 200px' }}>
-        <input
-          type="text"
-          className="input"
-          placeholder={`${t.sales.searchId} / Name / Method`}
-          aria-label={t.sales.searchIdLabel}
-          value={localSearch}
-          onChange={(e) => setLocalSearch(e.target.value)}
-        />
+    <div className="flex flex-col md:flex-row gap-4 mb-6">
+      {/* Group 1: DatePicker & Search (Row 1 on mobile) */}
+      <div className="flex flex-row gap-2 sm:gap-4 flex-1">
+        <div style={{ flex: '0 1 230px' }}>
+          <DateRangePicker
+            value={{ start: filters.startDate, end: filters.endDate }}
+            onChange={(range) => {
+              onChange('startDate', range.start);
+              onChange('endDate', range.end);
+            }}
+            className="w-full"
+          />
+        </div>
+        <div style={{ flex: '1 1 150px' }}>
+          <input
+            type="text"
+            className="input w-full"
+            placeholder={`${t.sales.searchId} / Name / Method`}
+            aria-label={t.sales.searchIdLabel}
+            value={localSearch}
+            onChange={(e) => setLocalSearch(e.target.value)}
+          />
+        </div>
       </div>
-      <div style={{ flex: '0 1 260px' }}>
-        <DateRangePicker
-          value={{ start: filters.startDate, end: filters.endDate }}
-          onChange={(range) => {
-            onChange('startDate', range.start);
-            onChange('endDate', range.end);
-          }}
-          className="w-full"
-        />
-      </div>
-      <div style={{ flex: '0 1 150px' }}>
-        <select
-          className="input"
-          aria-label={t.sales.filterStatusLabel}
-          value={filters.status}
-          onChange={(e) => onChange('status', e.target.value)}
-        >
-          <option value="">{t.sales.allStatus}</option>
-          <option value="success">{t.sales.completed}</option>
-          <option value="void">Void</option>
-          <option value="cancelled">{t.sales.cancelled}</option>
-        </select>
-      </div>
-      <div style={{ flex: '0 1 150px' }}>
-        <select
-          className="input"
-          aria-label={t.sales.filterMethodLabel}
-          value={filters.paymentMethod}
-          onChange={(e) => onChange('paymentMethod', e.target.value)}
-        >
-          <option value="">{t.sales.allMethods}</option>
-          {payData?.data.map((p) => (
-            <option key={p.id} value={String(p.id)}>{p.name}</option>
-          ))}
-        </select>
+
+      {/* Group 2: Status & Method (Row 2 on mobile) */}
+      <div className="flex flex-row gap-2 sm:gap-4 md:flex-none">
+        <div style={{ flex: '1 1 140px' }}>
+          <select
+            className="input w-full"
+            aria-label={t.sales.filterStatusLabel}
+            value={filters.status}
+            onChange={(e) => onChange('status', e.target.value)}
+          >
+            <option value="">{t.sales.allStatus}</option>
+            <option value="success">{t.sales.completed}</option>
+            <option value="void">Void</option>
+            <option value="cancelled">{t.sales.cancelled}</option>
+          </select>
+        </div>
+        <div style={{ flex: '1 1 140px' }}>
+          <select
+            className="input w-full"
+            aria-label={t.sales.filterMethodLabel}
+            value={filters.paymentMethod}
+            onChange={(e) => onChange('paymentMethod', e.target.value)}
+          >
+            <option value="">{t.sales.allMethods}</option>
+            {payData?.data.map((p) => (
+              <option key={p.id} value={String(p.id)}>{p.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
     </div>
   );

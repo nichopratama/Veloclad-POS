@@ -22,12 +22,10 @@ import { isAdmin } from "@/lib/roles";
 
 // ── Utils ──────────────────────────────────────────────────────────────────────
 
-const getThisMonthISO = () => {
-  const start = new Date();
-  start.setDate(1);
+const getLast7DaysISO = () => {
   const end = new Date();
-  end.setMonth(end.getMonth() + 1);
-  end.setDate(0);
+  const start = new Date();
+  start.setDate(end.getDate() - 6);
   const pad = (n: number) => n.toString().padStart(2, '0');
   return {
     start: `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`,
@@ -400,7 +398,7 @@ function TopItemsCard({ startDate, endDate }: { startDate: string, endDate: stri
 
 export default function DashboardPage() {
   const { t } = useLocale();
-  const [dateRange, setDateRange] = useState(getThisMonthISO());
+  const [dateRange, setDateRange] = useState(getLast7DaysISO());
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)", paddingBottom: "var(--space-8)" }}>

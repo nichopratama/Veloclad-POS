@@ -46,7 +46,7 @@ export function TransactionTable({
           <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
             <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.sales.id}</th>
             <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.sales.date}</th>
-            <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.sales.cashier}</th>
+            <th className="hidden sm:table-cell" style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.sales.cashier}</th>
             <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.sales.method}</th>
             <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>{t.sales.total}</th>
             <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.sales.status}</th>
@@ -58,7 +58,7 @@ export function TransactionTable({
             <tr key={tx.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
               <td style={{ padding: 'var(--space-3) var(--space-4)', fontFamily: 'var(--font-mono)' }}>{tx.id}</td>
               <td style={{ padding: 'var(--space-3) var(--space-4)' }}>{new Date(tx.created_at).toLocaleString('id-ID')}</td>
-              <td style={{ padding: 'var(--space-3) var(--space-4)' }}>{tx.cashier_name}</td>
+              <td className="hidden sm:table-cell" style={{ padding: 'var(--space-3) var(--space-4)' }}>{tx.cashier_name}</td>
               <td style={{ padding: 'var(--space-3) var(--space-4)' }}>{tx.payment_method || '-'}</td>
               <td className="money" style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>
                 {formatIDRFromString(tx.total)}
@@ -67,7 +67,7 @@ export function TransactionTable({
               <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>
                 <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'center' }}>
                   <button className="btn btn--ghost" onClick={() => onDetailClick(tx)} style={{ minHeight: '32px', padding: '0 var(--space-2)' }}>{t.sales.detail}</button>
-                  {isAdmin(role) && tx.status === 'completed' && (
+                  {(isAdmin(role) || role === 'kasir') && tx.status === 'completed' && (
                     <button className="btn btn--ghost" onClick={() => onVoidClick(tx)} style={{ minHeight: '32px', padding: '0 var(--space-2)', color: 'var(--color-danger)', borderColor: 'var(--color-danger)' }}>{t.sales.void}</button>
                   )}
                 </div>

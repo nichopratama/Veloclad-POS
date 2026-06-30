@@ -51,6 +51,9 @@ const getPresets = () => {
         start.setDate(start.getDate() - 1);
         end.setDate(end.getDate() - 1);
         break;
+      case 'Last 7 Days':
+        start.setDate(end.getDate() - 6);
+        break;
       case 'This Week':
         start.setDate(start.getDate() - dayOfWeek);
         end.setDate(start.getDate() + 6);
@@ -84,6 +87,7 @@ const getPresets = () => {
   return [
     { label: 'Today', range: getPresetRange('Today') },
     { label: 'Yesterday', range: getPresetRange('Yesterday') },
+    { label: 'Last 7 Days', range: getPresetRange('Last 7 Days') },
     { label: 'This Week', range: getPresetRange('This Week') },
     { label: 'Last Week', range: getPresetRange('Last Week') },
     { label: 'This Month', range: getPresetRange('This Month') },
@@ -216,7 +220,7 @@ export function DateRangePicker({ value, onChange, className = '' }: DateRangePi
 
       {/* Popover */}
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 shadow-xl rounded-lg flex p-4 z-50 animate-in fade-in zoom-in-95 duration-200">
+        <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 shadow-xl rounded-lg flex p-4 z-50 animate-in fade-in zoom-in-95 duration-200 origin-top-left scale-[0.85] md:scale-100">
           
           {/* Left Sidebar (Presets) */}
           <div className="flex flex-col gap-2 pr-4 border-r border-gray-100 min-w-[130px]">

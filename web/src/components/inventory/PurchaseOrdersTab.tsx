@@ -139,43 +139,43 @@ export function PurchaseOrdersTab({ role }: PurchaseOrdersTabProps) {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.inventory.poNumber}</th>
-                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.common.date}</th>
-                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.common.supplier}</th>
-                <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.inventory.createdBy}</th>
-                {canWrite && <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>{t.common.total}</th>}
-                <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>{t.inventory.payment}</th>
-                <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>{t.common.status}</th>
-                <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>{t.common.actions}</th>
+                <th style={{ padding: 'var(--space-3) var(--space-2)' }}>{t.inventory.poNumber}</th>
+                <th className="hidden md:table-cell" style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.common.date}</th>
+                <th style={{ padding: 'var(--space-3) var(--space-2)' }}>{t.common.supplier}</th>
+                <th className="hidden lg:table-cell" style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.inventory.createdBy}</th>
+                {canWrite && <th style={{ padding: 'var(--space-3) var(--space-2)', textAlign: 'right' }}>{t.common.total}</th>}
+                <th style={{ padding: 'var(--space-3) var(--space-2)', textAlign: 'center' }}>{t.inventory.payment}</th>
+                <th style={{ padding: 'var(--space-3) var(--space-2)', textAlign: 'center' }}>{t.common.status}</th>
+                <th style={{ padding: 'var(--space-3) var(--space-2)', textAlign: 'center' }}>{t.common.actions}</th>
               </tr>
             </thead>
             <tbody>
               {paginatedItems.map((row) => (
                 <tr key={row.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  <td style={{ padding: 'var(--space-3) var(--space-4)', fontFamily: 'var(--font-mono)' }}>{row.po_number}</td>
-                  <td style={{ padding: 'var(--space-3) var(--space-4)' }}>{new Date(row.created_at).toLocaleDateString('id-ID')}</td>
-                  <td style={{ padding: 'var(--space-3) var(--space-4)' }}>{row.suppliers?.name || '-'}</td>
-                  <td style={{ padding: 'var(--space-3) var(--space-4)' }}>{row.users?.name || '-'}</td>
-                  {canWrite && <td className="money" style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>{formatIDRFromString(row.total_amount)}</td>}
-                  <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>
+                  <td style={{ padding: 'var(--space-3) var(--space-2)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)' }}>{row.po_number}</td>
+                  <td className="hidden md:table-cell" style={{ padding: 'var(--space-3) var(--space-4)' }}>{new Date(row.created_at).toLocaleDateString('id-ID')}</td>
+                  <td style={{ padding: 'var(--space-3) var(--space-2)', fontSize: 'var(--text-sm)' }}>{row.suppliers?.name || '-'}</td>
+                  <td className="hidden lg:table-cell" style={{ padding: 'var(--space-3) var(--space-4)' }}>{row.users?.name || '-'}</td>
+                  {canWrite && <td className="money" style={{ padding: 'var(--space-3) var(--space-2)', textAlign: 'right', fontSize: 'var(--text-sm)' }}>{formatIDRFromString(row.total_amount)}</td>}
+                  <td style={{ padding: 'var(--space-3) var(--space-2)', textAlign: 'center' }}>
                     <div style={{ display: 'flex', flexDirection: 'row', gap: 'var(--space-2)', alignItems: 'center', justifyContent: 'center' }}>
                       <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontWeight: 600 }}>{methodLabel(row.payment_method)}</span>
                       <span style={{ padding: '2px var(--space-2)', background: payStatusColor(row.payment_status, row.payment_method), color: 'white', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-xs)', fontWeight: 600 }}>{payStatusLabel(row.payment_status, row.payment_method)}</span>
                     </div>
                   </td>
-                  <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>
+                  <td style={{ padding: 'var(--space-3) var(--space-2)', textAlign: 'center' }}>
                     {row.status === 'needs_approval' ? (
-                      <span style={{ padding: 'var(--space-1) var(--space-2)', background: 'var(--color-danger)', color: 'white', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-xs)', fontWeight: 600 }}>Approval</span>
+                      <span style={{ padding: 'var(--space-1) var(--space-1)', background: 'var(--color-danger)', color: 'white', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-xs)', fontWeight: 600 }}>Approval</span>
                     ) : row.status === 'pending' ? (
-                      <span style={{ padding: 'var(--space-1) var(--space-2)', background: 'var(--color-warning)', color: 'white', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-xs)', fontWeight: 600 }}>{t.inventory.pending}</span>
+                      <span style={{ padding: 'var(--space-1) var(--space-1)', background: 'var(--color-warning)', color: 'white', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-xs)', fontWeight: 600 }}>{t.inventory.pending}</span>
                     ) : (
-                      <span style={{ padding: 'var(--space-1) var(--space-2)', background: 'var(--color-success)', color: 'white', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-xs)', fontWeight: 600 }}>{t.inventory.received}</span>
+                      <span style={{ padding: 'var(--space-1) var(--space-1)', background: 'var(--color-success)', color: 'white', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-xs)', fontWeight: 600 }}>{t.inventory.received}</span>
                     )}
                   </td>
-                  <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'center' }}>
+                  <td style={{ padding: 'var(--space-3) var(--space-1)', textAlign: 'center' }}>
+                    <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'wrap' }}>
                       <button className="hover:scale-110 transition-transform p-1 text-[var(--color-accent)]" onClick={() => setSelectedPo(row)} title={t.sales.detail || 'Detail'}>
-                        <Info size={18} />
+                        <Info size={16} />
                       </button>
                       {canWrite && (
                         <>
@@ -190,7 +190,7 @@ export function PurchaseOrdersTab({ role }: PurchaseOrdersTabProps) {
                             title="Edit"
                             disabled={row.status === 'received'}
                           >
-                            <Edit size={18} />
+                            <Edit size={16} />
                           </button>
                           <button
                             className={`transition-transform p-1 ${row.status !== 'received' ? 'hover:scale-110' : ''}`}
@@ -206,7 +206,7 @@ export function PurchaseOrdersTab({ role }: PurchaseOrdersTabProps) {
                             title={row.status === 'needs_approval' ? 'Approve PO' : row.status === 'pending' ? t.inventory.receivePo : 'Status pesanan ini sudah selesai'}
                             disabled={row.status === 'received'}
                           >
-                            <Check size={18} />
+                            <Check size={16} />
                           </button>
                           <button
                             className={`transition-transform p-1 ${row.status !== 'received' ? 'hover:scale-110' : ''}`}
@@ -219,7 +219,7 @@ export function PurchaseOrdersTab({ role }: PurchaseOrdersTabProps) {
                             title={row.status !== 'received' ? t.inventory.deletePo : 'Status pesanan ini sudah selesai'}
                             disabled={row.status === 'received'}
                           >
-                            <Trash2 size={18} />
+                            <Trash2 size={16} />
                           </button>
                         </>
                       )}
