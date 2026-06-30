@@ -113,7 +113,7 @@ export function VoidModal({ transaction, onClose, onSuccess }: VoidModalProps) {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 800 }}>{t.sales.voidTransaction(transaction.id)}</h2>
-          <button className="btn btn--ghost" onClick={onClose} style={{ minHeight: '32px', padding: '0 var(--space-2)' }}>{t.common.cancel}</button>
+          <button className="btn btn--outline" onClick={onClose} type="button">{t.common.close}</button>
         </div>
 
         {errorMsg && (

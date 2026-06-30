@@ -16,9 +16,9 @@ export function PoDetailModal({ role, po, onClose }: PoDetailModalProps) {
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div className="card" style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ margin: 0, fontSize: 'var(--text-lg)' }}>Detail PO: {po.po_number}</h2>
-          <button onClick={onClose} style={{ background: 'transparent', border: 'none', fontSize: 'var(--text-lg)', cursor: 'pointer', color: 'var(--color-text-muted)' }}>✕</button>
+        <div style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: '#03396c', margin: 0 }}>Detail PO: {po.po_number}</h2>
+          <button type="button" className="btn btn--outline" onClick={onClose}>{t.common.close}</button>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)', background: 'var(--color-bg-subtle)', padding: 'var(--space-3)', borderRadius: 'var(--radius-sm)' }}>

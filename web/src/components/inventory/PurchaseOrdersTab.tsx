@@ -144,7 +144,7 @@ export function PurchaseOrdersTab({ role }: PurchaseOrdersTabProps) {
                 <th style={{ padding: 'var(--space-3) var(--space-2)' }}>{t.common.supplier}</th>
                 <th className="hidden lg:table-cell" style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.inventory.createdBy}</th>
                 {canWrite && <th style={{ padding: 'var(--space-3) var(--space-2)', textAlign: 'right' }}>{t.common.total}</th>}
-                <th style={{ padding: 'var(--space-3) var(--space-2)', textAlign: 'center' }}>{t.inventory.payment}</th>
+                <th className="hidden md:table-cell" style={{ padding: 'var(--space-3) var(--space-2)', textAlign: 'center' }}>{t.inventory.payment}</th>
                 <th style={{ padding: 'var(--space-3) var(--space-2)', textAlign: 'center' }}>{t.common.status}</th>
                 <th style={{ padding: 'var(--space-3) var(--space-2)', textAlign: 'center' }}>{t.common.actions}</th>
               </tr>
@@ -157,7 +157,7 @@ export function PurchaseOrdersTab({ role }: PurchaseOrdersTabProps) {
                   <td style={{ padding: 'var(--space-3) var(--space-2)', fontSize: 'var(--text-sm)' }}>{row.suppliers?.name || '-'}</td>
                   <td className="hidden lg:table-cell" style={{ padding: 'var(--space-3) var(--space-4)' }}>{row.users?.name || '-'}</td>
                   {canWrite && <td className="money" style={{ padding: 'var(--space-3) var(--space-2)', textAlign: 'right', fontSize: 'var(--text-sm)' }}>{formatIDRFromString(row.total_amount)}</td>}
-                  <td style={{ padding: 'var(--space-3) var(--space-2)', textAlign: 'center' }}>
+                  <td className="hidden md:table-cell" style={{ padding: 'var(--space-3) var(--space-2)', textAlign: 'center' }}>
                     <div style={{ display: 'flex', flexDirection: 'row', gap: 'var(--space-2)', alignItems: 'center', justifyContent: 'center' }}>
                       <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', fontWeight: 600 }}>{methodLabel(row.payment_method)}</span>
                       <span style={{ padding: '2px var(--space-2)', background: payStatusColor(row.payment_status, row.payment_method), color: 'white', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-xs)', fontWeight: 600 }}>{payStatusLabel(row.payment_status, row.payment_method)}</span>

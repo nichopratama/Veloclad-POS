@@ -29,11 +29,26 @@ export function TransactionTable({
   const renderStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
-        return <span style={{ color: 'var(--color-success)', fontWeight: 'bold' }}>{t.sales.completed}</span>;
+        return (
+          <span style={{ color: 'var(--color-success)', fontWeight: 'bold' }}>
+            <span className="hidden sm:inline">{t.sales.completed}</span>
+            <span className="sm:hidden">C</span>
+          </span>
+        );
       case 'void':
-        return <span style={{ color: 'var(--color-danger)', fontWeight: 'bold' }}>Void</span>;
+        return (
+          <span style={{ color: 'var(--color-danger)', fontWeight: 'bold' }}>
+            <span className="hidden sm:inline">Void</span>
+            <span className="sm:hidden">V</span>
+          </span>
+        );
       case 'cancelled':
-        return <span style={{ color: 'var(--color-text-muted)' }}>{t.sales.cancelled}</span>;
+        return (
+          <span style={{ color: 'var(--color-text-muted)' }}>
+            <span className="hidden sm:inline">{t.sales.cancelled}</span>
+            <span className="sm:hidden font-bold">X</span>
+          </span>
+        );
       default:
         return <span>{status}</span>;
     }

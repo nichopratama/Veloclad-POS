@@ -117,11 +117,14 @@ export function ProfileEditModal({
         onSubmit={handleSubmit}
         onClick={(e) => e.stopPropagation()}
         className="card"
-        style={{ width: '100%', maxWidth: '440px', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}
+        style={{ width: '100%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}
       >
-        <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>
-          {isSelfEdit ? 'Profile Settings' : (mode === 'create' ? t.users.addUserTitle : t.users.editUser)}
-        </h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: '#03396c', margin: 0 }}>
+            {isSelfEdit ? 'Profile Settings' : (mode === 'create' ? t.users.addUserTitle : t.users.editUser)}
+          </h2>
+          <button className="btn btn--outline" onClick={onClose} type="button">Close</button>
+        </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
           <label htmlFor={nameId} style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{t.users.name} <span style={{ color: 'var(--color-danger)' }}>*</span></label>

@@ -33,6 +33,13 @@ const getLast7DaysISO = () => {
   };
 };
 
+const getTodayISO = () => {
+  const d = new Date();
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const today = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return { start: today, end: today };
+};
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type SummaryResponse = {
@@ -398,7 +405,18 @@ function TopItemsCard({ startDate, endDate }: { startDate: string, endDate: stri
 
 export default function DashboardPage() {
   const { t } = useLocale();
-  const [dateRange, setDateRange] = useState(getLast7DaysISO());
+  const [dateRange, setDateRange] = useState(getTodayISO());
+
+  const chartDateRange = dateRange.start === dateRange.end ? (() => {
+    const end = new Date(dateRange.end);
+    const start = new Date(end);
+    start.setDate(end.getDate() - 6);
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return {
+      start: `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`,
+      end: dateRange.end,
+    };
+  })() : dateRange;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)", paddingBottom: "var(--space-8)" }}>
@@ -434,10 +452,10 @@ export default function DashboardPage() {
 
       <div className="dashboard-grid">
         <div className="main" style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-          <SalesChartCard startDate={dateRange.start} endDate={dateRange.end} />
-          <HourlyHeatmapCard startDate={dateRange.start} endDate={dateRange.end} />
+          <SalesChartCard startDate={chartDateRange.start} endDate={chartDateRange.end} />
+          <HourlyHeatmapCard startDate={chartDateRange.start} endDate={chartDateRange.end} />
         </div>
-        <TopItemsCard startDate={dateRange.start} endDate={dateRange.end} />
+        <TopItemsCard startDate={chartDateRange.start} endDate={chartDateRange.end} />
       </div>
     </div>
   );

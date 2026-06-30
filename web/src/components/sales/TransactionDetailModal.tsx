@@ -65,9 +65,9 @@ export function TransactionDetailModal({ transaction, onClose }: TransactionDeta
           gap: 'var(--space-4)',
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 800 }}>{t.sales.transactionDetail}</h2>
-          <button className="btn btn--ghost" onClick={onClose} style={{ minHeight: '32px', padding: '0 var(--space-2)' }}>{t.common.close}</button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-3)' }}>
+          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: '#03396c', margin: 0 }}>{t.sales.transactionDetail}</h2>
+          <button className="btn btn--outline" onClick={onClose} type="button">{t.common.close}</button>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>

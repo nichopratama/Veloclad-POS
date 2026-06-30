@@ -50,11 +50,14 @@ export function ReceiptModal({ transactionId, receipt, onNew }: Props) {
           id="receipt-print"
           style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}
         >
-          <div style={{ textAlign: 'center', marginBottom: 'var(--space-2)' }}>
-            <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 800 }}>{t.pos.transactionSuccess}</h2>
-            <p className="money" style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
-              {transactionId}
-            </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-2)' }}>
+            <div style={{ textAlign: 'left' }}>
+              <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: '#03396c', margin: 0 }}>{t.pos.transactionSuccess}</h2>
+              <p className="money" style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
+                {transactionId}
+              </p>
+            </div>
+            <button type="button" className="btn btn--outline" onClick={onNew}>{t.common.close || 'Close'}</button>
           </div>
 
           <div

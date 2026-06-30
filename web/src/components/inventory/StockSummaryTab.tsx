@@ -95,11 +95,11 @@ export function StockSummaryTab() {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--color-border)', userSelect: 'none' }}>
-                <th className="hidden sm:table-cell" style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.stock.code}</th>
+                <th className={consignmentOnly ? "hidden sm:table-cell" : ""} style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.stock.code}</th>
                 <th style={{ padding: 'var(--space-3) var(--space-4)', cursor: 'pointer' }} onClick={() => handleSort('name')}>
                   {t.stock.itemName} <span style={{ marginLeft: 'var(--space-1)', color: sortBy === 'name' ? 'var(--color-accent)' : 'var(--color-border)' }}>{sortBy === 'name' ? (sortDir === 'desc' ? '↓' : '↑') : '↕'}</span>
                 </th>
-                <th style={{ padding: 'var(--space-3) var(--space-4)', cursor: 'pointer' }} onClick={() => handleSort('category')}>
+                <th className={consignmentOnly ? "hidden sm:table-cell" : ""} style={{ padding: 'var(--space-3) var(--space-4)', cursor: 'pointer' }} onClick={() => handleSort('category')}>
                   {t.stock.category} <span style={{ marginLeft: 'var(--space-1)', color: sortBy === 'category' ? 'var(--color-accent)' : 'var(--color-border)' }}>{sortBy === 'category' ? (sortDir === 'desc' ? '↓' : '↑') : '↕'}</span>
                 </th>
                 <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', cursor: 'pointer' }} onClick={() => handleSort('stock')}>
@@ -114,11 +114,10 @@ export function StockSummaryTab() {
                 const isLowStock = row.stock <= row.min_stock;
                 return (
                   <tr key={row.id} style={{ borderBottom: '1px solid var(--color-border)', background: isLowStock ? '#f3f4f6' : 'inherit' }}>
-                    <td className="hidden sm:table-cell" style={{ padding: 'var(--space-3) var(--space-4)', fontFamily: 'var(--font-mono)' }}>{row.code}</td>
+                    <td className={consignmentOnly ? "hidden sm:table-cell" : ""} style={{ padding: 'var(--space-3) var(--space-4)', fontFamily: 'var(--font-mono)' }}>{row.code}</td>
                     <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                        <span style={{ fontWeight: 600 }}>{row.name}</span>
-                        {isLowStock && <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-danger)', fontWeight: 700 }}>{t.inventory.lowStock}</span>}
+                        <span style={{ fontWeight: 600, color: isLowStock ? 'var(--color-danger)' : 'inherit' }}>{row.name}</span>
                         {(row.consignment_stock ?? 0) > 0 && (
                           <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'white', background: 'var(--color-accent)', borderRadius: 'var(--radius-sm)', padding: '1px var(--space-2)' }}>
                             {t.inventory.typeConsignment}
@@ -126,7 +125,7 @@ export function StockSummaryTab() {
                         )}
                       </div>
                     </td>
-                    <td style={{ padding: 'var(--space-3) var(--space-4)' }}>{row.categories?.name || '-'}</td>
+                    <td className={consignmentOnly ? "hidden sm:table-cell" : ""} style={{ padding: 'var(--space-3) var(--space-4)' }}>{row.categories?.name || '-'}</td>
                     <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>
                       <div style={{ fontWeight: isLowStock ? 700 : 400, color: isLowStock ? 'var(--color-danger)' : 'inherit' }}>
                         {row.stock} {row.unit}
