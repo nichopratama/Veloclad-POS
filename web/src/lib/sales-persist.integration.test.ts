@@ -73,7 +73,10 @@ describe.skipIf(!hasDb)('persistSale (integrasi DB)', () => {
     // Skema throwaway + tabel meniru struktur asli (anti-drift, tanpa FK).
     await db.$executeRawUnsafe(`DROP SCHEMA IF EXISTS "${TEST_SCHEMA}" CASCADE`);
     await db.$executeRawUnsafe(`CREATE SCHEMA "${TEST_SCHEMA}"`);
-    for (const t of ['items', 'transactions', 'transaction_items']) {
+    // stock_lots + stock_lot_consumptions: persistSale kini menjalankan owned-first
+    // lot depletion (planLotDepletion query stock_lots, tulis consumption ledger).
+    // Tanpa tabel ini test gagal `42P01 relation "stock_lots" does not exist`.
+    for (const t of ['items', 'transactions', 'transaction_items', 'stock_lots', 'stock_lot_consumptions']) {
       await db.$executeRawUnsafe(
         `CREATE TABLE "${TEST_SCHEMA}"."${t}" (LIKE "${SOURCE_SCHEMA}"."${t}" INCLUDING ALL)`,
       );
