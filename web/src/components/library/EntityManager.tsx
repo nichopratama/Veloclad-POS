@@ -141,6 +141,7 @@ export function EntityManager({ config, role }: EntityManagerProps) {
                 {config.fields.filter(f => f.showInTable).map(f => (
                   <th
                     key={f.key}
+                    className={config.key === 'customers' && f.key === 'email' ? 'hidden sm:table-cell' : ''}
                     style={{ padding: 'var(--space-3) var(--space-4)', cursor: f.sortable ? 'pointer' : 'default' }}
                     onClick={f.sortable ? () => handleSort(f.key) : undefined}
                   >
@@ -177,7 +178,7 @@ export function EntityManager({ config, role }: EntityManagerProps) {
                     }
 
                     return (
-                      <td key={f.key} style={{ padding: 'var(--space-3) var(--space-4)' }}>
+                      <td key={f.key} className={config.key === 'customers' && f.key === 'email' ? 'hidden sm:table-cell' : ''} style={{ padding: 'var(--space-3) var(--space-4)' }}>
                         {display}
                       </td>
                     );

@@ -205,7 +205,7 @@ function SummaryCards({ startDate, endDate }: { startDate: string, endDate: stri
               <p
                 style={{
                   margin: 0,
-                  fontSize: "28px",
+                  fontSize: "25px",
                   fontWeight: 400,
                   lineHeight: 1.1,
                   color: card.textColor,
@@ -405,16 +405,16 @@ function TopItemsCard({ startDate, endDate }: { startDate: string, endDate: stri
 
 export default function DashboardPage() {
   const { t } = useLocale();
-  const [dateRange, setDateRange] = useState(getTodayISO());
+  const [dateRange, setDateRange] = useState({ start: '', end: '' });
 
   const chartDateRange = dateRange.start === dateRange.end ? (() => {
-    const end = new Date(dateRange.end);
+    const end = dateRange.end ? new Date(dateRange.end) : new Date();
     const start = new Date(end);
     start.setDate(end.getDate() - 6);
     const pad = (n: number) => n.toString().padStart(2, '0');
     return {
       start: `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`,
-      end: dateRange.end,
+      end: dateRange.end || `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}`,
     };
   })() : dateRange;
 

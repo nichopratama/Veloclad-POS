@@ -64,7 +64,7 @@ export function TransactionTable({
             <th className="hidden sm:table-cell" style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.sales.cashier}</th>
             <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.sales.method}</th>
             <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>{t.sales.total}</th>
-            <th style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.sales.status}</th>
+            <th className="hidden sm:table-cell" style={{ padding: 'var(--space-3) var(--space-4)' }}>{t.sales.status}</th>
             <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>{t.sales.actions}</th>
           </tr>
         </thead>
@@ -78,7 +78,7 @@ export function TransactionTable({
               <td className="money" style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>
                 {formatIDRFromString(tx.total)}
               </td>
-              <td style={{ padding: 'var(--space-3) var(--space-4)' }}>{renderStatusBadge(tx.status)}</td>
+              <td className="hidden sm:table-cell" style={{ padding: 'var(--space-3) var(--space-4)' }}>{renderStatusBadge(tx.status)}</td>
               <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>
                 <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'center' }}>
                   <button className="btn btn--ghost" onClick={() => onDetailClick(tx)} style={{ minHeight: '32px', padding: '0 var(--space-2)' }}>{t.sales.detail}</button>
