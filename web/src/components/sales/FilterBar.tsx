@@ -34,7 +34,7 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
     <div className="flex flex-col md:flex-row gap-4 mb-6">
       {/* Group 1: DatePicker & Search (Row 1 on mobile) */}
       <div className="flex flex-row gap-2 sm:gap-4 flex-1">
-        <div style={{ flex: '0 1 230px' }}>
+        <div style={{ flex: '0 0 auto' }}>
           <DateRangePicker
             value={{ start: filters.startDate, end: filters.endDate }}
             onChange={(range) => {
