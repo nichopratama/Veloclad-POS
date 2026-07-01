@@ -45,7 +45,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
         const dir = path.join(process.cwd(), 'public', 'uploads', 'profiles');
         await fs.mkdir(dir, { recursive: true });
         await fs.writeFile(path.join(dir, filename), buffer);
-        imageUrl = `/uploads/profiles/${filename}`;
+        imageUrl = `/api/uploads/profiles/${filename}`;
       }
     } else {
       rawData = await req.json();
