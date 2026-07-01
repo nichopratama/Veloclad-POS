@@ -43,7 +43,7 @@ function buildDisplayRows(items: StockItem[]): StockDisplayItem[] {
   });
 }
 
-const VARIANT_BADGE: React.CSSProperties = {
+const BADGE_OUTLINE: React.CSSProperties = {
   display: 'inline-block',
   fontSize: 'var(--text-xs)',
   fontWeight: 500,
@@ -181,9 +181,8 @@ export function StockSummaryTab() {
                       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                           <span style={{ fontWeight: 600, color: isLowStock ? 'var(--color-danger)' : 'inherit' }}>{item.name}</span>
-                          {item.variant_name && <span style={VARIANT_BADGE}>{item.variant_name}</span>}
                           {(item.consignment_stock ?? 0) > 0 && (
-                            <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'white', background: 'var(--color-accent)', borderRadius: 'var(--radius-sm)', padding: '1px var(--space-2)' }}>
+                            <span style={BADGE_OUTLINE}>
                               {t.inventory.typeConsignment}
                             </span>
                           )}
@@ -249,7 +248,7 @@ export function StockSummaryTab() {
                             {variants.length}
                           </span>
                           {totalConsignStock > 0 && (
-                            <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'white', background: 'var(--color-accent)', borderRadius: 'var(--radius-sm)', padding: '1px var(--space-2)' }}>
+                            <span style={BADGE_OUTLINE}>
                               {t.inventory.typeConsignment}
                             </span>
                           )}
@@ -290,9 +289,9 @@ export function StockSummaryTab() {
                           </td>
                           <td style={{ padding: 'var(--space-2) var(--space-4)', paddingLeft: 'calc(var(--space-4) + 20px)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                              <span style={VARIANT_BADGE}>{variant.variant_name}</span>
+                              <span style={BADGE_OUTLINE}>{variant.variant_name}</span>
                               {(variant.consignment_stock ?? 0) > 0 && (
-                                <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'white', background: 'var(--color-accent)', borderRadius: 'var(--radius-sm)', padding: '1px var(--space-2)' }}>
+                                <span style={BADGE_OUTLINE}>
                                   {t.inventory.typeConsignment}
                                 </span>
                               )}
