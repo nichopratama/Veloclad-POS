@@ -14,9 +14,15 @@ import { useLocale } from '@/lib/i18n/LocaleContext';
 
 export function SalesHistoryView({ role }: { role: string }) {
   const { t } = useLocale();
+  const getLocalToday = () => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().split('T')[0];
+  };
+
   const [filters, setFilters] = useState({
-    startDate: '',
-    endDate: '',
+    startDate: getLocalToday(),
+    endDate: getLocalToday(),
     search: '',
     status: '',
     paymentMethod: '',
