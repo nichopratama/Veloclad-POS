@@ -65,17 +65,37 @@ export function SalesHistoryView({ role }: { role: string }) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-4)' }}>
-        <div className="card">
+        <div className="card" style={{ minWidth: 0 }}>
           <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', marginBottom: 'var(--space-1)' }}>{t.sales.totalTransactionsCard}</div>
           <div className="money" style={{ fontSize: 'var(--text-xl)', fontWeight: 700 }}>
             {data?.summary.total_transactions ?? 0}
           </div>
+          {data?.summary.status_breakdown && (
+            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 'var(--space-2)' }}>
+              {Object.entries(data.summary.status_breakdown).map(([status, count], i, arr) => (
+                <span key={status}>
+                  <span style={{ textTransform: 'capitalize' }}>{status}</span>: {count}
+                  {i < arr.length - 1 && <span style={{ margin: '0 4px' }}>·</span>}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
-        <div className="card">
+        <div className="card" style={{ minWidth: 0 }}>
           <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', marginBottom: 'var(--space-1)' }}>{t.sales.totalCollected}</div>
           <div className="money" style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--color-success)' }}>
             {formatIDR(data?.summary.total_collected ?? 0)}
           </div>
+          {data?.summary.payment_breakdown && data.summary.payment_breakdown.length > 0 && (
+            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 'var(--space-2)' }}>
+              {data.summary.payment_breakdown.map((p, i, arr) => (
+                <span key={p.method}>
+                  {p.method}: {formatIDR(p.amount).replace('Rp', '').trim()}
+                  {i < arr.length - 1 && <span style={{ margin: '0 4px' }}>·</span>}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         <div className="card hidden sm:block">
           <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', marginBottom: 'var(--space-1)' }}>{t.sales.netSales}</div>

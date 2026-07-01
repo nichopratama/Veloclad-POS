@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
 
     const skip = (q.page - 1) * q.limit;
 
-    const [total, rows, agg] = await Promise.all([
+    const [total, rows, agg, statusGroups, paymentGroups, paymentTypes] = await Promise.all([
       prisma.transactions.count({ where }),
       prisma.transactions.findMany({
         where,
@@ -71,6 +71,17 @@ export async function GET(req: NextRequest) {
         where: { ...where, status: 'completed' },
         _sum: { total: true, net_sales: true },
       }),
+      prisma.transactions.groupBy({
+        by: ['status'],
+        _count: { id: true },
+        where,
+      }),
+      prisma.transactions.groupBy({
+        by: ['payment_type_id'],
+        _sum: { total: true },
+        where: { ...where, status: 'completed' },
+      }),
+      prisma.payment_types.findMany({ select: { id: true, name: true } })
     ]);
 
     const data = rows.map((t) => ({
@@ -82,11 +93,25 @@ export async function GET(req: NextRequest) {
       voided_items: t.void_items,
     }));
 
+    const status_breakdown = statusGroups.reduce((acc, g) => {
+      const statusKey = g.status ?? 'unknown';
+      acc[statusKey] = g._count.id;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const paymentTypeMap = new Map(paymentTypes.map(pt => [pt.id, pt.name]));
+    const payment_breakdown = paymentGroups.map(g => ({
+      method: g.payment_type_id ? (paymentTypeMap.get(g.payment_type_id) ?? 'Unknown') : 'Unknown',
+      amount: Number(g._sum.total ?? 0)
+    })).filter(p => p.amount > 0);
+
     return NextResponse.json({
       summary: {
         total_transactions: total,
         total_collected: Number(agg._sum.total ?? 0),
         net_sales: Number(agg._sum.net_sales ?? 0),
+        status_breakdown,
+        payment_breakdown,
       },
       data,
       pagination: { total, page: q.page, limit: q.limit, totalPages: Math.ceil(total / q.limit) },

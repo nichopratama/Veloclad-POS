@@ -40,6 +40,8 @@ export interface TransactionSummary {
   total_transactions: number;
   total_collected: number;
   net_sales: number;
+  status_breakdown?: Record<string, number>;
+  payment_breakdown?: { method: string, amount: number }[];
 }
 
 export interface PaginationData {
