@@ -47,6 +47,15 @@ export function ConsignmentReport() {
   const { data, error, isLoading, mutate } = useSWR<{ data: SupplierGroup[] }>('/api/inventory/consignment-stock', fetcher);
   const groups = data?.data ?? [];
 
+  const [toggledGroups, setToggledGroups] = useState<Record<number, boolean>>({});
+  const toggleGroup = (g: SupplierGroup) => {
+    const safeId = g.supplier_id ?? -1;
+    setToggledGroups((prev) => {
+      const current = prev[safeId] !== undefined ? prev[safeId] : g.overdue_count > 0;
+      return { ...prev, [safeId]: !current };
+    });
+  };
+
   const [returningId, setReturningId] = useState<number | null>(null);
   const [actionError, setActionError] = useState('');
 
@@ -109,26 +118,65 @@ export function ConsignmentReport() {
           {actionError}
         </div>
       )}
-      {groups.map((g) => (
-        <div key={g.supplier_id ?? 'none'} className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-4)', borderBottom: '1px solid var(--color-border)', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 800, margin: 0 }}>{g.supplier_name}</h3>
-              {g.overdue_count > 0 && (
-                <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'white', background: 'var(--color-danger)', padding: '2px var(--space-2)', borderRadius: 'var(--radius-sm)' }}>
-                  {g.overdue_count} {t.consignmentReport.overdueCount}
+      {groups.map((g) => {
+        const expanded = toggledGroups[g.supplier_id ?? -1] !== undefined ? toggledGroups[g.supplier_id ?? -1] : g.overdue_count > 0;
+        return (
+          <div key={g.supplier_id ?? 'none'} className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <button
+              type="button"
+              onClick={() => toggleGroup(g)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: 'var(--space-4)',
+                borderBottom: expanded ? '1px solid var(--color-border)' : 'none',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                flexWrap: 'wrap',
+                gap: 'var(--space-2)',
+                textAlign: 'left'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{
+                    transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.2s ease',
+                    color: 'var(--color-text-muted)'
+                  }}
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                  <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 600, margin: 0 }}>{g.supplier_name}</h3>
+                  {g.overdue_count > 0 && (
+                    <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'white', background: 'var(--color-danger)', padding: '2px var(--space-2)', borderRadius: 'var(--radius-sm)' }}>
+                      {g.overdue_count} {t.consignmentReport.overdueCount}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>{t.consignmentReport.runningDebt}</span>
+                <span className="money" style={{ fontWeight: 800, color: g.running_debt > 0 ? 'var(--color-danger)' : 'var(--color-text)' }}>
+                  {formatIDR(g.running_debt)}
                 </span>
-              )}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-              <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>{t.consignmentReport.runningDebt}</span>
-              <span className="money" style={{ fontWeight: 800, color: g.running_debt > 0 ? 'var(--color-danger)' : 'var(--color-text)' }}>
-                {formatIDR(g.running_debt)}
-              </span>
-            </div>
-          </div>
+              </div>
+            </button>
 
-          {/* Overview: received / sold / remaining per item */}
+            <div style={{ display: expanded ? 'block' : 'none' }}>
+              {/* Overview: received / sold / remaining per item */}
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
               <thead>
@@ -149,7 +197,7 @@ export function ConsignmentReport() {
                     </td>
                     <td style={{ padding: 'var(--space-2) var(--space-4)' }}>
                       <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', marginRight: 'var(--space-2)' }}>{it.code}</span>
-                      {it.name}
+                      <span style={{ fontWeight: 600 }}>{it.name}</span>
                     </td>
                     <td className="money" style={cellNum}>{formatIDR(it.unit_cost)}</td>
                     <td style={cellNum}>{it.received}</td>
@@ -195,7 +243,7 @@ export function ConsignmentReport() {
                       </td>
                       <td style={{ padding: 'var(--space-2) var(--space-4)' }}>
                         <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', marginRight: 'var(--space-2)' }}>{lot.code}</span>
-                        {lot.name}
+                        <span style={{ fontWeight: 600 }}>{lot.name}</span>
                       </td>
                       <td style={{ ...cellNum, fontWeight: 700 }}>{lot.remaining}</td>
                       <td style={cellNum}>{lot.expires_at ? formatDate(lot.expires_at) : <span style={{ color: 'var(--color-text-muted)' }}>—</span>}</td>
@@ -217,8 +265,10 @@ export function ConsignmentReport() {
               </table>
             </div>
           )}
-        </div>
-      ))}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
