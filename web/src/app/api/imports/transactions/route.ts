@@ -3,6 +3,13 @@ import { randomBytes } from 'node:crypto';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/rbac';
 import { handleApiError } from '@/lib/api';
+import {
+  splitCsvLines,
+  detectDelimiter,
+  parseDelimitedLine,
+  parseNumber,
+  parseDateTime,
+} from '@/lib/csv';
 
 // Financial import is admin-only; cap upload size to avoid loading huge files into memory.
 const MAX_IMPORT_BYTES = 5 * 1024 * 1024; // 5 MB
@@ -33,59 +40,20 @@ interface CsvRow {
   reasonOfRefund: string;
 }
 
-function parseCsvLine(line: string): string[] {
-  const result: string[] = [];
-  let current = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (ch === ',' && !inQuotes) {
-      result.push(current.trim());
-      current = '';
-    } else {
-      current += ch;
-    }
-  }
-  result.push(current.trim());
-  return result;
-}
-
-function parseNumber(val: string): number {
-  const n = parseFloat(val);
-  return isNaN(n) ? 0 : n;
-}
-
-// Parse "30-06-2026" + "20:58:21" → Date (Asia/Jakarta)
-function parseDateTime(date: string, time: string): Date | null {
-  const dateParts = date.split('-');
-  if (dateParts.length !== 3) return null;
-  const [day, month, year] = dateParts;
-  const isoString = `${year}-${month}-${day}T${time}+07:00`;
-  const parsed = new Date(isoString);
-  return isNaN(parsed.getTime()) ? null : parsed;
-}
-
 function parseCsv(text: string): { rows: CsvRow[]; parseErrors: string[] } {
-  const lines = text.split('\n').map((l) => l.replace(/\r$/, ''));
+  const lines = splitCsvLines(text);
   const parseErrors: string[] = [];
 
   if (lines.length < 2) return { rows: [], parseErrors: ['File CSV kosong atau tidak valid'] };
 
+  const delimiter = detectDelimiter(lines[0]);
   const rows: CsvRow[] = [];
   // Skip header (line 0)
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i];
     if (!line.trim()) continue;
 
-    const cols = parseCsvLine(line);
+    const cols = parseDelimitedLine(line, delimiter);
     if (cols.length < 20) {
       parseErrors.push(`Baris ${i + 1}: kolom tidak lengkap (${cols.length}/20)`);
       continue;
