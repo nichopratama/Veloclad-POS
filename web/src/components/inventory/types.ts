@@ -1,12 +1,14 @@
-export interface StockItem { 
-  id: number; 
-  name: string; 
-  code: string; 
-  stock: number; 
-  min_stock: number; 
-  price: string; 
-  unit: string | null; 
+export interface StockItem {
+  id: number;
+  name: string;
+  code: string;
+  stock: number;
+  min_stock: number;
+  price: string;
+  unit: string | null;
   is_active: boolean;
+  variant_name: string | null;
+  category_id: number | null;
   categories: { name: string } | null;
   suppliers: { name: string } | null;
   consignment_stock?: number;

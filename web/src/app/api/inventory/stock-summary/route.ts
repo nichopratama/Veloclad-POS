@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
       whereClause.OR = [
         { name: { contains: query.search, mode: 'insensitive' } },
         { code: { contains: query.search, mode: 'insensitive' } },
+        { variant_name: { contains: query.search, mode: 'insensitive' } },
       ];
     }
     if (query.categoryId) {

@@ -10,6 +10,7 @@ import { EntityConfig, EntityRow, LibraryListResponse } from './types';
 import { useDebounce } from '@/components/pos/useDebounce';
 import { formatIDRFromString } from '@/components/pos/format';
 import { EntityFormModal } from './EntityFormModal';
+import { ItemsGroupedBody } from './ItemsGroupedBody';
 import { SkeletonRows } from '@/components/ui/Skeleton';
 import { useLocale } from '@/lib/i18n/LocaleContext';
 
@@ -157,54 +158,67 @@ export function EntityManager({ config, role }: EntityManagerProps) {
               </tr>
             </thead>
             <tbody>
-              {items.map((row: EntityRow) => (
-                <tr key={row.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  {config.fields.filter(f => f.showInTable).map(f => {
-                    const val = row[f.key];
-                    let display: ReactNode;
+              {config.key === 'items' ? (
+                <ItemsGroupedBody
+                  items={items}
+                  onEdit={(row) => setFormState({ isOpen: true, initialData: row })}
+                  onDelete={handleDelete}
+                  canMutate={canMutate}
+                  canDelete={canDelete}
+                  colCount={config.fields.filter(f => f.showInTable).length + 1}
+                />
+              ) : (
+                <>
+                  {items.map((row: EntityRow) => (
+                    <tr key={row.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                      {config.fields.filter(f => f.showInTable).map(f => {
+                        const val = row[f.key];
+                        let display: ReactNode;
 
-                    if (f.type === 'money') {
-                      display = <span className="money">{formatIDRFromString(String(val ?? 0))}</span>;
-                    } else if (f.type === 'checkbox') {
-                      display = val
-                        ? <span style={{ color: 'var(--color-success)', fontWeight: 600 }}>{t.common.active}</span>
-                        : <span style={{ color: 'var(--color-text-muted)' }}>{t.common.inactive}</span>;
-                    } else if (f.type === 'select') {
-                      const nestedObjKey = f.optionsEndpoint?.split('/').pop();
-                      const nested = nestedObjKey ? (row[nestedObjKey] as Record<string, unknown> | null | undefined) : undefined;
-                      display = nested && f.optionLabelKey ? String(nested[f.optionLabelKey] ?? '-') : '-';
-                    } else {
-                      display = val === null || val === undefined ? '-' : String(val);
-                    }
+                        if (f.type === 'money') {
+                          display = <span className="money">{formatIDRFromString(String(val ?? 0))}</span>;
+                        } else if (f.type === 'checkbox') {
+                          display = val
+                            ? <span style={{ color: 'var(--color-success)', fontWeight: 600 }}>{t.common.active}</span>
+                            : <span style={{ color: 'var(--color-text-muted)' }}>{t.common.inactive}</span>;
+                        } else if (f.type === 'select') {
+                          const nestedObjKey = f.optionsEndpoint?.split('/').pop();
+                          const nested = nestedObjKey ? (row[nestedObjKey] as Record<string, unknown> | null | undefined) : undefined;
+                          display = nested && f.optionLabelKey ? String(nested[f.optionLabelKey] ?? '-') : '-';
+                        } else {
+                          display = val === null || val === undefined ? '-' : String(val);
+                        }
 
-                    return (
-                      <td key={f.key} className={config.key === 'customers' && f.key === 'email' ? 'hidden sm:table-cell' : ''} style={{ padding: 'var(--space-3) var(--space-4)' }}>
-                        {display}
+                        return (
+                          <td key={f.key} className={config.key === 'customers' && f.key === 'email' ? 'hidden sm:table-cell' : ''} style={{ padding: 'var(--space-3) var(--space-4)' }}>
+                            {display}
+                          </td>
+                        );
+                      })}
+                      <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'center' }}>
+                          {canMutate && (
+                            <button className="hover:scale-110 transition-transform p-1 text-[var(--color-accent)]" onClick={() => setFormState({ isOpen: true, initialData: row })} title={t.common.edit}>
+                              <Pencil size={18} />
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button className="hover:scale-110 transition-transform p-1 text-[var(--color-danger)]" onClick={() => handleDelete(row.id)} title={t.common.delete}>
+                              <Trash2 size={18} />
+                            </button>
+                          )}
+                        </div>
                       </td>
-                    );
-                  })}
-                  <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'center' }}>
-                      {canMutate && (
-                        <button className="hover:scale-110 transition-transform p-1 text-[var(--color-accent)]" onClick={() => setFormState({ isOpen: true, initialData: row })} title={t.common.edit}>
-                          <Pencil size={18} />
-                        </button>
-                      )}
-                      {canDelete && (
-                        <button className="hover:scale-110 transition-transform p-1 text-[var(--color-danger)]" onClick={() => handleDelete(row.id)} title={t.common.delete}>
-                          <Trash2 size={18} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {items.length === 0 && (
-                <tr>
-                  <td colSpan={config.fields.filter(f => f.showInTable).length + 1} style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-                    {t.common.noData}
-                  </td>
-                </tr>
+                    </tr>
+                  ))}
+                  {items.length === 0 && (
+                    <tr>
+                      <td colSpan={config.fields.filter(f => f.showInTable).length + 1} style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                        {t.common.noData}
+                      </td>
+                    </tr>
+                  )}
+                </>
               )}
             </tbody>
           </table>
