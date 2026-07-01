@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes } from 'node:crypto';
 import { prisma } from '@/lib/prisma';
-import { requireAuth } from '@/lib/rbac';
+import { requireRole } from '@/lib/rbac';
 import { handleApiError } from '@/lib/api';
+
+// Financial import is admin-only; cap upload size to avoid loading huge files into memory.
+const MAX_IMPORT_BYTES = 5 * 1024 * 1024; // 5 MB
 
 // ---------- CSV Parser ----------
 
@@ -120,12 +123,19 @@ function parseCsv(text: string): { rows: CsvRow[]; parseErrors: string[] } {
 
 export async function POST(req: NextRequest) {
   try {
-    await requireAuth();
+    await requireRole('admin');
 
     const formData = await req.formData();
     const file = formData.get('file');
     if (!file || typeof file === 'string') {
       return NextResponse.json({ error: 'File CSV diperlukan' }, { status: 400 });
+    }
+
+    if ((file as File).size > MAX_IMPORT_BYTES) {
+      return NextResponse.json(
+        { error: `File terlalu besar (maks ${MAX_IMPORT_BYTES / (1024 * 1024)} MB)` },
+        { status: 413 },
+      );
     }
 
     const text = await (file as File).text();
