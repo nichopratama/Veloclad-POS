@@ -202,9 +202,14 @@ export function DateRangePicker({ value, onChange, className = '' }: DateRangePi
   };
 
   // Format the button label
-  const displayLabel = value?.start && value?.end 
-    ? `${value.start.replace(/-/g, '/')} - ${value.end.replace(/-/g, '/')}`
-    : 'Select Date Range';
+  let displayLabel = 'Select Date Range';
+  if (value?.start && value?.end) {
+    if (value.start === value.end) {
+      displayLabel = 'Select Date Range';
+    } else {
+      displayLabel = `${value.start.replace(/-/g, '/')} - ${value.end.replace(/-/g, '/')}`;
+    }
+  }
 
   return (
     <div className={`relative ${className}`} ref={containerRef}>

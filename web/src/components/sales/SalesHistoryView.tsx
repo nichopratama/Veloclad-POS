@@ -71,23 +71,26 @@ export function SalesHistoryView({ role }: { role: string }) {
             {data?.summary.total_transactions ?? 0}
           </div>
           {data?.summary.status_breakdown && (
-            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 'var(--space-2)' }}>
-              {Object.entries(data.summary.status_breakdown).map(([status, count], i, arr) => (
-                <span key={status}>
-                  <span style={{ textTransform: 'capitalize' }}>{status}</span>: {count}
-                  {i < arr.length - 1 && <span style={{ margin: '0 4px' }}>·</span>}
-                </span>
-              ))}
+            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'flex', flexWrap: 'wrap', marginTop: 'var(--space-2)' }}>
+              {['completed', 'void', 'cancelled'].map((status, i, arr) => {
+                const count = data.summary.status_breakdown![status] || 0;
+                return (
+                  <span key={status}>
+                    <span style={{ textTransform: 'capitalize' }}>{status}</span>: {count}
+                    {i < arr.length - 1 && <span style={{ margin: '0 4px' }}>·</span>}
+                  </span>
+                );
+              })}
             </div>
           )}
         </div>
         <div className="card" style={{ minWidth: 0 }}>
           <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', marginBottom: 'var(--space-1)' }}>{t.sales.totalCollected}</div>
-          <div className="money" style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--color-success)' }}>
+          <div className="money" style={{ fontSize: 'var(--text-xl)', fontWeight: 700 }}>
             {formatIDR(data?.summary.total_collected ?? 0)}
           </div>
           {data?.summary.payment_breakdown && data.summary.payment_breakdown.length > 0 && (
-            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 'var(--space-2)' }}>
+            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'flex', flexWrap: 'wrap', marginTop: 'var(--space-2)' }}>
               {data.summary.payment_breakdown.map((p, i, arr) => (
                 <span key={p.method}>
                   {p.method}: {formatIDR(p.amount).replace('Rp', '').trim()}

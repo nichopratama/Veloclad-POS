@@ -99,11 +99,13 @@ export async function GET(req: NextRequest) {
       return acc;
     }, {} as Record<string, number>);
 
-    const paymentTypeMap = new Map(paymentTypes.map(pt => [pt.id, pt.name]));
-    const payment_breakdown = paymentGroups.map(g => ({
-      method: g.payment_type_id ? (paymentTypeMap.get(g.payment_type_id) ?? 'Unknown') : 'Unknown',
-      amount: Number(g._sum.total ?? 0)
-    })).filter(p => p.amount > 0);
+    const payment_breakdown = paymentTypes.map(pt => {
+      const group = paymentGroups.find(g => g.payment_type_id === pt.id);
+      return {
+        method: pt.name,
+        amount: group ? Number(group._sum.total ?? 0) : 0
+      };
+    });
 
     return NextResponse.json({
       summary: {
