@@ -95,7 +95,8 @@ function buildNav(t: TranslationKeys): NavGroup[] {
         { label: n.discounts, href: '/library?tab=discounts' },
         { label: n.receipts, href: '/settings?tab=receipts' },
         { label: n.userManagement, href: '/settings/users' },
-        { label: n.importData, href: '/settings/import', adminOnly: true },
+        // Import Data disembunyikan dari nav (jarang dipakai); route /settings/import
+        // tetap ada & admin-gated, akses via URL langsung saat perlu.
       ],
     },
   ];
