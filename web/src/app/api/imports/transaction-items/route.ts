@@ -17,6 +17,7 @@ const COL = {
   quantity: 9,
   grossSales: 12,
   discounts: 13,
+  eventType: 23,
 } as const;
 
 const MIN_COLS = 14; // must reach at least the discounts column
@@ -47,6 +48,12 @@ function parseDetailCsv(text: string): { rows: DetailRow[]; parseErrors: string[
       continue;
     }
 
+    // Baris Refund (mis. "Full Refund for: ...") bukan baris penjualan: nama tak
+    // ada di katalog dan qty negatif. Refund ditangani sebagai transaksi void
+    // terpisah oleh importer header, jadi di sini dilewati agar tidak membuat
+    // seluruh receipt penjualannya ikut di-skip (grouping all-or-nothing).
+    if ((cols[COL.eventType] ?? '') === 'Refund') continue;
+
     const qty = Math.max(1, Math.round(parseNumber(cols[COL.quantity])));
     rows.push({
       receiptNumber: cols[COL.receiptNumber],
@@ -68,17 +75,31 @@ interface CatalogItem {
   hpp: Prisma.Decimal | null;
 }
 
-// Resolve a detail row to a single catalog item id, or null if not found / ambiguous.
-function matchItem(index: Map<string, CatalogItem[]>, name: string, variant: string): CatalogItem | null {
-  const candidates = index.get(name.trim().toLowerCase());
-  if (!candidates || candidates.length === 0) return null;
-  if (candidates.length === 1) return candidates[0];
+// Normalize a lookup key: trim, collapse inner whitespace, lower-case.
+const norm = (s: string): string => s.trim().replace(/\s+/g, ' ').toLowerCase();
 
-  // Multiple items share the name → disambiguate by variant.
-  const v = variant.trim().toLowerCase();
-  if (!v) return null; // ambiguous, no variant given
-  const byVariant = candidates.filter((c) => c.variant === v);
-  return byVariant.length === 1 ? byVariant[0] : null;
+// Resolve a detail row to a single catalog item id, or null if not found / ambiguous.
+// The catalog stores variant products with the variant folded into `name`
+// (e.g. name "Takis Es Poeter Mandja", variant_name "Mandja"), while the export
+// splits them into separate Items + Variant columns. So try the combined
+// "name variant" key first, then fall back to name only.
+function matchItem(index: Map<string, CatalogItem[]>, rawName: string, variant: string): CatalogItem | null {
+  // The export tags consignment items with a leading "[CON]" marker that the
+  // catalog name does not carry (consignment is tracked via stock_lots, not the
+  // name), so strip it before matching.
+  const name = rawName.replace(/^\s*\[con\]\s*/i, '');
+  const keys = variant.trim() ? [norm(`${name} ${variant}`), norm(name)] : [norm(name)];
+  for (const key of keys) {
+    const candidates = index.get(key);
+    if (!candidates || candidates.length === 0) continue;
+    if (candidates.length === 1) return candidates[0];
+    // Multiple items share the key → disambiguate by variant.
+    const v = norm(variant);
+    if (!v) continue;
+    const byVariant = candidates.filter((c) => c.variant === v);
+    if (byVariant.length === 1) return byVariant[0];
+  }
+  return null;
 }
 
 // ---------- POST ----------
@@ -129,12 +150,18 @@ export async function POST(req: NextRequest) {
       select: { id: true, name: true, variant_name: true, hpp: true },
     });
     const catalogIndex = new Map<string, CatalogItem[]>();
-    for (const it of items) {
-      const key = it.name.trim().toLowerCase();
-      const entry: CatalogItem = { id: it.id, variant: (it.variant_name ?? '').trim().toLowerCase(), hpp: it.hpp };
+    const addKey = (key: string, entry: CatalogItem) => {
       const bucket = catalogIndex.get(key);
       if (bucket) bucket.push(entry);
       else catalogIndex.set(key, [entry]);
+    };
+    for (const it of items) {
+      const variant = norm(it.variant_name ?? '');
+      const entry: CatalogItem = { id: it.id, variant, hpp: it.hpp };
+      // Index under name alone and under "name variant" so the export's split
+      // Items/Variant columns resolve back to the folded catalog name.
+      addKey(norm(it.name), entry);
+      if (it.variant_name) addKey(norm(`${it.name} ${it.variant_name}`), entry);
     }
 
     // Group rows by receipt so each transaction is all-or-nothing: a receipt with

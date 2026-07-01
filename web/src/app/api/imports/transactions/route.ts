@@ -137,9 +137,15 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
+      // Loyverse memakai Receipt Number yang SAMA untuk baris Refund dan
+      // penjualan aslinya. `external_ref` unik, jadi baris Refund diberi suffix
+      // agar keduanya tetap masuk (payment tetap pakai nomor asli sebagai induk).
+      const isRefund = row.eventType === 'Refund';
+      const externalRef = isRefund ? `${row.receiptNumber}-REFUND` : row.receiptNumber;
+
       // Idempotency: skip if external_ref already exists
       const existing = await prisma.transactions.findFirst({
-        where: { external_ref: row.receiptNumber },
+        where: { external_ref: externalRef },
         select: { id: true },
       });
       if (existing) {
@@ -168,7 +174,6 @@ export async function POST(req: NextRequest) {
       const transactionId = `IMP-${dateStr}-${suffix}`;
 
       // Determine status
-      const isRefund = row.eventType === 'Refund';
       const status = isRefund ? 'void' : 'completed';
 
       // Notes: store original items string as reference
@@ -178,7 +183,7 @@ export async function POST(req: NextRequest) {
         await prisma.transactions.create({
           data: {
             id: transactionId,
-            external_ref: row.receiptNumber,
+            external_ref: externalRef,
             outlet: row.outlet || null,
             subtotal: row.grossSales,
             discount_amount: row.discounts,
