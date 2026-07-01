@@ -183,13 +183,14 @@ export function ProductPanel({ onPick }: Props) {
             const isOut = item.stock <= 0;
             const price = typeof item.price === 'number' ? item.price : Number(item.price);
             return (
-              <li key={item.id} style={{ minWidth: 0 }}>
+              <li key={item.id} style={{ minWidth: 0, height: '100%' }}>
                 <button
                   type="button"
                   disabled={isOut}
                   onClick={() => onPick(item)}
                   style={{
                     width: '100%',
+                    height: '100%',
                     minHeight: viewMode === 'grid' ? '100px' : 'auto',
                     textAlign: 'left',
                     display: 'flex',
