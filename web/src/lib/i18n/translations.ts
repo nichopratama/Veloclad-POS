@@ -27,6 +27,7 @@ export const translations = {
       discounts: 'Discounts',
       receipts: 'Receipts',
       userManagement: 'User Management',
+      importData: 'Import Data',
     },
     header: {
       logout: 'Sign Out',
@@ -519,6 +520,7 @@ export const translations = {
       discounts: 'Diskon',
       receipts: 'Struk & Resi',
       userManagement: 'Manajemen Pengguna',
+      importData: 'Import Data',
     },
     header: {
       logout: 'Keluar',

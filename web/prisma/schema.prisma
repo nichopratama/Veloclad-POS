@@ -326,6 +326,7 @@ model transactions {
   event_type          String?             @db.VarChar(255)
   reason_of_refund    String?
   idempotency_key     String?             @unique(map: "transactions_idempotency_key_unique") @db.VarChar(255)
+  external_ref        String?             @unique(map: "transactions_external_ref_unique") @db.VarChar(255)
   transaction_items   transaction_items[]
   customers           customers?          @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "transactions_customer_id_foreign")
   payment_types       payment_types?      @relation(fields: [payment_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "transactions_payment_type_id_foreign")
