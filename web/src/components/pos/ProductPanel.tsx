@@ -217,6 +217,26 @@ export function ProductPanel({ onPick }: Props) {
                     <span title={item.name} style={{ fontWeight: 600, fontSize: 'var(--text-sm)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3 }}>
                       {item.name}
                     </span>
+                    {item.variant_name && (
+                      <span style={{
+                        display: 'inline-block',
+                        alignSelf: 'flex-start',
+                        fontSize: 'var(--text-xs)',
+                        fontWeight: 500,
+                        color: 'var(--color-accent)',
+                        background: 'color-mix(in srgb, var(--color-accent) 10%, transparent)',
+                        border: '1px solid color-mix(in srgb, var(--color-accent) 30%, transparent)',
+                        borderRadius: '4px',
+                        padding: '1px 5px',
+                        lineHeight: 1.5,
+                        maxWidth: '100%',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {item.variant_name}
+                      </span>
+                    )}
                     <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
                       {item.code}
                     </span>

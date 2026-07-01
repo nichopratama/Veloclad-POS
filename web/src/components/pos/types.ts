@@ -8,6 +8,7 @@ export type PosItem = {
   code: string;
   price: string | number;
   stock: number;
+  variant_name: string | null;
 };
 
 export type Customer = {

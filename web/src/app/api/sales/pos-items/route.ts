@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
           OR: [
             { name: { contains: search, mode: 'insensitive' } },
             { code: { contains: search, mode: 'insensitive' } },
+            { variant_name: { contains: search, mode: 'insensitive' } },
           ],
         },
         take: limit,
